@@ -59,6 +59,28 @@ module IDreg(
     wire [ 3:0] op_21_20_d;
     wire [31:0] op_19_15_d;
 
+//slti、sltui、andi、ori、xori、sll、srl、sra、pcaddu12i
+    wire        inst_slti;
+    wire        inst_sltiu;
+    wire        inst_andi;
+    wire        inst_ori;
+    wire        inst_xori;
+
+    wire        inst_sll_w;
+    wire        inst_srl_w;
+    wire        inst_sra_w;
+    wire        inst_pcaddu12i;
+
+//mul.w、mulh.w、mulh.wu、div.w、mod.w、div.wu、mod.wu
+    wire        inst_mul_w;
+    wire        inst_mulh_w;
+    wire        inst_mulh_wu;
+    wire        inst_div_w;
+    wire        inst_mod_w;
+    wire        inst_div_wu;
+    wire        inst_mod_wu;
+
+//oral wires
     wire        inst_add_w;
     wire        inst_sub_w;
     wire        inst_slt;
@@ -171,6 +193,24 @@ module IDreg(
     decoder_4_16 u_dec1(.in(op_25_22 ), .out(op_25_22_d ));
     decoder_2_4  u_dec2(.in(op_21_20 ), .out(op_21_20_d ));
     decoder_5_32 u_dec3(.in(op_19_15 ), .out(op_19_15_d ));
+
+//slti、sltui、andi、ori、xori、sll、srl、sra、pcaddu12i
+    assign inst_slti        = op_31_26_d[6'h00] & op_25_22_d[4'h8];
+    assign inst_sltiu       = op_31_26_d[6'h00] & op_25_22_d[4'h9];
+    assign inst_andi        = op_31_26_d[6'h00] & op_25_22_d[4'hd];
+    assign inst_ori         = op_31_26_d[6'h00] & op_25_22_d[4'he];
+    assign inst_xori        = op_31_26_d[6'h00] & op_25_22_d[4'hf];
+
+    assign inst_sll_w       = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h1] & op_19_15_d[5'h0e];
+    assign inst_srl_w       = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h1] & op_19_15_d[5'h0f];
+    assign inst_sra_w       = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h1] & op_19_15_d[5'h10];
+    assign inst_pcaddu12i   = op_31_26_d[6'h07] & ~ds_inst[25];
+//mul.w、mulh.w、mulh.wu、div.w、mod.w、div.wu、mod.wu
+
+
+
+
+
 
     assign inst_add_w  = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h1] & op_19_15_d[5'h00];
     assign inst_sub_w  = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h1] & op_19_15_d[5'h02];
