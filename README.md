@@ -14,10 +14,10 @@
 2. 添加乘除运算类指令mul.w、mulh.w、mulh.wu、div.w、mod.w、div.wu、mod.wu。
 3. 运行 exp10 对应的 func，要求成功通过仿真和上板验证。
 
-## team member's work fen pei:
+## team member's work allcation:
 
-phk: decode
-
-rhl:
-
-zc:
+| name | job |
+| ---- | --- |
+| phk  | decode in IDreg.v  |
+| rhl  | mul & div in EXreg.v |
+| zc   | alu in alu.v     |
