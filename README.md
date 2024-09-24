@@ -2,6 +2,10 @@
 
 ## using phk's pipeline cpu
 
+## Notice
+
+除法器每个人都要使用IP核生成
+
 ## todo
 
 本实践任务要求在实践任务9实现的CPU基础上完成以下工作：
