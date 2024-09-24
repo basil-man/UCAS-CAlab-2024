@@ -20,4 +20,4 @@ phk: decode
 
 rhl:
 
-zc:
+zc: alu
