@@ -54,6 +54,32 @@ module EXreg(
         end
     end
 
+    // 乘法器
+    wire [63:0] unsigned_prod, signed_prod;
+    assign unsigned_prod = src1 * src2;
+    assign signed_prod = $signed(src1) * $signed(src2);
+
+    //除法器
+    wire [31:0] signed_quot;
+
+    mydiv mydiv
+    (
+        .s_axis_divisor_tdata(),
+        .s_axis_divisor_tready(),
+        .s_axis_divisor_tvalid(),
+
+        .s_axis_dividend_tdata(),
+        .s_axis_dividend_tready(),
+        .s_axis_dividend_tvalid(),
+
+        .m_axis_dont_tdata(),
+        .m_axis_dont_valid(),
+    );
+
+
+
+
+
     alu u_alu(
         .alu_op     (es_alu_op    ),
         .alu_src1   (es_alu_src1  ),
