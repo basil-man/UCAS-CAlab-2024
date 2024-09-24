@@ -16,8 +16,8 @@
 
 ## team member's work allcation:
 
-phk: decode
-
-rhl:
-
-zc: alu
+| name | job |
+| ---- | --- |
+| phk  | decode in IDreg.v  |
+| rhl  | mul & div in EXreg.v |
+| zc   | alu in alu.v     |
