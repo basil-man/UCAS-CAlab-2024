@@ -80,6 +80,19 @@ module IDreg(
     wire        inst_div_wu;
     wire        inst_mod_wu;
 
+// blt, bge, bltu, bgeu
+    wire inst_blt;
+    wire inst_bge;
+    wire inst_bltu;
+    wire inst_bgeu;
+
+// ld.b, ld.h, ld.bu, st.b, st.h
+    wire inst_ld_b;
+    wire inst_ld_h;
+    wire inst_ld_bu;
+    wire inst_st_b;
+    wire inst_st_h;
+
 //oral wires
     wire        inst_add_w;
     wire        inst_sub_w;
@@ -194,7 +207,7 @@ module IDreg(
     decoder_2_4  u_dec2(.in(op_21_20 ), .out(op_21_20_d ));
     decoder_5_32 u_dec3(.in(op_19_15 ), .out(op_19_15_d ));
 
-//slti、sltui、andi、ori、xori、sll、srl、sra、pcaddu12i
+// slti, sltui, andi, ori, xori, sll, srl, sra, pcaddu12i
     assign inst_slti        = op_31_26_d[6'h00] & op_25_22_d[4'h8];
     assign inst_sltiu       = op_31_26_d[6'h00] & op_25_22_d[4'h9];
     assign inst_andi        = op_31_26_d[6'h00] & op_25_22_d[4'hd];
@@ -205,13 +218,30 @@ module IDreg(
     assign inst_srl_w       = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h1] & op_19_15_d[5'h0f];
     assign inst_sra_w       = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h1] & op_19_15_d[5'h10];
     assign inst_pcaddu12i   = op_31_26_d[6'h07] & ~ds_inst[25];
-//mul.w、mulh.w、mulh.wu、div.w、mod.w、div.wu、mod.wu
+
+// mul.w, mulh.w, mulh.wu, div.w, mod.w, div.wu, mod.wu
+    assign inst_mul_w       = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h1] & op_19_15_d[5'h18];
+    assign inst_mulh_w      = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h1] & op_19_15_d[5'h19];
+    assign inst_mulh_wu     = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h1] & op_19_15_d[5'h1a];
+    assign inst_div_w       = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h2] & op_19_15_d[5'h00];
+    assign inst_div_wu      = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h2] & op_19_15_d[5'h02];
+    assign inst_mod_wu      = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h2] & op_19_15_d[5'h03];  
+/
+// blt, bge, bltu, bgeu
+    assign inst_blt         = op_31_26_d[6'h18];
+    assign inst_bge         = op_31_26_d[6'h19];
+    assign inst_bltu        = op_31_26_d[6'h1a];
+    assign inst_bgeu        = op_31_26_d[6'h1b];
+
+// ld.b, ld.h, ld.bu, st.b, st.h
+    assign inst_ld_b        = op_31_26_d[6'h0a] & op_25_22_d[4'h0];
+    assign inst_ld_h        = op_31_26_d[6'h0a] & op_25_22_d[4'h1];
+    assign inst_ld_bu       = op_31_26_d[6'h0a] & op_25_22_d[4'h8];
+    assign inst_st_b        = op_31_26_d[6'h0a] & op_25_22_d[4'h4];
+    assign inst_st_h        = op_31_26_d[6'h0a] & op_25_22_d[4'h5];
 
 
-
-
-
-
+//oral code
     assign inst_add_w  = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h1] & op_19_15_d[5'h00];
     assign inst_sub_w  = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h1] & op_19_15_d[5'h02];
     assign inst_slt    = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h1] & op_19_15_d[5'h04];
