@@ -61,10 +61,10 @@ module IDreg(
     wire [31:0] op_19_15_d;
 
     //alu
-    wire [11:0] ds_alu_op     ;
-    wire [31:0] ds_alu_src1   ;
-    wire [31:0] ds_alu_src2   ;
-    wire [31:0] ds_alu_result ;
+    wire [11:0] ds_branch_alu_op     ;
+    wire [31:0] ds_branch_alu_src1   ;
+    wire [31:0] ds_branch_alu_src2   ;
+    wire [31:0] ds_branch_alu_result ;
 
     wire is_branch_unsigned,is_branch;
 
@@ -189,18 +189,18 @@ module IDreg(
         end
     end
 
-    alu ds_alu(
+    alu ds_branch_alu(
         .clk        (clk        ),
-        .alu_op     (ds_alu_op  ),
-        .alu_src1   (ds_alu_src1),
-        .alu_src2   (ds_alu_src2),
-        .alu_result (ds_alu_result)
+        .alu_op     (ds_branch_alu_op  ),
+        .alu_src1   (ds_branch_alu_src1),
+        .alu_src2   (ds_branch_alu_src2),
+        .alu_result (ds_branch_alu_result)
     );
 
     assign is_branch_unsigned = inst_bltu || inst_bgeu;
-    assign ds_alu_src1 = rj_value ;
-    assign ds_alu_src2 = rkd_value;
-    assign ds_alu_op = is_branch_unsigned ? `ALUOP_SLTU : `ALUOP_SLT;
+    assign ds_branch_alu_src1 = rj_value ;
+    assign ds_branch_alu_src2 = rkd_value;
+    assign ds_branch_alu_op = is_branch_unsigned ? `ALUOP_SLTU : `ALUOP_SLT;
 
     assign rj_eq_rd = (rj_value == rkd_value);
     assign br_taken = (inst_beq  &&  rj_eq_rd
@@ -208,10 +208,10 @@ module IDreg(
                     || inst_jirl
                     || inst_bl
                     || inst_b
-                    || inst_blt  && ds_alu_result[0]
-                    || inst_bge  && !ds_alu_result[0]
-                    || inst_bltu && ds_alu_result[0]
-                    || inst_bgeu && !ds_alu_result[0]
+                    || inst_blt  &&  ds_branch_alu_result[0]
+                    || inst_bge  && !ds_branch_alu_result[0]
+                    || inst_bltu &&  ds_branch_alu_result[0]
+                    || inst_bgeu && !ds_branch_alu_result[0]
                     ) && ds_valid;
 
     assign is_branch = inst_beq || inst_bne || inst_bl || inst_b || inst_blt || inst_bge || inst_bltu || inst_bgeu;
