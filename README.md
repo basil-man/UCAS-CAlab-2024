@@ -2,11 +2,9 @@
 
 ## 传参约定
 
-由于潘泓锟不干活，因此做如下传参约定
-
 从ID到EXE传参约定：
 
-1. src1存放除数，src2存放被除数
+1. src1存放除数，src2存放被除数(参考手册默认约定)
 2. 扩展aluop，传递乘除模指令信号，具体为```assign new_aluop={mul.w,mulh.w,mulh.wu,div.w,mod.w,div.wu,mod.wu,alu_op};```
 
 ## using phk's pipeline cpu

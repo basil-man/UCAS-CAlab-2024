@@ -9,7 +9,7 @@ module IDreg(
     // ds and es interface
     input  wire                   es_allowin,
     output wire                   ds_to_es_valid,
-    output wire [147:0] ds_to_es_bus,
+    output wire [154:0] ds_to_es_bus, // from 147bit -> 154bit
     // signals to determine whether confict occurs
     input  wire [37:0] ws_rf_collect, // {ws_rf_we, ws_rf_waddr, ws_rf_wdata}
     input  wire [37:0] ms_rf_collect, // {ms_rf_we, ms_rf_waddr, ms_rf_wdata}
@@ -22,8 +22,9 @@ module IDreg(
     wire        ds_stall;
 
     wire [11:0] ds_alu_op;
-    wire [31:0] ds_alu_src1   ;
-    wire [31:0] ds_alu_src2   ;
+    wire [18:0] new_alu_op; // add new_alu_op
+    wire [31:0] ds_alu_src1;
+    wire [31:0] ds_alu_src2;
     wire        ds_src1_is_pc;
     wire        ds_src2_is_imm;
     wire        ds_res_from_mem;
@@ -277,6 +278,8 @@ module IDreg(
     assign ds_alu_op[10] = inst_srai_w;
     assign ds_alu_op[11] = inst_lu12i_w;
 
+    assign new_alu_op = {inst_mul_w, inst_mulh_w, inst_mulh_wu, inst_div_w, inst_mod_w, inst_div_wu, inst_mod_wu, ds_alu_op};
+
     assign need_ui5   =  inst_slli_w | inst_srli_w | inst_srai_w;
     assign need_si12  =  inst_addi_w | inst_ld_w | inst_st_w;
     assign need_si16  =  inst_jirl | inst_beq | inst_bne;
@@ -354,6 +357,15 @@ module IDreg(
                         hazard_r2_mem ? ms_rf_wdata:
                         hazard_r2_wb  ? ws_rf_wdata : rf_rdata2; 
 
-    assign ds_to_es_bus =   {ds_alu_op, ds_res_from_mem, ds_alu_src1, ds_alu_src2,
-                            ds_mem_we, ds_rf_we, ds_rf_waddr, ds_rkd_value, ds_pc};
+    assign ds_to_es_bus =   {
+                            new_alu_op, // ds_alu_op (12bit) -> new_alu_op (19bit)
+                            ds_res_from_mem,
+                            ds_alu_src1,
+                            ds_alu_src2,
+                            ds_mem_we,
+                            ds_rf_we,
+                            ds_rf_waddr,
+                            ds_rkd_value,
+                            ds_pc
+                            };
 endmodule
