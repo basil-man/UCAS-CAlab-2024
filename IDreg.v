@@ -60,6 +60,17 @@ module IDreg(
     wire [ 3:0] op_21_20_d;
     wire [31:0] op_19_15_d;
 
+    //alu
+    wire [11:0] ds_alu_op     ;
+    wire [31:0] ds_alu_src1   ;
+    wire [31:0] ds_alu_src2   ;
+    wire [31:0] ds_alu_result ;
+
+    wire is_branch_unsigned,is_branch;
+
+    `define ALUOP_SLT = (12'd1 << 2)
+    `define ALUOP_SLTU = (12'd2 << 3)
+
 //slti、sltui、andi、ori、xori、sll、srl、sra、pcaddu12i
     wire        inst_slti;
     wire        inst_sltiu;
@@ -178,14 +189,33 @@ module IDreg(
         end
     end
 
+    alu ds_alu(
+        .clk        (clk        ),
+        .alu_op     (ds_alu_op  ),
+        .alu_src1   (ds_alu_src1),
+        .alu_src2   (ds_alu_src2),
+        .alu_result (ds_alu_result)
+    );
+
+    assign is_branch_unsigned = inst_bltu || inst_bgeu;
+    assign ds_alu_src1 = rj_value ;
+    assign ds_alu_src2 = rkd_value;
+    assign ds_alu_op = is_branch_unsigned ? `ALUOP_SLTU : `ALUOP_SLT;
+
     assign rj_eq_rd = (rj_value == rkd_value);
     assign br_taken = (inst_beq  &&  rj_eq_rd
                     || inst_bne  && !rj_eq_rd
                     || inst_jirl
                     || inst_bl
                     || inst_b
+                    || inst_blt  && ds_alu_result[0]
+                    || inst_bge  && !ds_alu_result[0]
+                    || inst_bltu && ds_alu_result[0]
+                    || inst_bgeu && !ds_alu_result[0]
                     ) && ds_valid;
-    assign br_target = (inst_beq || inst_bne || inst_bl || inst_b) ? (ds_pc + br_offs) :
+
+    assign is_branch = inst_beq || inst_bne || inst_bl || inst_b || inst_blt || inst_bge || inst_bltu || inst_bgeu;
+    assign br_target = (is_branch ) ? (ds_pc + br_offs) :
                                                    /*inst_jirl*/ (rj_value + jirl_offs);
     assign br_collect = {br_taken, br_target}; 
     

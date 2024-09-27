@@ -27,4 +27,4 @@
 | ---- | --- |
 | phk  | decode in IDreg.v  |
 | rhl  | mul & div in EXreg.v |
-| zc   | alu in alu.v     |
+| zc   | branch in IDreg.v     |
