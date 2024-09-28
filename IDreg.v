@@ -1,3 +1,6 @@
+`define ALUOP_SLT   = (12'd1 << 2)
+`define ALUOP_SLTU  = (12'd2 << 3)
+
 module IDreg(
     input  wire          clk,
     input  wire          resetn,
@@ -67,9 +70,6 @@ module IDreg(
     wire [31:0] ds_branch_alu_result ;
 
     wire is_branch_unsigned,is_branch;
-
-    `define ALUOP_SLT = (12'd1 << 2)
-    `define ALUOP_SLTU = (12'd2 << 3)
 
 //slti、sltui、andi、ori、xori、sll、srl、sra、pcaddu12i
     wire        inst_slti;
@@ -169,7 +169,7 @@ module IDreg(
     assign ds_ready_go      = ~ds_stall;
     assign ds_allowin       = ~ds_valid | ds_ready_go & es_allowin; 
     assign ds_stall         = es_res_from_mem & (hazard_r1_exe & need_r1 | hazard_r2_exe & need_r2);    
-    assign ds_to_es_valid      = ds_valid & ds_ready_go;
+    assign ds_to_es_valid   = ds_valid & ds_ready_go;
     
     always @(posedge clk) begin
         if (~resetn) begin
@@ -191,29 +191,29 @@ module IDreg(
     end
 
     alu ds_branch_alu(
-        .clk        (clk        ),
-        .alu_op     (ds_branch_alu_op  ),
-        .alu_src1   (ds_branch_alu_src1),
-        .alu_src2   (ds_branch_alu_src2),
-        .alu_result (ds_branch_alu_result)
+        .clk        (clk                    ),
+        .alu_op     (ds_branch_alu_op       ),
+        .alu_src1   (ds_branch_alu_src1     ),
+        .alu_src2   (ds_branch_alu_src2     ),
+        .alu_result (ds_branch_alu_result   )
     );
 
-    assign is_branch_unsigned = inst_bltu || inst_bgeu;
-    assign ds_branch_alu_src1 = rj_value ;
-    assign ds_branch_alu_src2 = rkd_value;
-    assign ds_branch_alu_op = is_branch_unsigned ? `ALUOP_SLTU : `ALUOP_SLT;
+    assign is_branch_unsigned   = inst_bltu || inst_bgeu;
+    assign ds_branch_alu_src1   = rj_value ;
+    assign ds_branch_alu_src2   = rkd_value;
+    assign ds_branch_alu_op     = is_branch_unsigned ? `ALUOP_SLTU : `ALUOP_SLT;
 
-    assign rj_eq_rd = (rj_value == rkd_value);
-    assign br_taken = (inst_beq  &&  rj_eq_rd
-                    || inst_bne  && !rj_eq_rd
-                    || inst_jirl
-                    || inst_bl
-                    || inst_b
-                    || inst_blt  &&  ds_branch_alu_result[0]
-                    || inst_bge  && !ds_branch_alu_result[0]
-                    || inst_bltu &&  ds_branch_alu_result[0]
-                    || inst_bgeu && !ds_branch_alu_result[0]
-                    ) && ds_valid;
+    assign rj_eq_rd =   (rj_value == rkd_value);
+    assign br_taken =   (inst_beq  &&  rj_eq_rd
+                        || inst_bne  && !rj_eq_rd
+                        || inst_jirl
+                        || inst_bl
+                        || inst_b
+                        || inst_blt  &&  ds_branch_alu_result[0]
+                        || inst_bge  && !ds_branch_alu_result[0]
+                        || inst_bltu &&  ds_branch_alu_result[0]
+                        || inst_bgeu && !ds_branch_alu_result[0]
+                        ) && ds_valid;
 
     assign is_branch = inst_beq || inst_bne || inst_bl || inst_b || inst_blt || inst_bge || inst_bltu || inst_bgeu;
     assign br_target = (is_branch ) ? (ds_pc + br_offs) :
@@ -338,21 +338,21 @@ module IDreg(
 
     assign ds_src1_is_pc    = inst_jirl | inst_bl | inst_pcaddu12i;
 
-    assign ds_src2_is_imm   = inst_slli_w |
-                        inst_srli_w |
-                        inst_srai_w |
-                        inst_addi_w |
-                        inst_ld_w   |
-                        inst_st_w   |
-                        inst_lu12i_w|
-                        inst_jirl   |
-                        inst_bl                             
-                        inst_slti   |
-                        inst_sltui  |
-                        inst_andi   |
-                        inst_ori    |
-                        inst_xori   |
-                        inst_pcaddu12i;
+    assign ds_src2_is_imm   =   inst_slli_w |
+                                inst_srli_w |
+                                inst_srai_w |
+                                inst_addi_w |
+                                inst_ld_w   |
+                                inst_st_w   |
+                                inst_lu12i_w|
+                                inst_jirl   |
+                                inst_bl     |                             
+                                inst_slti   |
+                                inst_sltui  |
+                                inst_andi   |
+                                inst_ori    |
+                                inst_xori   |
+                                inst_pcaddu12i;
 
     assign ds_alu_src1 = ds_src1_is_pc  ? ds_pc[31:0] : rj_value;
     assign ds_alu_src2 = ds_src2_is_imm ? imm : rkd_value;
@@ -360,14 +360,14 @@ module IDreg(
     assign ds_rkd_value     = rkd_value;
     assign ds_res_from_mem  = inst_ld_w;
     assign dst_is_r1        = inst_bl;
-    assign gr_we            = ~inst_st_w & ~inst_beq & ~inst_bne & ~inst_b & ds_valid; 
-    assign ds_mem_we        = inst_st_w & ds_valid;   
+    assign gr_we            = ~inst_st_w & ~inst_beq & ~inst_bne & ~inst_b & ds_valid;
+    assign ds_mem_we        = inst_st_w & ds_valid;
     assign dest             = dst_is_r1 ? 5'd1 : rd;
 
     assign rf_raddr1    = rj;
     assign rf_raddr2    = src_reg_is_rd ? rd :rk;
-    assign ds_rf_we     = gr_we ; 
-    assign ds_rf_waddr  = dest; 
+    assign ds_rf_we     = gr_we;
+    assign ds_rf_waddr  = dest;
 
     assign {ws_rf_we, ws_rf_waddr, ws_rf_wdata} = ws_rf_collect;
     assign {ms_rf_we, ms_rf_waddr, ms_rf_wdata} = ms_rf_collect;
@@ -384,12 +384,12 @@ module IDreg(
         .wdata  (ws_rf_wdata)
     );
     
-    assign hazard_r1_wb   = (|rf_raddr1) & (rf_raddr1 == ws_rf_waddr) & ws_rf_we;
-    assign hazard_r2_wb   = (|rf_raddr2) & (rf_raddr2 == ws_rf_waddr) & ws_rf_we;
-    assign hazard_r1_mem  = (|rf_raddr1) & (rf_raddr1 == ms_rf_waddr) & ms_rf_we;
-    assign hazard_r2_mem  = (|rf_raddr2) & (rf_raddr2 == ms_rf_waddr) & ms_rf_we;
-    assign hazard_r1_exe  = (|rf_raddr1) & (rf_raddr1 == es_rf_waddr) & es_rf_we;
-    assign hazard_r2_exe  = (|rf_raddr2) & (rf_raddr2 == es_rf_waddr) & es_rf_we;
+    assign hazard_r1_wb     = (|rf_raddr1) & (rf_raddr1 == ws_rf_waddr) & ws_rf_we;
+    assign hazard_r2_wb     = (|rf_raddr2) & (rf_raddr2 == ws_rf_waddr) & ws_rf_we;
+    assign hazard_r1_mem    = (|rf_raddr1) & (rf_raddr1 == ms_rf_waddr) & ms_rf_we;
+    assign hazard_r2_mem    = (|rf_raddr2) & (rf_raddr2 == ms_rf_waddr) & ms_rf_we;
+    assign hazard_r1_exe    = (|rf_raddr1) & (rf_raddr1 == es_rf_waddr) & es_rf_we;
+    assign hazard_r2_exe    = (|rf_raddr2) & (rf_raddr2 == es_rf_waddr) & es_rf_we;
     assign need_r1          = ~ds_src1_is_pc & (|ds_alu_op);
     assign need_r2          = ~ds_src2_is_imm & (|ds_alu_op);
     
