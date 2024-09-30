@@ -1,5 +1,18 @@
 # prj3 exp10 repo
 
+## style
+
+use extension ```SystemVerilog and Verilog Formatter```
+
+#### Command Line Arguments
+
+```sh
+  Command Line Arguments:
+  --indentation_spaces=4 --named_port_alignment=align  --ort_declarations_alignment=align --module_net_variable_alignment=align
+  Verible Build:
+  win64
+```
+
 ## 传参约定
 
 从ID到EXE传参约定：
