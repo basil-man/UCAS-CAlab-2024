@@ -38,7 +38,7 @@ module mycpu_top(
 
     wire [32:0] br_collect;
     wire [63:0] fs_to_ds_bus;
-    wire [147:0] ds_to_es_bus;
+    wire [154:0] ds_to_es_bus;
 
 
     IFreg my_ifReg(

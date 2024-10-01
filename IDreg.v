@@ -12,7 +12,7 @@ module IDreg(
     // ds and es interface
     input  wire                   es_allowin,
     output wire                   ds_to_es_valid,
-    output wire [154:0] ds_to_es_bus, // from 147bit -> 154bit
+    output wire [154:0] ds_to_es_bus, // from 148bit -> 155bit (add new_alu_op)
     // signals to determine whether confict occurs
     input  wire [37:0] ws_rf_collect, // {ws_rf_we, ws_rf_waddr, ws_rf_wdata}
     input  wire [37:0] ms_rf_collect, // {ms_rf_we, ms_rf_waddr, ms_rf_wdata}
@@ -73,7 +73,7 @@ module IDreg(
 
 //slti、sltui、andi、ori、xori、sll、srl、sra、pcaddu12i
     wire        inst_slti;
-    wire        inst_sltiu;
+    wire        inst_sltui;
     wire        inst_andi;
     wire        inst_ori;
     wire        inst_xori;
@@ -191,7 +191,6 @@ module IDreg(
     end
 
     alu ds_branch_alu(
-        .clk        (clk                    ),
         .alu_op     (ds_branch_alu_op       ),
         .alu_src1   (ds_branch_alu_src1     ),
         .alu_src2   (ds_branch_alu_src2     ),
@@ -201,7 +200,7 @@ module IDreg(
     assign is_branch_unsigned   = inst_bltu || inst_bgeu;
     assign ds_branch_alu_src1   = rj_value ;
     assign ds_branch_alu_src2   = rkd_value;
-    assign ds_branch_alu_op     = is_branch_unsigned ? `ALUOP_SLTU : `ALUOP_SLT;
+    assign ds_branch_alu_op     = is_branch_unsigned ? (12'd2 << 3) : (12'd1 << 2);
 
     assign rj_eq_rd =   (rj_value == rkd_value);
     assign br_taken =   (inst_beq  &&  rj_eq_rd
@@ -241,7 +240,7 @@ module IDreg(
 
 // slti, sltui, andi, ori, xori, sll, srl, sra, pcaddu12i
     assign inst_slti        = op_31_26_d[6'h00] & op_25_22_d[4'h8];
-    assign inst_sltiu       = op_31_26_d[6'h00] & op_25_22_d[4'h9];
+    assign inst_sltui       = op_31_26_d[6'h00] & op_25_22_d[4'h9];
     assign inst_andi        = op_31_26_d[6'h00] & op_25_22_d[4'hd];
     assign inst_ori         = op_31_26_d[6'h00] & op_25_22_d[4'he];
     assign inst_xori        = op_31_26_d[6'h00] & op_25_22_d[4'hf];
@@ -257,8 +256,9 @@ module IDreg(
     assign inst_mulh_wu     = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h1] & op_19_15_d[5'h1a];
     assign inst_div_w       = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h2] & op_19_15_d[5'h00];
     assign inst_div_wu      = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h2] & op_19_15_d[5'h02];
+    assign inst_mod_w       = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h2] & op_19_15_d[5'h01];  
     assign inst_mod_wu      = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h2] & op_19_15_d[5'h03];  
-/
+
 // blt, bge, bltu, bgeu
     assign inst_blt         = op_31_26_d[6'h18];
     assign inst_bge         = op_31_26_d[6'h19];

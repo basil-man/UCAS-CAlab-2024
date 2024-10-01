@@ -1,96 +1,173 @@
-module EXreg(
-    input  wire        clk,
-    input  wire        resetn,
+module EXreg (
+    input  wire         clk,
+    input  wire         resetn,
     // ds and es interface
-    output wire        es_allowin,
-    input  wire        ds_to_es_valid,
-    input  wire [147:0] ds_to_es_bus,
+    output wire         es_allowin,
+    input  wire         ds_to_es_valid,
+    input  wire [154:0] ds_to_es_bus,    // from 148bit -> 155bit (add new_alu_op)
     // ex and mem state interface
-    input  wire        ms_allowin,
-    output wire [38:0] es_rf_collect, // {es_res_from_mem, es_rf_we, es_rf_waddr, es_alu_result}
-    output wire        es_to_ms_valid,
-    output reg  [31:0] es_pc,    
+    input  wire         ms_allowin,
+    output wire [ 38:0] es_rf_collect,   // {es_res_from_mem, es_rf_we, es_rf_waddr, es_alu_result}
+    output wire         es_to_ms_valid,
+    output reg  [ 31:0] es_pc,
     // data sram interface
-    output wire        data_sram_en,
-    output wire [ 3:0] data_sram_we,
-    output wire [31:0] data_sram_addr,
-    output wire [31:0] data_sram_wdata
+    output wire         data_sram_en,
+    output wire [  3:0] data_sram_we,
+    output wire [ 31:0] data_sram_addr,
+    output wire [ 31:0] data_sram_wdata
 );
+  wire inst_mul_w, inst_mulh_w, inst_mulh_wu, inst_div_w, inst_mod_w, inst_div_wu, inst_mod_wu; //mul & div insts
+  wire long_insts = inst_div_w | inst_mod_w | inst_div_wu | inst_mod_wu; //insts that need multi cycles, reserved for future extension
+  wire div_mod_insts=inst_div_w | inst_mod_w | inst_div_wu | inst_mod_wu; //div insts
+  wire mul_insts=inst_mul_w | inst_mulh_w | inst_mulh_wu; //mul insts
+  //mul & div results
+  wire [31:0]mul_result;
+  wire [31:0] div_result;
+  wire [31:0] mod_result;  
 
-    wire        es_ready_go;
-    reg         es_valid;
+  wire         es_ready_go;
+  reg          es_valid;
 
-    reg  [11:0] es_alu_op     ;
-    reg  [31:0] es_alu_src1   ;
-    reg  [31:0] es_alu_src2   ;
-    wire [31:0] es_alu_result ; 
-    reg  [31:0] es_rkd_value  ;
-    reg         es_res_from_mem;
-    reg         es_mem_we     ;
-    reg         es_rf_we      ;
-    reg  [4 :0] es_rf_waddr   ;
-    wire [31:0] es_mem_result ;
+  reg  [ 18:0] extend_es_alu_op;
+  wire [ 11:0] es_alu_op;
+  reg  [ 31:0] es_alu_src1;
+  reg  [ 31:0] es_alu_src2;
+  wire [ 31:0] es_alu_result;
+  reg  [ 31:0] es_rkd_value;
+  reg          es_res_from_mem;
+  reg          es_mem_we;
+  reg          es_rf_we;
+  reg  [4 : 0] es_rf_waddr;
+  wire [ 31:0] es_mem_result;
 
 
-    assign es_ready_go  = 1'b1;
-    assign es_allowin   = ~es_valid | es_ready_go & ms_allowin;     
-    assign es_to_ms_valid  = es_valid & es_ready_go;
-    
-    always @(posedge clk) begin
-        if (~resetn) begin
-            es_valid <= 1'b0;
-        end else if (es_allowin) begin
-            es_valid <= ds_to_es_valid; 
-        end
+  assign es_ready_go = long_insts ? reg_div_mod_done : 1'b1; //for further extension
+  assign es_allowin = ~es_valid | es_ready_go & ms_allowin;
+  assign es_to_ms_valid = es_valid & es_ready_go;
+
+  always @(posedge clk) begin
+    if (~resetn) begin
+      es_valid <= 1'b0;
+    end else if (es_allowin) begin
+      es_valid <= ds_to_es_valid;
     end
+  end
 
-    always @(posedge clk) begin
-        if (~resetn) begin
-            {es_alu_op, es_res_from_mem, es_alu_src1, es_alu_src2,
-             es_mem_we, es_rf_we, es_rf_waddr, es_rkd_value, es_pc} <= {148'b0};
-        end else if(ds_to_es_valid & es_allowin) begin
-            {es_alu_op, es_res_from_mem, es_alu_src1, es_alu_src2,
-             es_mem_we, es_rf_we, es_rf_waddr, es_rkd_value, es_pc} <= ds_to_es_bus;    
-        end
+  always @(posedge clk) begin
+    if (~resetn) begin
+      {extend_es_alu_op, es_res_from_mem, es_alu_src1, es_alu_src2,
+             es_mem_we, es_rf_we, es_rf_waddr, es_rkd_value, es_pc} <= {
+        155'b0
+      };
+    end else if (ds_to_es_valid & es_allowin) begin
+      {extend_es_alu_op, es_res_from_mem, es_alu_src1, es_alu_src2,
+             es_mem_we, es_rf_we, es_rf_waddr, es_rkd_value, es_pc} <= ds_to_es_bus;
     end
+  end
+  assign {inst_mul_w, inst_mulh_w, inst_mulh_wu, inst_div_w, inst_mod_w, inst_div_wu, inst_mod_wu, es_alu_op} = extend_es_alu_op;
+  // mul
+  wire [63:0] unsigned_prod, signed_prod;
+  assign unsigned_prod = es_alu_src1 * es_alu_src2;
+  assign signed_prod = $signed(es_alu_src1) * $signed(es_alu_src2);
+  assign mul_result = ({32{inst_mul_w}} & signed_prod[31:0])
+                  | ({32{inst_mulh_w}} & signed_prod[63:32])
+                  | ({32{inst_mulh_wu}} & unsigned_prod[63:32]);
+  // div
+  wire div_mod_done=((inst_div_w || inst_mod_w) && signed_dout_tvalid)||((inst_div_wu || inst_mod_wu) && unsigned_dout_tvalid);
+  reg reg_div_mod_done;
+  always @(posedge clk) begin
+    if (~resetn) begin
+      reg_div_mod_done <= 1'b0;
+    end else if (es_valid & es_allowin) begin
+      reg_div_mod_done <= 1'b0;
+    end else if (div_mod_done) begin
+      reg_div_mod_done <= 1'b1;
+    end
+  end
+  reg
+      signed_dividend_tvalid,
+      signed_divisor_tvalid,
+      unsigned_dividend_tvalid,
+      unsigned_divisor_tvalid;
+  reg valid_cnt;
+  always @(posedge clk) begin
+    if (~resetn) begin
+      valid_cnt <= 0;
+    end else if (es_valid & es_allowin) begin
+      valid_cnt <= 0;
+    end else if (div_mod_insts) begin
+      valid_cnt <= 1;
+    end
+  end
 
-    // 乘法器
-    wire [63:0] unsigned_prod, signed_prod;
-    assign unsigned_prod = src1 * src2;
-    assign signed_prod = $signed(src1) * $signed(src2);
+  //this always block can be separated for multi driven problem
+  always @(posedge clk) begin //valid signal for divider, only valid when both src1 and src2 are ready
+    if (~resetn||((signed_dividend_tvalid&&signed_dividend_tready&&signed_divisor_tready)||(unsigned_dividend_tvalid&&unsigned_dividend_tready&&unsigned_divisor_tready))) begin
+      //reset to zero when divider is ready or reset
+      signed_dividend_tvalid <= 1'b0;
+      signed_divisor_tvalid <= 1'b0;
+      unsigned_dividend_tvalid <= 1'b0;
+      unsigned_divisor_tvalid <= 1'b0;
+    end else if (div_mod_insts&&~valid_cnt) begin
+      signed_dividend_tvalid <= inst_div_w || inst_mod_w;
+      signed_divisor_tvalid <= inst_div_w || inst_mod_w;
+      unsigned_dividend_tvalid <= inst_div_wu || inst_mod_wu;
+      unsigned_divisor_tvalid <= inst_div_wu || inst_mod_wu;
+    end
+  end
+  wire [31:0] signed_quot;
+  wire [63:0] signed_divider_res;
+  wire [63:0] unsigned_divider_res;
+  mydiv mydiv_signed (
+      .aclk(clk),
 
-    //除法器
-    wire [31:0] signed_quot;
+      .s_axis_dividend_tdata (es_alu_src1),
+      .s_axis_dividend_tready(signed_dividend_tready),
+      .s_axis_dividend_tvalid(signed_dividend_tvalid),
 
-    mydiv mydiv
-    (
-        .s_axis_divisor_tdata(),
-        .s_axis_divisor_tready(),
-        .s_axis_divisor_tvalid(),
+      .s_axis_divisor_tdata (es_alu_src2),
+      .s_axis_divisor_tready(signed_divisor_tready),
+      .s_axis_divisor_tvalid(signed_divisor_tvalid),
 
-        .s_axis_dividend_tdata(),
-        .s_axis_dividend_tready(),
-        .s_axis_dividend_tvalid(),
+      .m_axis_dout_tdata (signed_divider_res),
+      .m_axis_dout_tvalid(signed_dout_tvalid)
+  );
+  mydiv_unsigned mydiv_unsigned (
+      .aclk(clk),
 
-        .m_axis_dont_tdata(),
-        .m_axis_dont_valid(),
-    );
+      .s_axis_dividend_tdata (es_alu_src1),
+      .s_axis_dividend_tready(unsigned_dividend_tready),
+      .s_axis_dividend_tvalid(unsigned_dividend_tvalid),
 
+      .s_axis_divisor_tdata (es_alu_src2),
+      .s_axis_divisor_tready(unsigned_divisor_tready),
+      .s_axis_divisor_tvalid(unsigned_divisor_tvalid),
 
+      .m_axis_dout_tdata (unsigned_divider_res),
+      .m_axis_dout_tvalid(unsigned_dout_tvalid)
+  );
+  //inst_div_w | inst_mod_w | inst_div_wu | inst_mod_wu
+  wire [31:0] div_mod_result=({32{inst_div_w}} & signed_divider_res[63:32])
+                  | ({32{inst_mod_w}} & signed_divider_res[31:0])
+                  | ({32{inst_div_wu}} & unsigned_divider_res[63:32])
+                  | ({32{inst_mod_wu}} & unsigned_divider_res[31:0]);
+  alu u_alu (
+      .alu_op    (es_alu_op),
+      .alu_src1  (es_alu_src1),
+      .alu_src2  (es_alu_src2),
+      .alu_result(es_alu_result)
+  );
 
+  wire [31:0] EX_result=mul_insts?mul_result:div_mod_insts?div_mod_result:es_alu_result;
 
-
-    alu u_alu(
-        .alu_op     (es_alu_op    ),
-        .alu_src1   (es_alu_src1  ),
-        .alu_src2   (es_alu_src2  ),
-        .alu_result (es_alu_result)
-    );
-    assign data_sram_en     = (es_res_from_mem || es_mem_we) && es_valid;
-    assign data_sram_we     = {4{es_mem_we & es_valid}};
-    assign data_sram_addr   = es_alu_result;
-    assign data_sram_wdata  = es_rkd_value;
-    
-    assign es_rf_collect = {es_res_from_mem & es_valid, es_rf_we & es_valid, es_rf_waddr, es_alu_result};    
+  assign data_sram_en = (es_res_from_mem || es_mem_we) && es_valid;
+  assign data_sram_we = {4{es_mem_we & es_valid}};
+  assign data_sram_addr = EX_result;
+  assign data_sram_wdata = es_rkd_value;
+  wire bus_we=es_rf_we & es_valid;
+  wire bus_es_res_from_mem=es_res_from_mem & es_valid;
+  assign es_rf_collect = {
+    bus_es_res_from_mem, bus_we, es_rf_waddr, EX_result
+  };
 
 endmodule
