@@ -17,7 +17,7 @@ use extension ```SystemVerilog and Verilog Formatter```
 
 从ID到EXE传参约定：
 
-1. src1存放除数，src2存放被除数(参考手册默认约定)
+1. ~~src1存放除数，src2存放被除数(参考手册默认约定)~~ src2存放除数，src1存放被除数（低能儿潘泓锟）
 2. 扩展aluop，传递乘除模指令信号，具体为```assign new_aluop={mul.w,mulh.w,mulh.wu,div.w,mod.w,div.wu,mod.wu,alu_op};```
 
 ## using phk's pipeline cpu
