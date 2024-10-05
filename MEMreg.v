@@ -13,7 +13,7 @@ module MEMreg(
     output reg  [31:0] ms_pc,
     // data sram interface
     input  wire [31:0] data_sram_rdata,    
-    input  wire [4:0]  mem_inst_bus,
+    input  wire [4:0]  mem_inst_bus
 );
     wire        ms_ready_go;
     reg         ms_valid;

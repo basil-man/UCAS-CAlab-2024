@@ -115,7 +115,7 @@ module mycpu_top(
         .ms_to_ws_valid(ms_to_ws_valid),
         .ms_pc(ms_pc),
 
-        .data_sram_rdata(data_sram_rdata)
+        .data_sram_rdata(data_sram_rdata),
 
         .mem_inst_bus(es_mem_inst_bus)
     ) ;

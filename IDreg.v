@@ -188,8 +188,8 @@ module IDreg(input wire clk,
             end
     end
     
-    assign rj_ge_rd          = $signed(rj_value) >          = $signed(rkd_value);
-    assign unsigned_rj_ge_rd = $unsigned(rj_value) > = $unsigned(rkd_value);
+    assign rj_ge_rd          = $signed(rj_value) >= $signed(rkd_value);
+    assign unsigned_rj_ge_rd = $unsigned(rj_value) >= $unsigned(rkd_value);
     
     assign rj_eq_rd = (rj_value == rkd_value);
     assign br_taken = (inst_beq   &  rj_eq_rd

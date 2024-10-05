@@ -55,6 +55,7 @@ module EXreg (input wire clk,
 
     wire inst_st_w,inst_st_h,inst_st_b,inst_st;
     wire [3:0] mem_we;
+    reg reg_div_mod_done;
     
     assign es_ready_go    = long_insts ? reg_div_mod_done : 1'b1; //for further extension
     assign es_allowin     = ~es_valid | es_ready_go & ms_allowin;
@@ -88,7 +89,7 @@ module EXreg (input wire clk,
     | ({32{inst_mulh_wu}} & unsigned_prod[63:32]);
     // div
     assign div_mod_done = ((inst_div_w || inst_mod_w) && signed_dout_tvalid)||((inst_div_wu || inst_mod_wu) && unsigned_dout_tvalid);
-    reg reg_div_mod_done;
+    
     always @(posedge clk) begin
         if (~resetn) begin
             reg_div_mod_done <= 1'b0;
@@ -178,12 +179,12 @@ module EXreg (input wire clk,
 
     assign {inst_st_w,inst_st_h,inst_st_b}= ds_mem_inst_bus[2:0];
     assign inst_st = inst_st_w | inst_st_h | inst_st_b;
-    assign mem_we = {4{inst_st_b}} & {4'b0001 << (alu_result[1:0] )} |
-                    {4{inst_st_h}} & {4'b0011 << {alu_result[1],1'b0}} |
+    assign mem_we = {4{inst_st_b}} & {4'b0001 << (es_alu_result[1:0] )} |
+                    {4{inst_st_h}} & {4'b0011 << {es_alu_result[1],1'b0}} |
                     {4{inst_st_w}} & 4'b1111;
-    assign st_wdata = {32{inst_st_b}} & {4{rkd_value[7:0]}}
-                    | {32{inst_st_h}} & {2{rkd_value[15:0]}}
-                    | {32{inst_st_w}} & {rkd_value[31:0]};
+    assign st_wdata = {32{inst_st_b}} & {4{es_rkd_value[7:0]}}
+                    | {32{inst_st_h}} & {2{es_rkd_value[15:0]}}
+                    | {32{inst_st_w}} & {es_rkd_value[31:0]};
 
     assign es_mem_inst_bus = ds_mem_inst_bus[7:3];
     // pass ld inst mem_inst_bus 
@@ -192,7 +193,7 @@ module EXreg (input wire clk,
     
     assign data_sram_en    = (es_res_from_mem || es_mem_en) && es_valid;
     assign data_sram_we    = mem_we & {4{es_valid}};
-    assign data_sram_addr  = {alu_result[31:2],2'b00};
+    assign data_sram_addr  = {es_alu_result[31:2],2'b00};
     assign data_sram_wdata = st_wdata;
     assign bus_we          = es_rf_we & es_valid;
     assign bus_es_res_from_mem = es_res_from_mem & es_valid;
