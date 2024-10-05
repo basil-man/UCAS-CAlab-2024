@@ -187,20 +187,23 @@ module IDreg(
         end
     end
 
-    assign rj_eq_rd =   (rj_value == rkd_value);
-    assign br_taken =   (inst_beq  &&  rj_eq_rd
-                        || inst_bne  && !rj_eq_rd
-                        || inst_jirl
-                        || inst_bl
-                        || inst_b
-                        || inst_blt  && 
-                        || inst_bge  && 
-                        || inst_bltu && 
-                        || inst_bgeu && 
-                        ) && ds_valid;
+    wire rj_ge_rd = $signed(rj_value) >= $signed(rkd_value);
+    wire unsigned_rj_ge_rd = $unsigned(rj_value) >= $unsigned(rkd_value);
 
-    assign is_branch = inst_beq || inst_bne || inst_bl || inst_b || inst_blt || inst_bge || inst_bltu || inst_bgeu;
-    assign br_target = (is_branch ) ? (ds_pc + br_offs) :
+    assign rj_eq_rd =   (rj_value == rkd_value);
+    assign br_taken =   (inst_beq  &  rj_eq_rd
+                        | inst_bne  & !rj_eq_rd
+                        | inst_jirl
+                        | inst_bl
+                        | inst_b
+                        | inst_blt  & ~rj_ge_rd
+                        | inst_bge  & rj_ge_rd
+                        | inst_bltu & ~rj_ge_rd
+                        | inst_bgeu & rj_ge_rd
+                        ) & ds_valid;
+
+    assign is_branch = inst_beq | inst_bne | inst_bl | inst_b | inst_blt | inst_bge | inst_bltu | inst_bgeu;
+    assign br_target = is_branch ? (ds_pc + br_offs) :
                                                    /*inst_jirl*/ (rj_value + jirl_offs);
     assign br_collect = {br_taken, br_target}; 
     
@@ -306,7 +309,7 @@ module IDreg(
 
     // assign imm = src2_is_4 ? 32'h4                      :
     //             need_si20 ? {i20[19:0], 12'b0}         :
-    // /*need_ui5 || need_si12*/{{20{i12[11]}}, i12[11:0]} ;
+    // /*need_ui5 | need_si12*/{{20{i12[11]}}, i12[11:0]} ;
 
     assign imm = {32{src2_is_4}} & 32'h4  |
                  {32{need_si20}} & {i20[19:0], 12'b0} |
@@ -345,7 +348,9 @@ module IDreg(
     assign ds_rkd_value     = rkd_value;
     assign ds_res_from_mem  = inst_ld_w;
     assign dst_is_r1        = inst_bl;
-    assign gr_we            = ~inst_st_w & ~inst_beq & ~inst_bne & ~inst_b & ds_valid;
+    assign gr_we         = ~inst_st_w & ~inst_st_h & ~inst_st_b & ~inst_beq  & 
+                           ~inst_bne  & ~inst_b    & ~inst_bge  & ~inst_bgeu & 
+                           ~inst_blt  & ~inst_bltu; 
     assign ds_mem_we        = inst_st_w & ds_valid;
     assign dest             = dst_is_r1 ? 5'd1 : rd;
 
