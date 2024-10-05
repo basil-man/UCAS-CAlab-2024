@@ -36,6 +36,8 @@ module IDreg(
     wire        gr_we;
     wire        src_reg_is_rd;
     wire        rj_eq_rd;
+    wire        rj_ge_rd;
+    wire        unsigned_rj_ge_rd;
     wire [4: 0] dest;
     wire [31:0] rj_value;
     wire [31:0] rkd_value;
@@ -187,8 +189,8 @@ module IDreg(
         end
     end
 
-    wire rj_ge_rd = $signed(rj_value) >= $signed(rkd_value);
-    wire unsigned_rj_ge_rd = $unsigned(rj_value) >= $unsigned(rkd_value);
+    assign rj_ge_rd = $signed(rj_value) >= $signed(rkd_value);
+    assign unsigned_rj_ge_rd = $unsigned(rj_value) >= $unsigned(rkd_value);
 
     assign rj_eq_rd =   (rj_value == rkd_value);
     assign br_taken =   (inst_beq   &  rj_eq_rd

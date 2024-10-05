@@ -16,14 +16,26 @@ module EXreg (
     output wire [ 31:0] data_sram_addr,
     output wire [ 31:0] data_sram_wdata
 );
+  //debug signals
+  wire bus_we;
+  wire bus_es_res_from_mem;
+
   wire inst_mul_w, inst_mulh_w, inst_mulh_wu, inst_div_w, inst_mod_w, inst_div_wu, inst_mod_wu; //mul & div insts
   wire long_insts = inst_div_w | inst_mod_w | inst_div_wu | inst_mod_wu; //insts that need multi cycles, reserved for future extension
   wire div_mod_insts=inst_div_w | inst_mod_w | inst_div_wu | inst_mod_wu; //div insts
   wire mul_insts=inst_mul_w | inst_mulh_w | inst_mulh_wu; //mul insts
+
   //mul & div results
   wire [31:0]mul_result;
   wire [31:0] div_result;
-  wire [31:0] mod_result;  
+  wire [31:0] mod_result;
+  wire [63:0] unsigned_prod, signed_prod;
+  wire div_mod_done;
+  wire [31:0] signed_quot;
+  wire [63:0] signed_divider_res;
+  wire [63:0] unsigned_divider_res;
+  wire [31:0] div_mod_result;
+  wire [31:0] EX_result;  
 
   wire         es_ready_go;
   reg          es_valid;
@@ -66,14 +78,13 @@ module EXreg (
   end
   assign {inst_mul_w, inst_mulh_w, inst_mulh_wu, inst_div_w, inst_mod_w, inst_div_wu, inst_mod_wu, es_alu_op} = extend_es_alu_op;
   // mul
-  wire [63:0] unsigned_prod, signed_prod;
   assign unsigned_prod = es_alu_src1 * es_alu_src2;
   assign signed_prod = $signed(es_alu_src1) * $signed(es_alu_src2);
   assign mul_result = ({32{inst_mul_w}} & signed_prod[31:0])
                   | ({32{inst_mulh_w}} & signed_prod[63:32])
                   | ({32{inst_mulh_wu}} & unsigned_prod[63:32]);
   // div
-  wire div_mod_done=((inst_div_w || inst_mod_w) && signed_dout_tvalid)||((inst_div_wu || inst_mod_wu) && unsigned_dout_tvalid);
+  assign div_mod_done = ((inst_div_w || inst_mod_w) && signed_dout_tvalid)||((inst_div_wu || inst_mod_wu) && unsigned_dout_tvalid);
   reg reg_div_mod_done;
   always @(posedge clk) begin
     if (~resetn) begin
@@ -115,9 +126,7 @@ module EXreg (
       unsigned_divisor_tvalid <= inst_div_wu || inst_mod_wu;
     end
   end
-  wire [31:0] signed_quot;
-  wire [63:0] signed_divider_res;
-  wire [63:0] unsigned_divider_res;
+
   mydiv mydiv_signed (
       .aclk(clk),
 
@@ -147,7 +156,7 @@ module EXreg (
       .m_axis_dout_tvalid(unsigned_dout_tvalid)
   );
   //inst_div_w | inst_mod_w | inst_div_wu | inst_mod_wu
-  wire [31:0] div_mod_result=({32{inst_div_w}} & signed_divider_res[63:32])
+  assign div_mod_result=({32{inst_div_w}} & signed_divider_res[63:32])
                   | ({32{inst_mod_w}} & signed_divider_res[31:0])
                   | ({32{inst_div_wu}} & unsigned_divider_res[63:32])
                   | ({32{inst_mod_wu}} & unsigned_divider_res[31:0]);
@@ -157,15 +166,15 @@ module EXreg (
       .alu_src2  (es_alu_src2),
       .alu_result(es_alu_result)
   );
-
-  wire [31:0] EX_result=mul_insts?mul_result:div_mod_insts?div_mod_result:es_alu_result;
+  
+  assign EX_result=mul_insts?mul_result:div_mod_insts?div_mod_result:es_alu_result;
 
   assign data_sram_en = (es_res_from_mem || es_mem_we) && es_valid;
   assign data_sram_we = {4{es_mem_we & es_valid}};
   assign data_sram_addr = EX_result;
   assign data_sram_wdata = es_rkd_value;
-  wire bus_we=es_rf_we & es_valid;
-  wire bus_es_res_from_mem=es_res_from_mem & es_valid;
+  assign bus_we =es_rf_we & es_valid;
+  assign = es_res_from_mem & es_valid;
   assign es_rf_collect = {
     bus_es_res_from_mem, bus_we, es_rf_waddr, EX_result
   };
