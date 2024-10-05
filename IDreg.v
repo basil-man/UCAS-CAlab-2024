@@ -191,7 +191,7 @@ module IDreg(
     wire unsigned_rj_ge_rd = $unsigned(rj_value) >= $unsigned(rkd_value);
 
     assign rj_eq_rd =   (rj_value == rkd_value);
-    assign br_taken =   (inst_beq  &  rj_eq_rd
+    assign br_taken =   (inst_beq   &  rj_eq_rd
                         | inst_bne  & !rj_eq_rd
                         | inst_jirl
                         | inst_bl
@@ -322,7 +322,7 @@ module IDreg(
 
     assign jirl_offs = {{14{i16[15]}}, i16[15:0], 2'b0};
 
-    assign src_reg_is_rd = inst_beq | inst_bne | inst_st_w;
+    assign src_reg_is_rd = inst_beq | inst_bne | inst_st_w | inst_blt | inst_bge | inst_bltu | inst_bgeu;
 
     assign ds_src1_is_pc    = inst_jirl | inst_bl | inst_pcaddu12i;
 
