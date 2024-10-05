@@ -40,6 +40,9 @@ module mycpu_top(
     wire [63:0] fs_to_ds_bus;
     wire [154:0] ds_to_es_bus;
 
+    wire [7:0] ds_mem_inst_bus;
+    wire [4:0] es_mem_inst_bus;
+
 
     IFreg my_ifReg(
         .clk(clk),
@@ -69,6 +72,7 @@ module mycpu_top(
         .es_allowin(es_allowin),
         .ds_to_es_valid(ds_to_es_valid),
         .ds_to_es_bus(ds_to_es_bus),
+        .mem_inst_bus(ds_mem_inst_bus),
 
         .ws_rf_collect(ws_rf_collect),
         .ms_rf_collect(ms_rf_collect),
@@ -82,6 +86,7 @@ module mycpu_top(
         .es_allowin(es_allowin),
         .ds_to_es_valid(ds_to_es_valid),
         .ds_to_es_bus(ds_to_es_bus),
+        .ds_mem_inst_bus(ds_mem_inst_bus),
 
         .ms_allowin(ms_allowin),
         .es_rf_collect(es_rf_collect),
@@ -91,7 +96,9 @@ module mycpu_top(
         .data_sram_en(data_sram_en),
         .data_sram_we(data_sram_we),
         .data_sram_addr(data_sram_addr),
-        .data_sram_wdata(data_sram_wdata)
+        .data_sram_wdata(data_sram_wdata),
+        
+        .es_mem_inst_bus(es_mem_inst_bus)
     );
 
     MEMreg my_memReg(
@@ -109,6 +116,8 @@ module mycpu_top(
         .ms_pc(ms_pc),
 
         .data_sram_rdata(data_sram_rdata)
+
+        .mem_inst_bus(es_mem_inst_bus)
     ) ;
 
     WBreg my_wbReg(

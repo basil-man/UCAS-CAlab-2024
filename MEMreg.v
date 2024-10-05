@@ -12,7 +12,8 @@ module MEMreg(
     output wire        ms_to_ws_valid,
     output reg  [31:0] ms_pc,
     // data sram interface
-    input  wire [31:0] data_sram_rdata    
+    input  wire [31:0] data_sram_rdata,    
+    input  wire [4:0]  mem_inst_bus,
 );
     wire        ms_ready_go;
     reg         ms_valid;
@@ -22,6 +23,10 @@ module MEMreg(
     reg  [4 :0] ms_rf_waddr   ;
     wire [31:0] ms_rf_wdata   ;
     wire [31:0] ms_mem_result ;
+
+    wire inst_ld_w,inst_ld_h,inst_ld_hu,inst_ld_b,inst_ld_bu,inst_ld;
+    wire is_sign_extend;
+    wire [31:0] word_rdata, half_rdata, byte_rdata;
 
     assign ms_ready_go  = 1'b1;
     assign ms_allowin   = ~ms_valid | ms_ready_go & ws_allowin;     
@@ -46,7 +51,17 @@ module MEMreg(
         end
     end
 
-    assign ms_mem_result    = data_sram_rdata;
+    assign {inst_ld_w,inst_ld_h,inst_ld_hu,inst_ld_b,inst_ld_bu} = mem_inst_bus;
+    assign inst_ld = inst_ld_w | inst_ld_h | inst_ld_hu | inst_ld_b | inst_ld_bu;
+    assign is_sign_extend = inst_ld_h | inst_ld_b;
+    assign word_rdata = data_sram_rdata;
+    assign half_rdata = {32{!ms_alu_result[1]}} & {{16{data_sram_rdata[15] & is_sign_extend}}, data_sram_rdata[15:0]} |
+                        {32{ ms_alu_result[1]}} & {{16{data_sram_rdata[31] & is_sign_extend}}, data_sram_rdata[31:16]};
+    assign byte_rdata = {32{ ms_alu_result[1:0] == 2'b00}} & {{24{data_sram_rdata[7] & is_sign_extend}}, data_sram_rdata[7:0]} |
+                        {32{ ms_alu_result[1:0] == 2'b01}} & {{24{data_sram_rdata[15] & is_sign_extend}}, data_sram_rdata[15:8]} |
+                        {32{ ms_alu_result[1:0] == 2'b10}} & {{24{data_sram_rdata[23] & is_sign_extend}}, data_sram_rdata[23:16]} |
+                        {32{ ms_alu_result[1:0] == 2'b11}} & {{24{data_sram_rdata[31] & is_sign_extend}}, data_sram_rdata[31:24]};
+    assign ms_mem_result = inst_ld_w ? word_rdata : (inst_ld_h ? half_rdata : inst_ld_b ? byte_rdata : 32'b0);
     assign ms_rf_wdata      = ms_res_from_mem ? ms_mem_result : ms_alu_result;
     assign ms_rf_collect    = {ms_rf_we & ms_valid, ms_rf_waddr, ms_rf_wdata};
 

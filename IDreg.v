@@ -7,6 +7,7 @@ module IDreg(input wire clk,
              input wire es_allowin,
              output wire ds_to_es_valid,
              output wire [154:0] ds_to_es_bus, // from 148bit -> 155bit (add new_alu_op)
+             output wire [7:0] mem_inst_bus,
              input wire [37:0] ws_rf_collect,  // {ws_rf_we, ws_rf_waddr, ws_rf_wdata}
              input wire [37:0] ms_rf_collect,  // {ms_rf_we, ms_rf_waddr, ms_rf_wdata}
              input wire [38:0] es_rf_collect); // {es_res_from_mem, es_rf_we, es_rf_waddr, es_alu_result}
@@ -25,7 +26,7 @@ module IDreg(input wire clk,
     wire        ds_res_from_mem;
     reg  [31:0] ds_pc;
     wire [31:0] ds_rkd_value;
-    wire        ds_mem_we;
+    wire        ds_mem_en;
     
     wire        dst_is_r1;
     wire        gr_we;
@@ -96,6 +97,7 @@ module IDreg(input wire clk,
     wire inst_ld_b;
     wire inst_ld_h;
     wire inst_ld_bu;
+    wire inst_ld_hu;
     wire inst_st_b;
     wire inst_st_h;
     
@@ -159,6 +161,8 @@ module IDreg(input wire clk,
     
     wire        ds_rf_we   ;
     wire [4:0] ds_rf_waddr;
+
+    wire inst_ld, inst_st;
     
     assign ds_ready_go    = ~ds_stall;
     assign ds_allowin     = ~ds_valid | ds_ready_go & es_allowin;
@@ -254,10 +258,13 @@ module IDreg(input wire clk,
      assign inst_ld_b  = op_31_26_d[6'h0a] & op_25_22_d[4'h0];
      assign inst_ld_h  = op_31_26_d[6'h0a] & op_25_22_d[4'h1];
      assign inst_ld_bu = op_31_26_d[6'h0a] & op_25_22_d[4'h8];
+     assign inst_ld_hu = op_31_26_d[6'h0a] & op_25_22_d[4'h9];
      assign inst_st_b  = op_31_26_d[6'h0a] & op_25_22_d[4'h4];
      assign inst_st_h  = op_31_26_d[6'h0a] & op_25_22_d[4'h5];
      
-     
+     assign inst_ld = inst_ld_b | inst_ld_h | inst_ld_bu | inst_ld_hu | inst_ld_w;
+     assign inst_st = inst_st_b | inst_st_h | inst_st_w;
+
      //oral code
      assign inst_add_w   = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h1] & op_19_15_d[5'h00];
      assign inst_sub_w   = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h1] & op_19_15_d[5'h02];
@@ -280,7 +287,7 @@ module IDreg(input wire clk,
      assign inst_bne     = op_31_26_d[6'h17];
      assign inst_lu12i_w = op_31_26_d[6'h05] & ~ds_inst[25];
      
-     assign ds_alu_op[0] = inst_add_w | inst_addi_w | inst_ld_w | inst_st_w
+     assign ds_alu_op[0] = inst_add_w | inst_addi_w | inst_ld | inst_st
      | inst_jirl | inst_bl | inst_pcaddu12i;
      assign ds_alu_op[1]  = inst_sub_w;
      assign ds_alu_op[2]  = inst_slt | inst_slti;
@@ -297,7 +304,7 @@ module IDreg(input wire clk,
      assign new_alu_op = {inst_mul_w, inst_mulh_w, inst_mulh_wu, inst_div_w, inst_mod_w, inst_div_wu, inst_mod_wu, ds_alu_op};
      
      assign need_ui5  = inst_slli_w | inst_srli_w | inst_srai_w;
-     assign need_si12 = inst_addi_w | inst_ld_w | inst_st_w | inst_slti | inst_sltui;
+     assign need_si12 = inst_addi_w | inst_ld | inst_st | inst_slti | inst_sltui;
      assign need_ui12 = inst_andi | inst_ori | inst_xori;
      assign need_si16 = inst_jirl | inst_beq | inst_bne;
      assign need_si20 = inst_lu12i_w | inst_pcaddu12i ;
@@ -319,7 +326,7 @@ module IDreg(input wire clk,
      
      assign jirl_offs = {{14{i16[15]}}, i16[15:0], 2'b0};
      
-     assign src_reg_is_rd = inst_beq | inst_bne | inst_st_w | inst_blt | inst_bge | inst_bltu | inst_bgeu;
+     assign src_reg_is_rd = inst_beq | inst_bne | inst_st | inst_blt | inst_bge | inst_bltu | inst_bgeu;
      
      assign ds_src1_is_pc = inst_jirl | inst_bl | inst_pcaddu12i;
      
@@ -327,8 +334,8 @@ module IDreg(input wire clk,
      inst_srli_w |
      inst_srai_w |
      inst_addi_w |
-     inst_ld_w   |
-     inst_st_w   |
+     inst_ld     |
+     inst_st     |
      inst_lu12i_w|
      inst_jirl   |
      inst_bl     |
@@ -343,12 +350,12 @@ module IDreg(input wire clk,
      assign ds_alu_src2 = ds_src2_is_imm ? imm : rkd_value;
      
      assign ds_rkd_value    = rkd_value;
-     assign ds_res_from_mem = inst_ld_w;
+     assign ds_res_from_mem = inst_ld;
      assign dst_is_r1       = inst_bl;
-     assign gr_we = ~inst_st_w & ~inst_st_h & ~inst_st_b & ~inst_beq  &
+     assign gr_we = ~inst_st & ~inst_beq  &
      ~inst_bne  & ~inst_b    & ~inst_bge  & ~inst_bgeu &
      ~inst_blt  & ~inst_bltu;
-     assign ds_mem_we = inst_st_w & ds_valid;
+     assign ds_mem_en = inst_st & ds_valid;
      assign dest      = dst_is_r1 ? 5'd1 : rd;
      
      assign rf_raddr1   = rj;
@@ -393,10 +400,21 @@ module IDreg(input wire clk,
      ds_res_from_mem,
      ds_alu_src1,
      ds_alu_src2,
-     ds_mem_we,
+     ds_mem_en,
      ds_rf_we,
      ds_rf_waddr,
      ds_rkd_value,
      ds_pc
      };
+
+     assign mem_inst_bus = {
+        inst_ld_w,
+        inst_ld_h,
+        inst_ld_hu,
+        inst_ld_b,
+        inst_ld_bu,
+        inst_st_w,
+        inst_st_h,
+        inst_st_b
+        };
      endmodule
