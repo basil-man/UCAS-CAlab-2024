@@ -1,6 +1,3 @@
-`define ALUOP_SLT   = (12'd1 << 2)
-`define ALUOP_SLTU  = (12'd2 << 3)
-
 module IDreg(
     input  wire          clk,
     input  wire          resetn,
@@ -200,7 +197,7 @@ module IDreg(
     assign is_branch_unsigned   = inst_bltu || inst_bgeu;
     assign ds_branch_alu_src1   = rj_value ;
     assign ds_branch_alu_src2   = rkd_value;
-    assign ds_branch_alu_op     = is_branch_unsigned ? (12'd2 << 3) : (12'd1 << 2);
+    assign ds_branch_alu_op     = is_branch_unsigned ? 12'b10000 : 12'b100;
 
     assign rj_eq_rd =   (rj_value == rkd_value);
     assign br_taken =   (inst_beq  &&  rj_eq_rd
