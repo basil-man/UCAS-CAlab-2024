@@ -12,7 +12,7 @@ module EXreg (input wire clk,
               output wire [3:0] data_sram_we,
               output wire [31:0] data_sram_addr,
               output wire [31:0] data_sram_wdata,
-              output wire [4:0] es_mem_inst_bus,
+              output reg [4:0] es_mem_inst_bus,
               output wire [31:0] es_result
               );
     //debug signals
@@ -53,9 +53,11 @@ module EXreg (input wire clk,
     
     wire handshake_done;
 
-    wire inst_st_w,inst_st_h,inst_st_b,inst_st;
+    reg inst_st_w,inst_st_h,inst_st_b;
+    wire inst_st;
     wire [3:0] mem_we;
     reg reg_div_mod_done;
+    wire [31:0] st_wdata;
     
     assign es_ready_go    = long_insts ? reg_div_mod_done : 1'b1; //for further extension
     assign es_allowin     = ~es_valid | es_ready_go & ms_allowin;
@@ -75,9 +77,13 @@ module EXreg (input wire clk,
             es_mem_en, es_rf_we, es_rf_waddr, es_rkd_value, es_pc} <= {
             155'b0
             };
+            {inst_st_w,inst_st_h,inst_st_b} <=3'b000;
+            es_mem_inst_bus <= 5'd0;
             end else if (ds_to_es_valid & es_allowin) begin
             {extend_es_alu_op, es_res_from_mem, es_alu_src1, es_alu_src2,
             es_mem_en, es_rf_we, es_rf_waddr, es_rkd_value, es_pc} <= ds_to_es_bus;
+            {inst_st_w,inst_st_h,inst_st_b} <= ds_mem_inst_bus[2:0];
+            es_mem_inst_bus <= ds_mem_inst_bus[7:3];
         end
     end
     assign {inst_mul_w, inst_mulh_w, inst_mulh_wu, inst_div_w, inst_mod_w, inst_div_wu, inst_mod_wu, es_alu_op} = extend_es_alu_op;
@@ -177,7 +183,7 @@ module EXreg (input wire clk,
     );
 
 
-    assign {inst_st_w,inst_st_h,inst_st_b}= ds_mem_inst_bus[2:0];
+    //assign {inst_st_w,inst_st_h,inst_st_b}= ds_mem_inst_bus[2:0];
     assign inst_st = inst_st_w | inst_st_h | inst_st_b;
     assign mem_we = {4{inst_st_b}} & {4'b0001 << (es_alu_result[1:0] )} |
                     {4{inst_st_h}} & {4'b0011 << {es_alu_result[1],1'b0}} |
@@ -186,7 +192,7 @@ module EXreg (input wire clk,
                     | {32{inst_st_h}} & {2{es_rkd_value[15:0]}}
                     | {32{inst_st_w}} & {es_rkd_value[31:0]};
 
-    assign es_mem_inst_bus = ds_mem_inst_bus[7:3];
+    //assign es_mem_inst_bus = ds_mem_inst_bus[7:3];
     // pass ld inst mem_inst_bus 
     
     assign EX_result = mul_insts?mul_result:div_mod_insts?div_mod_result:es_alu_result;

@@ -24,7 +24,8 @@ module MEMreg(
     wire [31:0] ms_rf_wdata   ;
     wire [31:0] ms_mem_result ;
 
-    wire inst_ld_w,inst_ld_h,inst_ld_hu,inst_ld_b,inst_ld_bu,inst_ld;
+    reg inst_ld_w,inst_ld_h,inst_ld_hu,inst_ld_b,inst_ld_bu;
+    wire inst_ld;
     wire is_sign_extend;
     wire [31:0] word_rdata, half_rdata, byte_rdata;
 
@@ -44,14 +45,16 @@ module MEMreg(
         if (~resetn) begin
             ms_pc <= 32'b0;
             {ms_res_from_mem, ms_rf_we, ms_rf_waddr, ms_alu_result} <= 38'b0;
+            {inst_ld_w,inst_ld_h,inst_ld_hu,inst_ld_b,inst_ld_bu} <= 5'd0;
         end
         if (es_to_ms_valid & ms_allowin) begin
             ms_pc <= es_pc;
             {ms_res_from_mem, ms_rf_we, ms_rf_waddr, ms_alu_result} <= es_rf_collect;
+            {inst_ld_w,inst_ld_h,inst_ld_hu,inst_ld_b,inst_ld_bu} <= mem_inst_bus;
         end
     end
 
-    assign {inst_ld_w,inst_ld_h,inst_ld_hu,inst_ld_b,inst_ld_bu} = mem_inst_bus;
+    //assign {inst_ld_w,inst_ld_h,inst_ld_hu,inst_ld_b,inst_ld_bu} = mem_inst_bus;
     assign inst_ld = inst_ld_w | inst_ld_h | inst_ld_hu | inst_ld_b | inst_ld_bu;
     assign is_sign_extend = inst_ld_h | inst_ld_b;
     assign word_rdata = data_sram_rdata;
