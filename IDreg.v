@@ -199,8 +199,8 @@ module IDreg(input wire clk,
     | inst_b
     | inst_blt  & ~rj_ge_rd
     | inst_bge  & rj_ge_rd
-    | inst_bltu & ~rj_ge_rd
-    | inst_bgeu & rj_ge_rd
+    | inst_bltu & ~unsigned_rj_ge_rd
+    | inst_bgeu & unsigned_rj_ge_rd
     ) & ds_valid;
     
     assign is_branch = inst_beq | inst_bne | inst_bl | inst_b | inst_blt | inst_bge | inst_bltu | inst_bgeu;
