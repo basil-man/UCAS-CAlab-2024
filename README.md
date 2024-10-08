@@ -1,43 +1,25 @@
-# prj3 exp10 repo
-
-## style
-
-use extension ```SystemVerilog and Verilog Formatter```
-
-#### Command Line Arguments
-
-```sh
-  Command Line Arguments:
-  --indentation_spaces=4 --named_port_alignment=align  --ort_declarations_alignment=align --module_net_variable_alignment=align
-  Verible Build:
-  win64
-```
-
-## 传参约定
-
-从ID到EXE传参约定：
-
-1. ~~src1存放除数，src2存放被除数(参考手册默认约定)~~ src2存放除数，src1存放被除数（低能儿潘泓锟）
-2. 扩展aluop，传递乘除模指令信号，具体为```assign new_aluop={mul.w,mulh.w,mulh.wu,div.w,mod.w,div.wu,mod.wu,alu_op};```
-
-## using phk's pipeline cpu
-
-## Notice
-
-除法器每个人都要使用IP核生成
+# prj4 repo
 
 ## todo
 
-本实践任务要求在实践任务9实现的CPU基础上完成以下工作：
+### exp12
 
-1. 添加算术逻辑运算类指令slti、sltui、andi、ori、xori、sll、srl、sra、pcaddu12i。
-2. 添加乘除运算类指令mul.w、mulh.w、mulh.wu、div.w、mod.w、div.wu、mod.wu。
-3. 运行 exp10 对应的 func，要求成功通过仿真和上板验证。
+1. 为 CPU 增加csrrd、csrwr、csrxchg 和 ertn 指令。
+2. 为 CPU 增加控制状态寄存器CRMD、PRMD、ESTAT、ERA、EENTRY、SAVE0~3。
+3. 为 CPU 增加syscall 指令，实现系统调用异常支持。
+
+### exp13
+
+1. 为CPU增加取指地址错（ADEF）、地址非对齐（ALE）、断点（BRK）和指令不存在（INE）
+异常的支持。
+2. 为 CPU 增加中断的支持，包括2个软件中断、8个硬件中断和定时器中断。
+3. 为 CPU 增加控制状态寄存器ECFG、BADV、TID、TCFG、TVAL、TICLR。
+4. 为 CPU 增加rdcntvl.w、rdcntvh.w 和 rdcntid 指令。
 
 ## team member's work allcation:
 
 | name | job |
 | ---- | --- |
-| phk  | decode in IDreg.v  |
-| rhl  | mul & div in EXreg.v |
-| zc   | branch & new alu inst(andi...) in IDreg.v   |
+| phk  |  |
+| rhl  |  |
+| zc   |  |
