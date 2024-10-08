@@ -66,7 +66,7 @@ module EXreg (input wire clk,
     always @(posedge clk) begin
         if (~resetn) begin
             es_valid <= 1'b0;
-            end else if (es_allowin) begin
+        end else if (es_allowin) begin
             es_valid <= ds_to_es_valid;
         end
     end
@@ -74,12 +74,10 @@ module EXreg (input wire clk,
     always @(posedge clk) begin
         if (~resetn) begin
             {extend_es_alu_op, es_res_from_mem, es_alu_src1, es_alu_src2,
-            es_mem_en, es_rf_we, es_rf_waddr, es_rkd_value, es_pc} <= {
-            155'b0
-            };
+            es_mem_en, es_rf_we, es_rf_waddr, es_rkd_value, es_pc} <= {155'b0};
             {inst_st_w,inst_st_h,inst_st_b} <=3'b000;
             es_mem_inst_bus <= 5'd0;
-            end else if (ds_to_es_valid & es_allowin) begin
+        end else if (ds_to_es_valid & es_allowin) begin
             {extend_es_alu_op, es_res_from_mem, es_alu_src1, es_alu_src2,
             es_mem_en, es_rf_we, es_rf_waddr, es_rkd_value, es_pc} <= ds_to_es_bus;
             {inst_st_w,inst_st_h,inst_st_b} <= ds_mem_inst_bus[2:0];
@@ -91,17 +89,17 @@ module EXreg (input wire clk,
     assign unsigned_prod = es_alu_src1 * es_alu_src2;
     assign signed_prod   = $signed(es_alu_src1) * $signed(es_alu_src2);
     assign mul_result = ({32{inst_mul_w}} & signed_prod[31:0])
-    | ({32{inst_mulh_w}} & signed_prod[63:32])
-    | ({32{inst_mulh_wu}} & unsigned_prod[63:32]);
+                        | ({32{inst_mulh_w}} & signed_prod[63:32])
+                        | ({32{inst_mulh_wu}} & unsigned_prod[63:32]);
     // div
     assign div_mod_done = ((inst_div_w || inst_mod_w) && signed_dout_tvalid)||((inst_div_wu || inst_mod_wu) && unsigned_dout_tvalid);
     
     always @(posedge clk) begin
         if (~resetn) begin
             reg_div_mod_done <= 1'b0;
-            end else if (es_valid & es_allowin) begin
+        end else if (es_valid & es_allowin) begin
             reg_div_mod_done <= 1'b0;
-            end else if (div_mod_done) begin
+        end else if (div_mod_done) begin
             reg_div_mod_done <= 1'b1;
         end
     end
@@ -114,9 +112,9 @@ module EXreg (input wire clk,
     always @(posedge clk) begin
         if (~resetn) begin
             valid_cnt <= 0;
-            end else if (es_valid & es_allowin) begin
+        end else if (es_valid & es_allowin) begin
             valid_cnt <= 0;
-            end else if (div_mod_insts) begin
+        end else if (div_mod_insts) begin
             valid_cnt <= 1;
         end
     end
@@ -130,7 +128,7 @@ module EXreg (input wire clk,
             signed_divisor_tvalid    <= 1'b0;
             unsigned_dividend_tvalid <= 1'b0;
             unsigned_divisor_tvalid  <= 1'b0;
-            end else if (div_mod_insts&&~valid_cnt) begin
+        end else if (div_mod_insts&&~valid_cnt) begin
             signed_dividend_tvalid   <= inst_div_w || inst_mod_w;
             signed_divisor_tvalid    <= inst_div_w || inst_mod_w;
             unsigned_dividend_tvalid <= inst_div_wu || inst_mod_wu;
@@ -172,9 +170,9 @@ module EXreg (input wire clk,
     
     //inst_div_w | inst_mod_w | inst_div_wu | inst_mod_wu
     assign div_mod_result = ({32{inst_div_w}} & signed_divider_res[63:32])
-    | ({32{inst_mod_w}} & signed_divider_res[31:0])
-    | ({32{inst_div_wu}} & unsigned_divider_res[63:32])
-    | ({32{inst_mod_wu}} & unsigned_divider_res[31:0]);
+                        | ({32{inst_mod_w}} & signed_divider_res[31:0])
+                        | ({32{inst_div_wu}} & unsigned_divider_res[63:32])
+                        | ({32{inst_mod_wu}} & unsigned_divider_res[31:0]);
     alu u_alu (
     .alu_op    (es_alu_op),
     .alu_src1  (es_alu_src1),
