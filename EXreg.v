@@ -1,20 +1,21 @@
-module EXreg (input wire clk,
-              input wire resetn,
-              output wire es_allowin,
-              input wire ds_to_es_valid,
-              input wire [154:0] ds_to_es_bus,     // from 148bit -> 155bit (add new_alu_op)
-              input wire [7:0] ds_mem_inst_bus,
-              input wire ms_allowin,
-              output wire [38:0] es_rf_collect,    // {es_res_from_mem, es_rf_we, es_rf_waddr, es_alu_result}
-              output wire es_to_ms_valid,
-              output reg [31:0] es_pc,
-              output wire data_sram_en,
-              output wire [3:0] data_sram_we,
-              output wire [31:0] data_sram_addr,
-              output wire [31:0] data_sram_wdata,
-              output reg [4:0] es_mem_inst_bus,
-              output wire [31:0] es_result
-              );
+module EXreg(
+    input wire clk,
+    input wire resetn,
+    output wire es_allowin,
+    input wire ds_to_es_valid,
+    input wire [154:0] ds_to_es_bus,     // from 148bit -> 155bit (add new_alu_op)
+    input wire [7:0] ds_mem_inst_bus,
+    input wire ms_allowin,
+    output wire [38:0] es_rf_collect,    // {es_res_from_mem, es_rf_we, es_rf_waddr, es_alu_result}
+    output wire es_to_ms_valid,
+    output reg [31:0] es_pc,
+    output wire data_sram_en,
+    output wire [3:0] data_sram_we,
+    output wire [31:0] data_sram_addr,
+    output wire [31:0] data_sram_wdata,
+    output reg [4:0] es_mem_inst_bus,
+    output wire [31:0] es_result
+);
     //debug signals
     wire bus_we;
     wire bus_es_res_from_mem;
@@ -91,8 +92,8 @@ module EXreg (input wire clk,
     assign unsigned_prod = es_alu_src1 * es_alu_src2;
     assign signed_prod   = $signed(es_alu_src1) * $signed(es_alu_src2);
     assign mul_result = ({32{inst_mul_w}} & signed_prod[31:0])
-    | ({32{inst_mulh_w}} & signed_prod[63:32])
-    | ({32{inst_mulh_wu}} & unsigned_prod[63:32]);
+                        | ({32{inst_mulh_w}} & signed_prod[63:32])
+                        | ({32{inst_mulh_wu}} & unsigned_prod[63:32]);
     // div
     assign div_mod_done = ((inst_div_w || inst_mod_w) && signed_dout_tvalid)||((inst_div_wu || inst_mod_wu) && unsigned_dout_tvalid);
     
@@ -139,47 +140,48 @@ module EXreg (input wire clk,
     end
     
     mydiv mydiv_signed (
-    .aclk(clk),
-    
-    .s_axis_dividend_tdata (es_alu_src1),
-    .s_axis_dividend_tready(signed_dividend_tready),
-    .s_axis_dividend_tvalid(signed_dividend_tvalid),
-    
-    .s_axis_divisor_tdata (es_alu_src2),
-    .s_axis_divisor_tready(signed_divisor_tready),
-    .s_axis_divisor_tvalid(signed_divisor_tvalid),
-    
-    .m_axis_dout_tdata (signed_divider_res),
-    .m_axis_dout_tvalid(signed_dout_tvalid)
+        .aclk(clk),
+        
+        .s_axis_dividend_tdata (es_alu_src1),
+        .s_axis_dividend_tready(signed_dividend_tready),
+        .s_axis_dividend_tvalid(signed_dividend_tvalid),
+        
+        .s_axis_divisor_tdata (es_alu_src2),
+        .s_axis_divisor_tready(signed_divisor_tready),
+        .s_axis_divisor_tvalid(signed_divisor_tvalid),
+        
+        .m_axis_dout_tdata (signed_divider_res),
+        .m_axis_dout_tvalid(signed_dout_tvalid)
     );
     
     
     mydiv_unsigned mydiv_unsigned (
-    .aclk(clk),
-    
-    .s_axis_dividend_tdata (es_alu_src1),
-    .s_axis_dividend_tready(unsigned_dividend_tready),
-    .s_axis_dividend_tvalid(unsigned_dividend_tvalid),
-    
-    .s_axis_divisor_tdata (es_alu_src2),
-    .s_axis_divisor_tready(unsigned_divisor_tready),
-    .s_axis_divisor_tvalid(unsigned_divisor_tvalid),
-    
-    .m_axis_dout_tdata (unsigned_divider_res),
-    .m_axis_dout_tvalid(unsigned_dout_tvalid)
+        .aclk(clk),
+        
+        .s_axis_dividend_tdata (es_alu_src1),
+        .s_axis_dividend_tready(unsigned_dividend_tready),
+        .s_axis_dividend_tvalid(unsigned_dividend_tvalid),
+        
+        .s_axis_divisor_tdata (es_alu_src2),
+        .s_axis_divisor_tready(unsigned_divisor_tready),
+        .s_axis_divisor_tvalid(unsigned_divisor_tvalid),
+        
+        .m_axis_dout_tdata (unsigned_divider_res),
+        .m_axis_dout_tvalid(unsigned_dout_tvalid)
     );
     
     
     //inst_div_w | inst_mod_w | inst_div_wu | inst_mod_wu
     assign div_mod_result = ({32{inst_div_w}} & signed_divider_res[63:32])
-    | ({32{inst_mod_w}} & signed_divider_res[31:0])
-    | ({32{inst_div_wu}} & unsigned_divider_res[63:32])
-    | ({32{inst_mod_wu}} & unsigned_divider_res[31:0]);
+                            | ({32{inst_mod_w}} & signed_divider_res[31:0])
+                            | ({32{inst_div_wu}} & unsigned_divider_res[63:32])
+                            | ({32{inst_mod_wu}} & unsigned_divider_res[31:0]);
+
     alu u_alu (
-    .alu_op    (es_alu_op),
-    .alu_src1  (es_alu_src1),
-    .alu_src2  (es_alu_src2),
-    .alu_result(es_alu_result)
+        .alu_op    (es_alu_op),
+        .alu_src1  (es_alu_src1),
+        .alu_src2  (es_alu_src2),
+        .alu_result(es_alu_result)
     );
 
 

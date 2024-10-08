@@ -1,16 +1,18 @@
-module IDreg(input wire clk,
-             input wire resetn,
-             input wire fs_to_ds_valid,
-             output wire ds_allowin,
-             output wire [32:0] br_collect,
-             input wire [63:0] fs_to_ds_bus,
-             input wire es_allowin,
-             output wire ds_to_es_valid,
-             output wire [154:0] ds_to_es_bus, // from 148bit -> 155bit (add new_alu_op)
-             output wire [7:0] mem_inst_bus,
-             input wire [37:0] ws_rf_collect,  // {ws_rf_we, ws_rf_waddr, ws_rf_wdata}
-             input wire [37:0] ms_rf_collect,  // {ms_rf_we, ms_rf_waddr, ms_rf_wdata}
-             input wire [38:0] es_rf_collect); // {es_res_from_mem, es_rf_we, es_rf_waddr, es_alu_result}
+module IDreg(
+    input wire clk,
+    input wire resetn,
+    input wire fs_to_ds_valid,
+    output wire ds_allowin,
+    output wire [32:0] br_collect,
+    input wire [63:0] fs_to_ds_bus,
+    input wire es_allowin,
+    output wire ds_to_es_valid,
+    output wire [154:0] ds_to_es_bus, // from 148bit -> 155bit (add new_alu_op)
+    output wire [7:0] mem_inst_bus,
+    input wire [37:0] ws_rf_collect,  // {ws_rf_we, ws_rf_waddr, ws_rf_wdata}
+    input wire [37:0] ms_rf_collect,  // {ms_rf_we, ms_rf_waddr, ms_rf_wdata}
+    input wire [38:0] es_rf_collect // {es_res_from_mem, es_rf_we, es_rf_waddr, es_alu_result}
+);
     
     wire        ds_ready_go;
     reg         ds_valid;
@@ -192,16 +194,16 @@ module IDreg(input wire clk,
     assign unsigned_rj_ge_rd = $unsigned(rj_value) >= $unsigned(rkd_value);
     
     assign rj_eq_rd = (rj_value == rkd_value);
-    assign br_taken = (inst_beq   &  rj_eq_rd
-    | inst_bne  & !rj_eq_rd
-    | inst_jirl
-    | inst_bl
-    | inst_b
-    | inst_blt  & ~rj_ge_rd
-    | inst_bge  & rj_ge_rd
-    | inst_bltu & ~unsigned_rj_ge_rd
-    | inst_bgeu & unsigned_rj_ge_rd
-    ) & ds_valid;
+    assign br_taken =   (inst_beq   &  rj_eq_rd
+                        | inst_bne  & !rj_eq_rd
+                        | inst_jirl
+                        | inst_bl
+                        | inst_b
+                        | inst_blt  & ~rj_ge_rd
+                        | inst_bge  & rj_ge_rd
+                        | inst_bltu & ~unsigned_rj_ge_rd
+                        | inst_bgeu & unsigned_rj_ge_rd
+                        ) & ds_valid;
     
     assign is_branch = inst_beq | inst_bne | inst_bl | inst_b | inst_blt | inst_bge | inst_bltu | inst_bgeu;
     assign br_target = is_branch ? (ds_pc + br_offs) :
