@@ -103,6 +103,17 @@ module IDreg(
     wire inst_st_b;
     wire inst_st_h;
     
+    // csrrd, csrwr, csrxchg, ertn
+    wire inst_csrrd;
+    wire inst_csrwr;
+    wire inst_csrxchg;
+    wire inst_ertn;
+
+    // rdcntvl.w, rdcntvh.w, rdcntid
+    wire inst_rdcntvl.w;
+    wire inst_rdcntvh.w;
+    wire inst_rdcntid;
+
     //oral wires
     wire        inst_add_w;
     wire        inst_sub_w;
@@ -266,6 +277,18 @@ module IDreg(
      
      assign inst_ld = inst_ld_b | inst_ld_h | inst_ld_bu | inst_ld_hu | inst_ld_w;
      assign inst_st = inst_st_b | inst_st_h | inst_st_w;
+
+     // csrrd, csrwr, csrxchg, ertn
+     assign inst_csrrd      = op_31_26_d[6'h01] & (op_25_22[3:2] == 2'h0) & (rj == 5'h00);
+     assign inst_csrwr      = op_31_26_d[6'h01] & (op_25_22[3:2] == 2'h0) & (rj == 5'h01);
+     assign inst_csrxchg    = op_31_26_d[6'h01] & ~inst_csrrd & ~inst_csrwr;
+     assign inst_ertn       = op_31_26_d[6'h01] & op_25_22_d[4'h9] & op_21_20_d[2'h00] & op_19_15_d[5'h10] 
+                              & (rk == 5'h0e) & (rj == 5'h00) & (rd == 5'h00);
+ 
+     // rdcntvl.w, rdcntvh.w, rdcntid
+     assign inst_rdcntvl.w  = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h0] & op_19_15_d[5'h00] & (rk == 5'h18) & (rj == 5'h00);
+     assign inst_rdcntvh.w  = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h0] & op_19_15_d[5'h00] & (rk == 5'h19) & (rj == 5'h00);
+     assign inst_rdcntid    = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h0] & op_19_15_d[5'h00] & (rk == 5'h18) & (rd == 5'h00);
 
      //oral code
      assign inst_add_w   = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h1] & op_19_15_d[5'h00];
