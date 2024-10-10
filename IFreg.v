@@ -30,9 +30,9 @@ module IFreg(
     reg  [31:0] fs_pc;
 
     // add in exp12
-    wire fetch_inst_error;
+    wire fetch_inst_except;
 
-    assign fetch_inst_error = (|fs_pc[1:0]) & fs_valid;
+    assign fetch_inst_except = (|fs_pc[1:0]) & fs_valid;
 
     assign {br_taken, br_target} = br_collect;
 
@@ -73,7 +73,7 @@ module IFreg(
 
     assign fs_inst      = inst_sram_rdata;
     assign fs_to_ds_bus =   {
-                            fetch_inst_error,
+                            fetch_inst_except,
                             fs_inst,
                             fs_pc
                             };
