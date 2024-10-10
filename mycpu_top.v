@@ -118,7 +118,8 @@ module mycpu_top(
 
         .data_sram_rdata(data_sram_rdata),
 
-        .mem_inst_bus(es_mem_inst_bus)
+        .mem_inst_bus(es_mem_inst_bus),
+        .es_to_ms_bus(es_to_ms_bus)
     ) ;
 
     WBreg my_wbReg(
