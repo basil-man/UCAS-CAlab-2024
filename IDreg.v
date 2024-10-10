@@ -108,7 +108,8 @@ module IDreg(
     wire inst_csrwr;
     wire inst_csrxchg;
     wire inst_ertn;
-    wire inst_syscall
+    wire inst_syscall;
+    wire inst_break;
 
     // rdcntvl.w, rdcntvh.w, rdcntid
     wire inst_rdcntvl.w;
@@ -179,16 +180,21 @@ module IDreg(
     wire inst_ld, inst_st;
     
     // add in exp12
-    wire inst_no_exist_except;
+    wire ine_except;
+    wire syscall_except;
+    wire break_except;
 
-    assign inst_no_exist_except =   ~(
+    assign ine_except =   ~(
                                     inst_add_w | inst_addi_w | inst_and | inst_andi | inst_b | inst_beq | inst_bge | inst_bgeu | inst_bl |
                                     inst_blt | inst_bltu | inst_bne | inst_csrrd | inst_csrwr | inst_csrxchg | inst_div_w | inst_div_wu |
                                     inst_ertn | inst_jirl | inst_ld | inst_ld_b | inst_ld_bu | inst_ld_h | inst_ld_hu | inst_ld_w | inst_lu12i_w |
                                     inst_mod_w | inst_mod_wu | inst_mul_w | inst_mulh_w | inst_mulh_wu | inst_nor | inst_or | inst_ori |
                                     inst_pcaddu12i | inst_rdcntid | inst_rdcntvh | inst_rdcntvl | inst_sll_w | inst_slli_w | inst_slt | inst_slti |
-                                    inst_sltu | inst_sltui | inst_sra_w | inst_srai_w | inst_xor | inst_xori
+                                    inst_sltu | inst_sltui | inst_sra_w | inst_srai_w | inst_xor | inst_xori | inst_syscall | inst_break
                                     ) 
+
+    assign syscall_except = inst_syscall;
+    assign break_except   = inst_break;
 
     assign ds_ready_go    = ~ds_stall;
     assign ds_allowin     = ~ds_valid | ds_ready_go & es_allowin;
@@ -299,6 +305,7 @@ module IDreg(
                               & (rk == 5'h0e) & (rj == 5'h00) & (rd == 5'h00);
      
      assign inst_syscall    = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h2] & op_19_15_d[5'h16];
+     assign inst_break      = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h2] & op_19_15_d[5'h14];
      // rdcntvl.w, rdcntvh.w, rdcntid
      assign inst_rdcntvl.w  = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h0] & op_19_15_d[5'h00] & (rk == 5'h18) & (rj == 5'h00);
      assign inst_rdcntvh.w  = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h0] & op_19_15_d[5'h00] & (rk == 5'h19) & (rj == 5'h00);
