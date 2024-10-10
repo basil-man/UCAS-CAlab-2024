@@ -37,7 +37,7 @@ module mycpu_top(
     wire [37:0] ws_rf_collect;
 
     wire [32:0] br_collect;
-    wire [63:0] fs_to_ds_bus;
+    wire [64:0] fs_to_ds_bus;
     wire [154:0] ds_to_es_bus;
 
     wire [7:0] ds_mem_inst_bus;

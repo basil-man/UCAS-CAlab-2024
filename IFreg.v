@@ -12,7 +12,7 @@ module IFreg(
     input  wire [32:0]  br_collect,
     // fs to ds interface
     output wire         fs_to_ds_valid,
-    output wire [63:0]  fs_to_ds_bus
+    output wire [64:0]  fs_to_ds_bus
 );
 
     reg         fs_valid;
@@ -28,6 +28,11 @@ module IFreg(
 
     wire [31:0] fs_inst;
     reg  [31:0] fs_pc;
+
+    // add in exp12
+    wire fetch_inst_error;
+
+    assign fetch_inst_error = (|fs_pc[1:0]) & fs_valid;
 
     assign {br_taken, br_target} = br_collect;
 
@@ -67,5 +72,9 @@ module IFreg(
     end
 
     assign fs_inst      = inst_sram_rdata;
-    assign fs_to_ds_bus = {fs_inst, fs_pc};
+    assign fs_to_ds_bus =   {
+                            fetch_inst_error,
+                            fs_inst,
+                            fs_pc
+                            };
 endmodule
