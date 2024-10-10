@@ -40,10 +40,12 @@ module mycpu_top(
     wire [64:0] fs_to_ds_bus;
     wire [160:0] ds_to_es_bus; // 154 -> 160 (add from_ds_except)
     wire [6:0] es_to_ms_bus; // new
+    wire [6:0] ms_to_ws_bus; // new
 
     wire [7:0] ds_mem_inst_bus;
     wire [4:0] es_mem_inst_bus;
-
+    wire       ertn_flush;
+    wire       ws_exc;
 
     IFreg my_ifReg(
         .clk(clk),
@@ -99,7 +101,8 @@ module mycpu_top(
         .data_sram_addr(data_sram_addr),
         .data_sram_wdata(data_sram_wdata),
         
-        .es_mem_inst_bus(es_mem_inst_bus)
+        .es_mem_inst_bus(es_mem_inst_bus),
+        .es_to_ms_bus(es_to_ms_bus)
     );
 
     MEMreg my_memReg(
@@ -119,7 +122,8 @@ module mycpu_top(
         .data_sram_rdata(data_sram_rdata),
 
         .mem_inst_bus(es_mem_inst_bus),
-        .es_to_ms_bus(es_to_ms_bus)
+        .es_to_ms_bus(es_to_ms_bus),
+        .ms_to_ws_bus(ms_to_ws_bus)
     ) ;
 
     WBreg my_wbReg(
@@ -136,6 +140,9 @@ module mycpu_top(
         .debug_wb_rf_wnum(debug_wb_rf_wnum),
         .debug_wb_rf_wdata(debug_wb_rf_wdata),
 
-        .ws_rf_collect(ws_rf_collect)
+        .ws_rf_collect(ws_rf_collect),
+        .ms_to_ws_bus(ms_to_ws_bus),
+        .ertn_flush(ertn_flush),
+        .ws_exc(ws_exc)
     );
 endmodule

@@ -14,7 +14,8 @@ module MEMreg(
     // data sram interface
     input  wire [31:0] data_sram_rdata,
     input  wire [4:0]  mem_inst_bus,
-    input  wire [6:0]  es_to_ms_bus
+    input  wire [6:0]  es_to_ms_bus,
+    output wire [6:0]  ms_to_ws_bus
 );
     wire        ms_ready_go;
     reg         ms_valid;
@@ -29,6 +30,9 @@ module MEMreg(
     wire inst_ld;
     wire is_sign_extend;
     wire [31:0] word_rdata, half_rdata, byte_rdata;
+
+    // add in exp12
+    wire [6:0] ms_except;
 
     assign ms_ready_go  = 1'b1;
     assign ms_allowin   = ~ms_valid | ms_ready_go & ws_allowin;     
@@ -47,11 +51,13 @@ module MEMreg(
             ms_pc <= 32'b0;
             {ms_res_from_mem, ms_rf_we, ms_rf_waddr, ms_alu_result} <= 38'b0;
             {inst_ld_w,inst_ld_h,inst_ld_hu,inst_ld_b,inst_ld_bu} <= 5'd0;
+            {ms_except} <= 7'b0;
         end
         if (es_to_ms_valid & ms_allowin) begin
             ms_pc <= es_pc;
             {ms_res_from_mem, ms_rf_we, ms_rf_waddr, ms_alu_result} <= es_rf_collect;
             {inst_ld_w,inst_ld_h,inst_ld_hu,inst_ld_b,inst_ld_bu} <= mem_inst_bus;
+            {ms_except} <= es_to_ms_bus;
         end
     end
 
@@ -68,5 +74,10 @@ module MEMreg(
     assign ms_mem_result = inst_ld_w ? word_rdata : ((inst_ld_h | inst_ld_hu) ? half_rdata : (inst_ld_b|inst_ld_bu) ? byte_rdata : 32'b0);
     assign ms_rf_wdata      = ms_res_from_mem ? ms_mem_result : ms_alu_result;
     assign ms_rf_collect    = {ms_rf_we & ms_valid, ms_rf_waddr, ms_rf_wdata};
+
+    // add in exp12:
+    assign ms_to_ws_bus =   {
+                            ms_except;
+                            };
 
 endmodule
