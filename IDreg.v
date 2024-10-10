@@ -103,11 +103,12 @@ module IDreg(
     wire inst_st_b;
     wire inst_st_h;
     
-    // csrrd, csrwr, csrxchg, ertn
+    // csrrd, csrwr, csrxchg, ertn, syscall
     wire inst_csrrd;
     wire inst_csrwr;
     wire inst_csrxchg;
     wire inst_ertn;
+    wire inst_syscall
 
     // rdcntvl.w, rdcntvh.w, rdcntid
     wire inst_rdcntvl.w;
@@ -296,7 +297,8 @@ module IDreg(
      assign inst_csrxchg    = op_31_26_d[6'h01] & ~inst_csrrd & ~inst_csrwr;
      assign inst_ertn       = op_31_26_d[6'h01] & op_25_22_d[4'h9] & op_21_20_d[2'h00] & op_19_15_d[5'h10] 
                               & (rk == 5'h0e) & (rj == 5'h00) & (rd == 5'h00);
- 
+     
+     assign inst_syscall    = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h2] & op_19_15_d[5'h16];
      // rdcntvl.w, rdcntvh.w, rdcntid
      assign inst_rdcntvl.w  = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h0] & op_19_15_d[5'h00] & (rk == 5'h18) & (rj == 5'h00);
      assign inst_rdcntvh.w  = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h0] & op_19_15_d[5'h00] & (rk == 5'h19) & (rj == 5'h00);
