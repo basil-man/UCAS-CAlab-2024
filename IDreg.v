@@ -7,7 +7,7 @@ module IDreg(
     input wire [63:0] fs_to_ds_bus,
     input wire es_allowin,
     output wire ds_to_es_valid,
-    output wire [154:0] ds_to_es_bus, // from 148bit -> 155bit (add new_alu_op)
+    output wire [160:0] ds_to_es_bus, // from 155bit -> 161bit (add from_ds_except)
     output wire [7:0] mem_inst_bus,
     input wire [37:0] ws_rf_collect,  // {ws_rf_we, ws_rf_waddr, ws_rf_wdata}
     input wire [37:0] ms_rf_collect,  // {ms_rf_we, ms_rf_waddr, ms_rf_wdata}
@@ -180,21 +180,24 @@ module IDreg(
     wire inst_ld, inst_st;
     
     // add in exp12
-    wire ine_except;
-    wire syscall_except;
-    wire break_except;
+    wire [5:0] ds_except_collect;
+    wire ds_ine_except;
+    wire ds_syscall_except;
+    wire ds_break_except;
+    wire ds_adef_except;
+    wire ds_int_except;
 
-    assign ine_except =   ~(
-                                    inst_add_w | inst_addi_w | inst_and | inst_andi | inst_b | inst_beq | inst_bge | inst_bgeu | inst_bl |
-                                    inst_blt | inst_bltu | inst_bne | inst_csrrd | inst_csrwr | inst_csrxchg | inst_div_w | inst_div_wu |
-                                    inst_ertn | inst_jirl | inst_ld | inst_ld_b | inst_ld_bu | inst_ld_h | inst_ld_hu | inst_ld_w | inst_lu12i_w |
-                                    inst_mod_w | inst_mod_wu | inst_mul_w | inst_mulh_w | inst_mulh_wu | inst_nor | inst_or | inst_ori |
-                                    inst_pcaddu12i | inst_rdcntid | inst_rdcntvh | inst_rdcntvl | inst_sll_w | inst_slli_w | inst_slt | inst_slti |
-                                    inst_sltu | inst_sltui | inst_sra_w | inst_srai_w | inst_xor | inst_xori | inst_syscall | inst_break
-                                    ) 
+    assign ds_ine_except =  ~(
+                            inst_add_w | inst_addi_w | inst_and | inst_andi | inst_b | inst_beq | inst_bge | inst_bgeu | inst_bl |
+                            inst_blt | inst_bltu | inst_bne | inst_csrrd | inst_csrwr | inst_csrxchg | inst_div_w | inst_div_wu |
+                            inst_ertn | inst_jirl | inst_ld | inst_ld_b | inst_ld_bu | inst_ld_h | inst_ld_hu | inst_ld_w | inst_lu12i_w |
+                            inst_mod_w | inst_mod_wu | inst_mul_w | inst_mulh_w | inst_mulh_wu | inst_nor | inst_or | inst_ori |
+                            inst_pcaddu12i | inst_rdcntid | inst_rdcntvh | inst_rdcntvl | inst_sll_w | inst_slli_w | inst_slt | inst_slti |
+                            inst_sltu | inst_sltui | inst_sra_w | inst_srai_w | inst_xor | inst_xori | inst_syscall | inst_break
+                            ) 
 
-    assign syscall_except = inst_syscall;
-    assign break_except   = inst_break;
+    assign ds_syscall_except = inst_syscall;
+    assign ds_break_except   = inst_break;
 
     assign ds_ready_go    = ~ds_stall;
     assign ds_allowin     = ~ds_valid | ds_ready_go & es_allowin;
@@ -213,11 +216,11 @@ module IDreg(
     
     always @(posedge clk) begin
         if (~resetn) begin
-            {ds_inst, ds_pc} <= 64'b0;
+            {ds_adef_except, ds_inst, ds_pc} <= 65'b0;
         end
-            if (fs_to_ds_valid & ds_allowin) begin
-                {ds_inst, ds_pc} <= fs_to_ds_bus;
-            end
+        if (fs_to_ds_valid & ds_allowin) begin
+            {ds_adef_except, ds_inst, ds_pc} <= fs_to_ds_bus;
+        end
     end
     
     assign rj_ge_rd          = $signed(rj_value) >= $signed(rkd_value);
@@ -443,9 +446,20 @@ module IDreg(
                         hazard_r2_mem ? ms_rf_wdata :
                         hazard_r2_wb  ? ws_rf_wdata :
                         rf_rdata2;
-     
+
+    // add in exp12: collect exception wires
+    assign ds_except_collect =  {
+                                ds_adef_except,
+                                ds_ine_except,
+                                ds_syscall_except,
+                                ds_break_except,
+                                ds_int_except,
+                                inst_ertn
+                                };
+
     assign ds_to_es_bus =   {
-                            new_alu_op, // ds_alu_op (12bit) -> new_alu_op (19bit)
+                            ds_except_collect,
+                            new_alu_op,
                             ds_res_from_mem,
                             ds_alu_src1,
                             ds_alu_src2,

@@ -38,7 +38,8 @@ module mycpu_top(
 
     wire [32:0] br_collect;
     wire [64:0] fs_to_ds_bus;
-    wire [154:0] ds_to_es_bus;
+    wire [160:0] ds_to_es_bus; // 154 -> 160 (add from_ds_except)
+    wire [6:0] es_to_ms_bus; // new
 
     wire [7:0] ds_mem_inst_bus;
     wire [4:0] es_mem_inst_bus;

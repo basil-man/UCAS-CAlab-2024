@@ -3,7 +3,7 @@ module EXreg(
     input wire resetn,
     output wire es_allowin,
     input wire ds_to_es_valid,
-    input wire [154:0] ds_to_es_bus,     // from 148bit -> 155bit (add new_alu_op)
+    input wire [160:0] ds_to_es_bus,     // from 155bit -> 161bit (add from_ds_except)
     input wire [7:0] ds_mem_inst_bus,
     input wire ms_allowin,
     output wire [38:0] es_rf_collect,    // {es_res_from_mem, es_rf_we, es_rf_waddr, es_alu_result}
@@ -14,7 +14,8 @@ module EXreg(
     output wire [31:0] data_sram_addr,
     output wire [31:0] data_sram_wdata,
     output reg [4:0] es_mem_inst_bus,
-    output wire [31:0] es_result
+    output wire [31:0] es_result,
+    output wire [6:0] es_to_ms_bus; // new
 );
     //debug signals
     wire bus_we;
@@ -60,6 +61,11 @@ module EXreg(
     reg reg_div_mod_done;
     wire [31:0] st_wdata;
     
+    // add in exp12
+    reg [5:0] from_ds_except;
+    wire [6:0] es_except_collect;
+    wire es_ale_except;
+
     assign es_ready_go    = long_insts ? reg_div_mod_done : 1'b1; //for further extension
     assign es_allowin     = ~es_valid | es_ready_go & ms_allowin;
     assign es_to_ms_valid = es_valid & es_ready_go;
@@ -74,14 +80,12 @@ module EXreg(
     
     always @(posedge clk) begin
         if (~resetn) begin
-            {extend_es_alu_op, es_res_from_mem, es_alu_src1, es_alu_src2,
-            es_mem_en, es_rf_we, es_rf_waddr, es_rkd_value, es_pc} <= {
-            155'b0
-            };
-            {inst_st_w,inst_st_h,inst_st_b} <=3'b000;
+            {from_ds_except, extend_es_alu_op, es_res_from_mem, es_alu_src1, es_alu_src2,
+            es_mem_en, es_rf_we, es_rf_waddr, es_rkd_value, es_pc} <= 155'b0;
+            {inst_st_w,inst_st_h,inst_st_b} <= 3'b000;
             es_mem_inst_bus <= 5'd0;
-            end else if (ds_to_es_valid & es_allowin) begin
-            {extend_es_alu_op, es_res_from_mem, es_alu_src1, es_alu_src2,
+        end else if (ds_to_es_valid & es_allowin) begin
+            {from_ds_except, extend_es_alu_op, es_res_from_mem, es_alu_src1, es_alu_src2,
             es_mem_en, es_rf_we, es_rf_waddr, es_rkd_value, es_pc} <= ds_to_es_bus;
             {inst_st_w,inst_st_h,inst_st_b} <= ds_mem_inst_bus[2:0];
             es_mem_inst_bus <= ds_mem_inst_bus[7:3];
@@ -177,6 +181,12 @@ module EXreg(
                             | ({32{inst_div_wu}} & unsigned_divider_res[63:32])
                             | ({32{inst_mod_wu}} & unsigned_divider_res[31:0]);
 
+    // add in exp12: exception part
+    assign es_ale_except = ((|es_alu_result[1:0]) & (inst_st_w | inst_ld_w)|
+                        es_alu_result[0] & (inst_st_h | inst_ld_hu | inst_ld_h)) & es_valid;
+
+    assign es_except_collect = {es_ale_except, from_ds_except};
+
     alu u_alu (
         .alu_op    (es_alu_op),
         .alu_src1  (es_alu_src1),
@@ -197,7 +207,7 @@ module EXreg(
     //assign es_mem_inst_bus = ds_mem_inst_bus[7:3];
     // pass ld inst mem_inst_bus 
     
-    assign EX_result = mul_insts?mul_result:div_mod_insts?div_mod_result:es_alu_result;
+    assign EX_result = mul_insts ? mul_result : div_mod_insts ? div_mod_result : es_alu_result;
     
     assign data_sram_en    = (es_res_from_mem || es_mem_en) && es_valid;
     assign data_sram_we    = mem_we & {4{es_valid}};
@@ -205,8 +215,18 @@ module EXreg(
     assign data_sram_wdata = st_wdata;
     assign bus_we          = es_rf_we & es_valid;
     assign bus_es_res_from_mem = es_res_from_mem & es_valid;
-    assign es_rf_collect = {
-    bus_es_res_from_mem, bus_we, es_rf_waddr, EX_result
-    };
+
+
+    // add in exp12
+    assign es_to_ms_bus =   {
+                            es_except_collect
+                            };
+
+    assign es_rf_collect =  {
+                            bus_es_res_from_mem,
+                            bus_we,
+                            es_rf_waddr,
+                            EX_result
+                            };
     
 endmodule
