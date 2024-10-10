@@ -177,6 +177,18 @@ module IDreg(
 
     wire inst_ld, inst_st;
     
+    // add in exp12
+    wire inst_no_exist_except;
+
+    assign inst_no_exist_except =   ~(
+                                    inst_add_w | inst_addi_w | inst_and | inst_andi | inst_b | inst_beq | inst_bge | inst_bgeu | inst_bl |
+                                    inst_blt | inst_bltu | inst_bne | inst_csrrd | inst_csrwr | inst_csrxchg | inst_div_w | inst_div_wu |
+                                    inst_ertn | inst_jirl | inst_ld | inst_ld_b | inst_ld_bu | inst_ld_h | inst_ld_hu | inst_ld_w | inst_lu12i_w |
+                                    inst_mod_w | inst_mod_wu | inst_mul_w | inst_mulh_w | inst_mulh_wu | inst_nor | inst_or | inst_ori |
+                                    inst_pcaddu12i | inst_rdcntid | inst_rdcntvh | inst_rdcntvl | inst_sll_w | inst_slli_w | inst_slt | inst_slti |
+                                    inst_sltu | inst_sltui | inst_sra_w | inst_srai_w | inst_xor | inst_xori
+                                    ) 
+
     assign ds_ready_go    = ~ds_stall;
     assign ds_allowin     = ~ds_valid | ds_ready_go & es_allowin;
     assign ds_stall       = es_res_from_mem & (hazard_r1_exe & need_r1 | hazard_r2_exe & need_r2);
