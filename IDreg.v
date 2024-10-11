@@ -7,7 +7,7 @@ module IDreg(
     input wire [63:0] fs_to_ds_bus,
     input wire es_allowin,
     output wire ds_to_es_valid,
-    output wire [160:0] ds_to_es_bus, // from 155bit -> 161bit (add from_ds_except)
+    output wire [162:0] ds_to_es_bus, // from 155bit -> 163bit (add from_ds_except, inst_rdcnt**)
     output wire [7:0] mem_inst_bus,
     input wire [37:0] ws_rf_collect,  // {ws_rf_we, ws_rf_waddr, ws_rf_wdata}
     input wire [37:0] ms_rf_collect,  // {ms_rf_we, ms_rf_waddr, ms_rf_wdata}
@@ -31,6 +31,7 @@ module IDreg(
     wire        ds_mem_en;
     
     wire        dst_is_r1;
+    wire        dst_is_rj;
     wire        gr_we;
     wire        src_reg_is_rd;
     wire        rj_eq_rd;
@@ -401,12 +402,13 @@ module IDreg(
     assign ds_rkd_value    = rkd_value;
     assign ds_res_from_mem = inst_ld;
     assign dst_is_r1       = inst_bl;
+    assign dst_is_rj       = inst_rdcntid;
     assign gr_we =  ~inst_st    & ~inst_beq &
                     ~inst_bne   & ~inst_b   &
                     ~inst_bge   & ~inst_bgeu&
                     ~inst_blt   & ~inst_bltu;
     assign ds_mem_en = inst_st & ds_valid;
-    assign dest      = dst_is_r1 ? 5'd1 : rd;
+    assign dest      = dst_is_r1 ? 5'd1 : dst_is_rj ? rj : rd;
      
     assign rf_raddr1   = rj;
     assign rf_raddr2   = src_reg_is_rd ? rd :rk;
@@ -458,7 +460,9 @@ module IDreg(
                                 };
 
     assign ds_to_es_bus =   {
-                            ds_except_collect,
+                            inst_rdcntvl, // 1 bit
+                            inst_rdcntvh, // 1 bit
+                            ds_except_collect, // 6 bit
                             new_alu_op,
                             ds_res_from_mem,
                             ds_alu_src1,
