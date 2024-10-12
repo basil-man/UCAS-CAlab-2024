@@ -18,8 +18,7 @@ module EXreg(
     output wire [6:0] es_to_ms_bus, // new
 
     input wire except_flush,
-    input wire [6:0] ms_except,
-    input wire [31:0] csr_timer_cnt
+    input wire [6:0] ms_except
 );
     //debug signals
     wire bus_we;
@@ -240,7 +239,7 @@ module EXreg(
     // pass ld inst mem_inst_bus 
     wire ms_adef_except, ms_ine_except, ms_syscall_except, ms_break_except, ms_int_except, inst_ertn;
     assign EX_result = mul_insts ? mul_result : div_mod_insts ? div_mod_result : es_alu_result;
-    wire ex_to_ms_result =inst_rdcntvl? cnt[31:0] : inst_rdcntvh ? cnt[63:32] : (csr_re ? csr_rvalue : EX_result);
+    wire [31:0] ex_to_ms_result =inst_rdcntvl? cnt[31:0] : inst_rdcntvh ? cnt[63:32] : (csr_re ? csr_rvalue : EX_result);
 
     assign data_sram_en    = (es_res_from_mem || es_mem_en) & es_valid;
     assign data_sram_we    = mem_we & {4{es_valid & ~ms_syscall_except & ~inst_ertn}};

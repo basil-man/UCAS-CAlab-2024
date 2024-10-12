@@ -198,11 +198,13 @@ module IDreg(
 
     assign ds_ine_except =  ~(
                             inst_add_w | inst_addi_w | inst_and | inst_andi | inst_b | inst_beq | inst_bge | inst_bgeu | inst_bl |
-                            inst_blt | inst_bltu | inst_bne | inst_csrrd | inst_csrwr | inst_csrxchg | inst_div_w | inst_div_wu |
-                            inst_ertn | inst_jirl | inst_ld | inst_ld_b | inst_ld_bu | inst_ld_h | inst_ld_hu | inst_ld_w | inst_lu12i_w |
-                            inst_mod_w | inst_mod_wu | inst_mul_w | inst_mulh_w | inst_mulh_wu | inst_nor | inst_or | inst_ori |
-                            inst_pcaddu12i | inst_rdcntid | inst_rdcntvh_w | inst_rdcntvl_w | inst_sll_w | inst_slli_w | inst_slt | inst_slti |
-                            inst_sltu | inst_sltui | inst_sra_w | inst_srai_w | inst_xor | inst_xori | inst_syscall | inst_break
+                            inst_blt | inst_bltu | inst_bne | inst_break | inst_csrrd | inst_csrwr | inst_csrxchg | inst_div_w |
+                            inst_div_wu | inst_ertn | inst_jirl | inst_ld | inst_ld_b | inst_ld_bu | inst_ld_h | inst_ld_hu |
+                            inst_ld_w | inst_lu12i_w | inst_mod_w | inst_mod_wu | inst_mul_w | inst_mulh_w | inst_mulh_wu |
+                            inst_nor | inst_or | inst_ori | inst_pcaddu12i | inst_rdcntid | inst_rdcntvh_w |
+                            inst_rdcntvl_w | inst_sll_w | inst_slli_w | inst_slt | inst_slti | inst_sltu | inst_sltui |
+                            inst_sra_w | inst_srai_w | inst_srl_w | inst_srli_w | inst_st | inst_st_b | inst_st_h | inst_st_w |
+                            inst_sub_w | inst_syscall | inst_xor | inst_xori
                             ); 
 
     assign ds_syscall_except = inst_syscall;
