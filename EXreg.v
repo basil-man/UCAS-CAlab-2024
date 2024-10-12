@@ -18,12 +18,13 @@ module EXreg(
     output wire [6:0] es_to_ms_bus, // new
 
     input wire except_flush,
-    input wire [6:0] ms_except
+    input wire [6:0] ms_except,
+    input wire [31:0] csr_timer_cnt
 );
     //debug signals
     wire bus_we;
     wire bus_es_res_from_mem;
-    
+    wire inst_ld_w, inst_ld_h, inst_ld_hu, inst_ld_b, inst_ld_bu;
     wire inst_mul_w, inst_mulh_w, inst_mulh_wu, inst_div_w, inst_mod_w, inst_div_wu, inst_mod_wu; //mul & div insts
     wire long_insts    = inst_div_w | inst_mod_w | inst_div_wu | inst_mod_wu; //insts that need multi cycles, reserved for future extension
     wire div_mod_insts = inst_div_w | inst_mod_w | inst_div_wu | inst_mod_wu; //div insts
@@ -98,6 +99,8 @@ module EXreg(
         end
     end
     assign {inst_mul_w, inst_mulh_w, inst_mulh_wu, inst_div_w, inst_mod_w, inst_div_wu, inst_mod_wu, es_alu_op} = extend_es_alu_op;
+
+    assign {inst_ld_w, inst_ld_h, inst_ld_hu, inst_ld_b, inst_ld_bu}=es_mem_inst_bus;
     // mul
     assign unsigned_prod = es_alu_src1 * es_alu_src2;
     assign signed_prod   = $signed(es_alu_src1) * $signed(es_alu_src2);
@@ -200,8 +203,8 @@ module EXreg(
 
     // add in exp12: exception part
     
-    // assign es_ale_except = ((|es_alu_result[1:0]) & (inst_st_w | inst_ld_w)|
-    //                     es_alu_result[0] & (inst_st_h | inst_ld_hu | inst_ld_h)) & es_valid;
+     assign es_ale_except = ((|es_alu_result[1:0]) & (inst_st_w | inst_ld_w)|
+                         es_alu_result[0] & (inst_st_h | inst_ld_hu | inst_ld_h)) & es_valid;
 
     assign es_except_collect = {es_ale_except, from_ds_except};
 
@@ -222,11 +225,23 @@ module EXreg(
                     | {32{inst_st_h}} & {2{es_rkd_value[15:0]}}
                     | {32{inst_st_w}} & {es_rkd_value[31:0]};
 
+    //cnt
+    reg [63:0] cnt;
+    always @(posedge clk) begin
+        if (~resetn) begin
+            cnt <= 64'b0;
+        end else if (es_valid & es_allowin) begin
+            cnt <= cnt + 1;
+        end
+        
+    end
+
     //assign es_mem_inst_bus = ds_mem_inst_bus[7:3];
     // pass ld inst mem_inst_bus 
     wire ms_adef_except, ms_ine_except, ms_syscall_except, ms_break_except, ms_int_except, inst_ertn;
-    assign EX_result = mul_insts ? mul_result : div_mod_insts ? div_mod_result : csr_re ? csr_rvalue : es_alu_result;
-    
+    assign EX_result = mul_insts ? mul_result : div_mod_insts ? div_mod_result : es_alu_result;
+    wire ex_to_ms_result =inst_rdcntvl? cnt[31:0] : inst_rdcntvh ? cnt[63:32] : (csr_re ? csr_rvalue : EX_result);
+
     assign data_sram_en    = (es_res_from_mem || es_mem_en) & es_valid;
     assign data_sram_we    = mem_we & {4{es_valid & ~ms_syscall_except & ~inst_ertn}};
     assign data_sram_addr  = {es_alu_result[31:2],2'b00};
@@ -244,7 +259,7 @@ module EXreg(
                             bus_es_res_from_mem,
                             bus_we,
                             es_rf_waddr,
-                            EX_result
+                            ex_to_ms_result
                             };
     assign {ms_adef_except, ms_ine_except, ms_syscall_except, ms_break_except, ms_int_except, inst_ertn} = ms_except;
     

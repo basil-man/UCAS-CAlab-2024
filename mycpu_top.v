@@ -104,6 +104,7 @@ module mycpu_top(
 
         .csr_collect(csr_collect),
         .csr_rvalue(csr_rvalue),
+        .ds_int_except(has_int),
 
         .except_flush(wb_ex|ertn_flush)
     );
@@ -202,6 +203,6 @@ module mycpu_top(
         .wb_ecode  (wb_ecode), //来自WB阶段的异常类型
         .wb_esubcode(wb_esubcode),//来自WB阶段的异常类型辅助码
         .wb_vaddr  (0) ,//来自WB阶段的访存地址
-        .wb_pc     (wb_pc)  //写回的返回地址
+        .wb_pc     (wb_pc) //写回的返回地址
     );
 endmodule

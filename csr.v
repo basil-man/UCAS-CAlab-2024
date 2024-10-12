@@ -60,7 +60,7 @@ module csr(
     input  wire [ 5:0]   wb_ecode  , //来自WB阶段的异常类型
     input  wire [ 8:0]   wb_esubcode,//来自WB阶段的异常类型辅助码
     input  wire [31:0]   wb_vaddr   ,//来自WB阶段的访存地址
-    input  wire [31:0]   wb_pc       //写回的返回地址
+    input  wire [31:0]   wb_pc      //写回的返回地址
 );
     wire [ 7: 0] hw_int_in;
     wire         ipi_int_in;

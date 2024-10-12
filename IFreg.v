@@ -74,7 +74,7 @@ module IFreg(
             fs_pc <= nextpc;
         end
     end
-
+    
     assign fs_inst      = inst_sram_rdata;
     assign fs_to_ds_bus =   {
                             adef_except,

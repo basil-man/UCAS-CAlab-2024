@@ -1,3 +1,4 @@
+`define CSR_TID    14'h40
 module IDreg(
     input wire clk,
     input wire resetn,
@@ -16,6 +17,7 @@ module IDreg(
     // csr interface
     output wire [79:0] csr_collect,
     input wire [31:0] csr_rvalue,
+    input wire ds_int_except,
 
     input wire except_flush
 );
@@ -193,7 +195,6 @@ module IDreg(
     wire ds_syscall_except;
     wire ds_break_except;
     reg ds_adef_except;
-    reg ds_int_except;
 
     assign ds_ine_except =  ~(
                             inst_add_w | inst_addi_w | inst_and | inst_andi | inst_b | inst_beq | inst_bge | inst_bgeu | inst_bl |
@@ -460,7 +461,7 @@ module IDreg(
     wire [31:0] csr_wmask;
     wire [31:0] csr_wvalue;
     assign csr_re    = inst_csrrd | inst_csrxchg | inst_csrwr;
-    assign csr_num   = csr;
+    assign csr_num   = inst_rdcntid ? `CSR_TID : csr;
     assign csr_we    = inst_csrwr | inst_csrxchg;
     assign csr_wmask = ({32{inst_csrxchg}} & rj_value) | {32{inst_csrwr}};
     assign csr_wvalue= rkd_value;
