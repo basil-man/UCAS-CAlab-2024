@@ -105,7 +105,8 @@ module EXreg(
                         | ({32{inst_mulh_w}} & signed_prod[63:32])
                         | ({32{inst_mulh_wu}} & unsigned_prod[63:32]);
     // div
-    assign div_mod_done = ((inst_div_w || inst_mod_w) && signed_dout_tvalid)||((inst_div_wu || inst_mod_wu) && unsigned_dout_tvalid);
+    reg handshake_flag;
+    assign div_mod_done = handshake_flag & (((inst_div_w || inst_mod_w) && signed_dout_tvalid)||((inst_div_wu || inst_mod_wu) && unsigned_dout_tvalid));
     
     always @(posedge clk) begin
         if (~resetn) begin
@@ -125,10 +126,20 @@ module EXreg(
     always @(posedge clk) begin
         if (~resetn) begin
             valid_cnt <= 0;
-            end else if (es_valid & es_allowin) begin
+        end else if (es_valid & es_allowin) begin
             valid_cnt <= 0;
-            end else if (div_mod_insts) begin
+        end else if (div_mod_insts) begin
             valid_cnt <= 1;
+        end
+    end
+    
+    always @(posedge clk) begin
+        if (~resetn) begin
+            handshake_flag <= 1'b0;
+        end else if (es_valid & es_allowin) begin
+            handshake_flag <= 1'b0;
+        end else if ((signed_dividend_tvalid&&signed_dividend_tready)||(unsigned_dividend_tvalid&&unsigned_dividend_tready)) begin
+            handshake_flag <= 1'b1;
         end
     end
     
@@ -217,7 +228,7 @@ module EXreg(
     assign EX_result = mul_insts ? mul_result : div_mod_insts ? div_mod_result : csr_re ? csr_rvalue : es_alu_result;
     
     assign data_sram_en    = (es_res_from_mem || es_mem_en) & es_valid;
-    assign data_sram_we    = mem_we & {4{es_valid & ~ms_syscall_except}};
+    assign data_sram_we    = mem_we & {4{es_valid & ~ms_syscall_except & ~inst_ertn}};
     assign data_sram_addr  = {es_alu_result[31:2],2'b00};
     assign data_sram_wdata = st_wdata;
     assign bus_we          = es_rf_we & es_valid;

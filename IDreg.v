@@ -441,8 +441,8 @@ module IDreg(
     assign hazard_r2_mem = (|rf_raddr2) & (rf_raddr2 == ms_rf_waddr) & ms_rf_we;
     assign hazard_r1_exe = (|rf_raddr1) & (rf_raddr1 == es_rf_waddr) & es_rf_we;
     assign hazard_r2_exe = (|rf_raddr2) & (rf_raddr2 == es_rf_waddr) & es_rf_we;
-    assign need_r1       = ~ds_src1_is_pc & (|ds_alu_op);
-    assign need_r2       = ~ds_src2_is_imm & (|ds_alu_op);
+    assign need_r1       = ~ds_src1_is_pc & (|ds_alu_op | inst_bne | inst_beq | inst_blt | inst_bge | inst_bltu | inst_bgeu);
+    assign need_r2       = ~ds_src2_is_imm & (|ds_alu_op | inst_bne | inst_beq | inst_blt | inst_bge | inst_bltu | inst_bgeu);
      
     assign rj_value =   hazard_r1_exe ? es_rf_wdata :
                         hazard_r1_mem ? ms_rf_wdata :
