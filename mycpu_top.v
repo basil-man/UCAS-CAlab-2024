@@ -38,7 +38,7 @@ module mycpu_top(
 
     wire [32:0] br_collect;
     wire [64:0] fs_to_ds_bus;
-    wire [162:0] ds_to_es_bus; // 154 -> 163 (add from_ds_except, inst_rdcnt**)
+    wire [194:0] ds_to_es_bus; // 154 -> 195 (add from_ds_except, inst_rdcnt**)
     wire [6:0] es_to_ms_bus; // new
     wire [6:0] ms_to_ws_bus; // new
 
@@ -46,6 +46,14 @@ module mycpu_top(
     wire [4:0] es_mem_inst_bus;
     wire       ertn_flush;
     wire       ws_exc;
+
+    //csr interface
+    wire csr_re, csr_we;
+    wire [13:0] csr_num;
+    wire [31:0] csr_wmask;
+    wire [31:0] csr_wvalue;
+    wire [79:0] csr_collect;
+    wire [31:0] csr_rvalue;
 
     IFreg my_ifReg(
         .clk(clk),
@@ -79,8 +87,11 @@ module mycpu_top(
 
         .ws_rf_collect(ws_rf_collect),
         .ms_rf_collect(ms_rf_collect),
-        .es_rf_collect(es_rf_collect)
+        .es_rf_collect(es_rf_collect),
+
+        .csr_collect(csr_collect)
     );
+    assign {csr_re, csr_num, csr_we, csr_wmask, csr_wvalue} = csr_collect;
 
     EXreg my_exReg(
         .clk(clk),
@@ -103,6 +114,9 @@ module mycpu_top(
         
         .es_mem_inst_bus(es_mem_inst_bus),
         .es_to_ms_bus(es_to_ms_bus)
+
+        .csr_re(csr_re),
+        .csr_rvalue(csr_rvalue)
     );
 
     MEMreg my_memReg(
@@ -144,5 +158,27 @@ module mycpu_top(
         .ms_to_ws_bus(ms_to_ws_bus),
         .ertn_flush(ertn_flush),
         .ws_exc(ws_exc)
+    );
+
+    csr my_csr(
+        .clk       (clk),
+        .reset     (~reset),
+
+        .csr_re    (csr_re),
+        .csr_num   (csr_num),
+        .csr_rvalue(csr_rvalue),
+        .csr_we    (csr_we),
+        .csr_wmask (csr_wmask),
+        .csr_wvalue(csr_wvalue),
+
+        .ex_entry  (), //送往pre-IF的异常入口地址
+        .ertn_entry(), //送往pre-IF的返回入口地址
+        .has_int   (), //送往ID阶段的中断有效信号
+        .ertn_flush(), //来自WB阶段的ertn指令执行有效信号
+        .wb_ex     (), //来自WB阶段的异常处理触发信号
+        .wb_ecode  (), //来自WB阶段的异常类型
+        .wb_esubcode(),//来自WB阶段的异常类型辅助码
+        .wb_vaddr  () ,//来自WB阶段的访存地址
+        .wb_pc     ()  //写回的返回地址
     );
 endmodule

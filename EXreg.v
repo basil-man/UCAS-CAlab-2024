@@ -3,7 +3,7 @@ module EXreg(
     input wire resetn,
     output wire es_allowin,
     input wire ds_to_es_valid,
-    input wire [162:0] ds_to_es_bus,     // from 155bit -> 161bit (add from_ds_except, inst_rdcnt**)
+    input wire [194:0] ds_to_es_bus,     // from 155bit -> 161bit (add from_ds_except)
     input wire [7:0] ds_mem_inst_bus,
     input wire ms_allowin,
     output wire [38:0] es_rf_collect,    // {es_res_from_mem, es_rf_we, es_rf_waddr, es_alu_result}
@@ -15,7 +15,9 @@ module EXreg(
     output wire [31:0] data_sram_wdata,
     output reg [4:0] es_mem_inst_bus,
     output wire [31:0] es_result,
-    output wire [6:0] es_to_ms_bus; // new
+    output wire [6:0] es_to_ms_bus, // new
+    input wire csr_re,
+    input wire [31:0] csr_rvalue,
 );
     //debug signals
     wire bus_we;
@@ -65,8 +67,6 @@ module EXreg(
     reg [5:0] from_ds_except;
     wire [6:0] es_except_collect;
     wire es_ale_except;
-    wire es_inst_rdcntvl;
-    wire es_inst_rdcntvh;
 
     assign es_ready_go    = long_insts ? reg_div_mod_done : 1'b1; //for further extension
     assign es_allowin     = ~es_valid | es_ready_go & ms_allowin;
@@ -75,20 +75,20 @@ module EXreg(
     always @(posedge clk) begin
         if (~resetn) begin
             es_valid <= 1'b0;
-        end else if (es_allowin) begin
+            end else if (es_allowin) begin
             es_valid <= ds_to_es_valid;
         end
     end
     
     always @(posedge clk) begin
         if (~resetn) begin
-            {es_inst_rdcntvl, es_inst_rdcntvh, from_ds_except, extend_es_alu_op, es_res_from_mem, es_alu_src1, es_alu_src2,
+            {from_ds_except, extend_es_alu_op, es_res_from_mem, es_alu_src1, es_alu_src2,
             es_mem_en, es_rf_we, es_rf_waddr, es_rkd_value, es_pc} <= 155'b0;
             {inst_st_w,inst_st_h,inst_st_b} <= 3'b000;
             es_mem_inst_bus <= 5'd0;
         end else if (ds_to_es_valid & es_allowin) begin
-            {es_inst_rdcntvl, es_inst_rdcntvh, from_ds_except, extend_es_alu_op, es_res_from_mem, es_alu_src1, es_alu_src2,
-            es_mem_en, es_rf_we, es_rf_waddr, es_rkd_value, es_pc} <= ds_to_es_bus;
+            {from_ds_except, extend_es_alu_op, es_res_from_mem, es_alu_src1, es_alu_src2,
+            es_mem_en, es_rf_we, es_rf_waddr, es_rkd_value, es_pc, csr_rvalue} <= ds_to_es_bus;
             {inst_st_w,inst_st_h,inst_st_b} <= ds_mem_inst_bus[2:0];
             es_mem_inst_bus <= ds_mem_inst_bus[7:3];
         end
@@ -106,9 +106,9 @@ module EXreg(
     always @(posedge clk) begin
         if (~resetn) begin
             reg_div_mod_done <= 1'b0;
-        end else if (es_valid & es_allowin) begin
+            end else if (es_valid & es_allowin) begin
             reg_div_mod_done <= 1'b0;
-        end else if (div_mod_done) begin
+            end else if (div_mod_done) begin
             reg_div_mod_done <= 1'b1;
         end
     end
@@ -121,9 +121,9 @@ module EXreg(
     always @(posedge clk) begin
         if (~resetn) begin
             valid_cnt <= 0;
-        end else if (es_valid & es_allowin) begin
+            end else if (es_valid & es_allowin) begin
             valid_cnt <= 0;
-        end else if (div_mod_insts) begin
+            end else if (div_mod_insts) begin
             valid_cnt <= 1;
         end
     end
@@ -137,7 +137,7 @@ module EXreg(
             signed_divisor_tvalid    <= 1'b0;
             unsigned_dividend_tvalid <= 1'b0;
             unsigned_divisor_tvalid  <= 1'b0;
-        end else if (div_mod_insts&&~valid_cnt) begin
+            end else if (div_mod_insts&&~valid_cnt) begin
             signed_dividend_tvalid   <= inst_div_w || inst_mod_w;
             signed_divisor_tvalid    <= inst_div_w || inst_mod_w;
             unsigned_dividend_tvalid <= inst_div_wu || inst_mod_wu;
@@ -209,7 +209,7 @@ module EXreg(
     //assign es_mem_inst_bus = ds_mem_inst_bus[7:3];
     // pass ld inst mem_inst_bus 
     
-    assign EX_result = mul_insts ? mul_result : div_mod_insts ? div_mod_result : es_alu_result;
+    assign EX_result = mul_insts ? mul_result : div_mod_insts ? div_mod_result : csr_re ? csr_rvalue : es_alu_result;
     
     assign data_sram_en    = (es_res_from_mem || es_mem_en) && es_valid;
     assign data_sram_we    = mem_we & {4{es_valid}};

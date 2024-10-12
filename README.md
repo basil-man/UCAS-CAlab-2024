@@ -1,11 +1,9 @@
 # prj4 repo
 
-## todo
-
 ### exp12
 
-1. 为 CPU 增加csrrd、csrwr、csrxchg 和 ertn 指令。
-2. 为 CPU 增加控制状态寄存器CRMD、PRMD、ESTAT、ERA、EENTRY、SAVE0~3。
+1. ~~为 CPU 增加csrrd、csrwr、csrxchg 和 ertn 指令。~~
+2. ~~为 CPU 增加控制状态寄存器CRMD、PRMD、ESTAT、ERA、EENTRY、SAVE0~3。~~
 3. 为 CPU 增加syscall 指令，实现系统调用异常支持。
 
 ### exp13

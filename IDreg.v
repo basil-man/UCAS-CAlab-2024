@@ -7,11 +7,15 @@ module IDreg(
     input wire [63:0] fs_to_ds_bus,
     input wire es_allowin,
     output wire ds_to_es_valid,
-    output wire [162:0] ds_to_es_bus, // from 155bit -> 163bit (add from_ds_except, inst_rdcnt**)
+    output wire [194:0] ds_to_es_bus, // from 155bit -> 195bit (add from_ds_except, inst_rdcnt**, csr_rvalue)
     output wire [7:0] mem_inst_bus,
     input wire [37:0] ws_rf_collect,  // {ws_rf_we, ws_rf_waddr, ws_rf_wdata}
     input wire [37:0] ms_rf_collect,  // {ms_rf_we, ms_rf_waddr, ms_rf_wdata}
     input wire [38:0] es_rf_collect // {es_res_from_mem, es_rf_we, es_rf_waddr, es_alu_result}
+
+    // csr interface
+    output wire [79:0] csr_collect,
+    input wire [31:0] csr_rvalue
 );
     
     wire        ds_ready_go;
@@ -51,6 +55,7 @@ module IDreg(
     wire [4:0] rd;
     wire [4:0] rj;
     wire [4:0] rk;
+    wire [13:0] csr;
     wire [11:0] i12;
     wire [19:0] i20;
     wire [15:0] i16;
@@ -252,7 +257,7 @@ module IDreg(
      assign rd = ds_inst[4: 0];
      assign rj = ds_inst[9: 5];
      assign rk = ds_inst[14:10];
-     
+     assign csr = ds_inst[23:10];
      assign i12 = ds_inst[21:10];
      assign i20 = ds_inst[24: 5];
      assign i16 = ds_inst[25:10];
@@ -376,7 +381,7 @@ module IDreg(
      
     assign jirl_offs = {{14{i16[15]}}, i16[15:0], 2'b0};
     
-    assign src_reg_is_rd = inst_beq | inst_bne | inst_st | inst_blt | inst_bge | inst_bltu | inst_bgeu;
+    assign src_reg_is_rd = inst_beq | inst_bne | inst_st | inst_blt | inst_bge | inst_bltu | inst_bgeu | inst_csrwr | inst_csrxchg;
     
     assign ds_src1_is_pc = inst_jirl | inst_bl | inst_pcaddu12i;
      
@@ -406,7 +411,7 @@ module IDreg(
     assign gr_we =  ~inst_st    & ~inst_beq &
                     ~inst_bne   & ~inst_b   &
                     ~inst_bge   & ~inst_bgeu&
-                    ~inst_blt   & ~inst_bltu;
+                    ~inst_blt   & ~inst_bltu& ~inst_syscall;
     assign ds_mem_en = inst_st & ds_valid;
     assign dest      = dst_is_r1 ? 5'd1 : dst_is_rj ? rj : rd;
      
@@ -449,6 +454,17 @@ module IDreg(
                         hazard_r2_wb  ? ws_rf_wdata :
                         rf_rdata2;
 
+    // to csr
+    wire csr_re, csr_we;
+    wire [13:0] csr_num;
+    wire [31:0] csr_wmask;
+    wire [31:0] csr_wvalue;
+    assign csr_re    = inst_csrrd;
+    assign csr_num   = csr;
+    assign csr_we    = inst_csrwr | inst_csrxchg;
+    assign csr_wmask = ({32{inst_csrxchg}} & rj_value) | {32{inst_csrwr}};
+    assign csr_wvalue= rkd_value;
+    assign csr_collect = {csr_re, csr_num, csr_we, csr_wmask, csr_wvalue};
     // add in exp12: collect exception wires
     assign ds_except_collect =  {
                                 ds_adef_except,
@@ -471,7 +487,8 @@ module IDreg(
                             ds_rf_we,
                             ds_rf_waddr,
                             ds_rkd_value,
-                            ds_pc
+                            ds_pc,
+                            csr_rvalue// 32 bit
                             };
 
     assign mem_inst_bus =   {
