@@ -7,7 +7,7 @@ module IDreg(
     input wire [63:0] fs_to_ds_bus,
     input wire es_allowin,
     output wire ds_to_es_valid,
-    output wire [194:0] ds_to_es_bus, // from 155bit -> 195bit (add from_ds_except, inst_rdcnt**, csr_rvalue)
+    output wire [195:0] ds_to_es_bus, // from 155bit -> 196bit (add from_ds_except, inst_rdcnt**, csr_rvalue, csr_re)
     output wire [7:0] mem_inst_bus,
     input wire [37:0] ws_rf_collect,  // {ws_rf_we, ws_rf_waddr, ws_rf_wdata}
     input wire [37:0] ms_rf_collect,  // {ms_rf_we, ms_rf_waddr, ms_rf_wdata}
@@ -459,7 +459,7 @@ module IDreg(
     wire [13:0] csr_num;
     wire [31:0] csr_wmask;
     wire [31:0] csr_wvalue;
-    assign csr_re    = inst_csrrd;
+    assign csr_re    = inst_csrrd | inst_csrxchg | inst_csrwr;
     assign csr_num   = csr;
     assign csr_we    = inst_csrwr | inst_csrxchg;
     assign csr_wmask = ({32{inst_csrxchg}} & rj_value) | {32{inst_csrwr}};
@@ -488,7 +488,8 @@ module IDreg(
                             ds_rf_waddr,
                             ds_rkd_value,
                             ds_pc,
-                            csr_rvalue// 32 bit
+                            csr_rvalue,// 32 bit
+                            csr_re
                             };
 
     assign mem_inst_bus =   {

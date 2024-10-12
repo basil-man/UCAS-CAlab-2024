@@ -38,7 +38,7 @@ module mycpu_top(
 
     wire [32:0] br_collect;
     wire [64:0] fs_to_ds_bus;
-    wire [194:0] ds_to_es_bus; // 154 -> 195 (add from_ds_except, inst_rdcnt**)
+    wire [195:0] ds_to_es_bus; // from 155bit -> 196bit (add from_ds_except, inst_rdcnt**, csr_rvalue, csr_re)
     wire [6:0] es_to_ms_bus; // new
     wire [6:0] ms_to_ws_bus; // new
 
@@ -89,7 +89,8 @@ module mycpu_top(
         .ms_rf_collect(ms_rf_collect),
         .es_rf_collect(es_rf_collect),
 
-        .csr_collect(csr_collect)
+        .csr_collect(csr_collect),
+        .csr_rvalue(csr_rvalue)
     );
     assign {csr_re, csr_num, csr_we, csr_wmask, csr_wvalue} = csr_collect;
 
@@ -113,10 +114,7 @@ module mycpu_top(
         .data_sram_wdata(data_sram_wdata),
         
         .es_mem_inst_bus(es_mem_inst_bus),
-        .es_to_ms_bus(es_to_ms_bus),
-
-        .csr_re(csr_re),
-        .csr_rvalue(csr_rvalue)
+        .es_to_ms_bus(es_to_ms_bus)
     );
 
     MEMreg my_memReg(
@@ -156,13 +154,17 @@ module mycpu_top(
 
         .ws_rf_collect(ws_rf_collect),
         .ms_to_ws_bus(ms_to_ws_bus),
+
         .ertn_flush(ertn_flush),
-        .ws_exc(ws_exc)
+        .wb_ex(wb_ex),
+        .wb_ecode(wb_ecode),
+        .wb_esubcode(wb_esubcode),
+        .wb_pc(wb_pc)
     );
 
     csr my_csr(
         .clk       (clk),
-        .reset     (~reset),
+        .reset     (~resetn),
 
         .csr_re    (csr_re),
         .csr_num   (csr_num),
@@ -171,14 +173,14 @@ module mycpu_top(
         .csr_wmask (csr_wmask),
         .csr_wvalue(csr_wvalue),
 
-        .ex_entry  (), //送往pre-IF的异常入口地址
-        .ertn_entry(), //送往pre-IF的返回入口地址
-        .has_int   (), //送往ID阶段的中断有效信号
-        .ertn_flush(), //来自WB阶段的ertn指令执行有效信号
-        .wb_ex     (), //来自WB阶段的异常处理触发信号
-        .wb_ecode  (), //来自WB阶段的异常类型
-        .wb_esubcode(),//来自WB阶段的异常类型辅助码
-        .wb_vaddr  () ,//来自WB阶段的访存地址
-        .wb_pc     ()  //写回的返回地址
+        .ex_entry  (ex_entry), //送往pre-IF的异常入口地址
+        .ertn_entry(ertn_entry), //送往pre-IF的返回入口地址
+        .has_int   (has_int), //送往ID阶段的中断有效信号
+        .ertn_flush(ertn_flush), //来自WB阶段的ertn指令执行有效信号
+        .wb_ex     (wb_ex), //来自WB阶段的异常处理触发信号
+        .wb_ecode  (wb_ecode), //来自WB阶段的异常类型
+        .wb_esubcode(wb_esubcode),//来自WB阶段的异常类型辅助码
+        .wb_vaddr  (0) ,//来自WB阶段的访存地址
+        .wb_pc     (wb_pc)  //写回的返回地址
     );
 endmodule

@@ -19,7 +19,7 @@
 | name | job |
 | ---- | --- |
 | phk  |  |
-| rhl  |  |
+| rhl  |为 CPU 增加csrrd、csrwr、csrxchg 和 ertn 指令、修改phk的错误、基于cassielim和课本完成csr.v|
 | zc   |  |
 
 ## message:
