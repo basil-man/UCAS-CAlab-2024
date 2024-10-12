@@ -32,7 +32,7 @@ module MEMreg(
     wire [31:0] word_rdata, half_rdata, byte_rdata;
 
     // add in exp12
-    wire [6:0] ms_except;
+    reg [6:0] ms_except;
 
     assign ms_ready_go  = 1'b1;
     assign ms_allowin   = ~ms_valid | ms_ready_go & ws_allowin;     
@@ -77,7 +77,7 @@ module MEMreg(
 
     // add in exp12:
     assign ms_to_ws_bus =   {
-                            ms_except;
+                            ms_except
                             };
 
 endmodule

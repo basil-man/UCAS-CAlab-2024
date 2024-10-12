@@ -26,7 +26,7 @@ module WBreg(
     reg         ws_rf_we;
 
     // add in exp12
-    wire [6:0] ws_except;
+    reg [6:0] ws_except;
     wire       ws_adef_except;
     wire       ws_ale_except;
     wire       ws_syscall_except;

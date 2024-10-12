@@ -16,8 +16,7 @@ module EXreg(
     output reg [4:0] es_mem_inst_bus,
     output wire [31:0] es_result,
     output wire [6:0] es_to_ms_bus, // new
-    input wire csr_re,
-    input wire [31:0] csr_rvalue,
+    input wire csr_re
 );
     //debug signals
     wire bus_we;
@@ -67,7 +66,7 @@ module EXreg(
     reg [5:0] from_ds_except;
     wire [6:0] es_except_collect;
     wire es_ale_except;
-
+    reg [31:0] csr_rvalue;
     reg inst_rdcntvl, inst_rdcntvh;
 
     assign es_ready_go    = long_insts ? reg_div_mod_done : 1'b1; //for further extension
@@ -186,8 +185,9 @@ module EXreg(
                             | ({32{inst_mod_wu}} & unsigned_divider_res[31:0]);
 
     // add in exp12: exception part
-    assign es_ale_except = ((|es_alu_result[1:0]) & (inst_st_w | inst_ld_w)|
-                        es_alu_result[0] & (inst_st_h | inst_ld_hu | inst_ld_h)) & es_valid;
+    
+    // assign es_ale_except = ((|es_alu_result[1:0]) & (inst_st_w | inst_ld_w)|
+    //                     es_alu_result[0] & (inst_st_h | inst_ld_hu | inst_ld_h)) & es_valid;
 
     assign es_except_collect = {es_ale_except, from_ds_except};
 

@@ -113,7 +113,7 @@ module mycpu_top(
         .data_sram_wdata(data_sram_wdata),
         
         .es_mem_inst_bus(es_mem_inst_bus),
-        .es_to_ms_bus(es_to_ms_bus)
+        .es_to_ms_bus(es_to_ms_bus),
 
         .csr_re(csr_re),
         .csr_rvalue(csr_rvalue)

@@ -11,7 +11,7 @@ module IDreg(
     output wire [7:0] mem_inst_bus,
     input wire [37:0] ws_rf_collect,  // {ws_rf_we, ws_rf_waddr, ws_rf_wdata}
     input wire [37:0] ms_rf_collect,  // {ms_rf_we, ms_rf_waddr, ms_rf_wdata}
-    input wire [38:0] es_rf_collect // {es_res_from_mem, es_rf_we, es_rf_waddr, es_alu_result}
+    input wire [38:0] es_rf_collect, // {es_res_from_mem, es_rf_we, es_rf_waddr, es_alu_result}
 
     // csr interface
     output wire [79:0] csr_collect,
@@ -118,8 +118,8 @@ module IDreg(
     wire inst_break;
 
     // rdcntvl.w, rdcntvh.w, rdcntid
-    wire inst_rdcntvl.w;
-    wire inst_rdcntvh.w;
+    wire inst_rdcntvl_w;
+    wire inst_rdcntvh_w;
     wire inst_rdcntid;
 
     //oral wires
@@ -190,17 +190,17 @@ module IDreg(
     wire ds_ine_except;
     wire ds_syscall_except;
     wire ds_break_except;
-    wire ds_adef_except;
-    wire ds_int_except;
+    reg ds_adef_except;
+    reg ds_int_except;
 
     assign ds_ine_except =  ~(
                             inst_add_w | inst_addi_w | inst_and | inst_andi | inst_b | inst_beq | inst_bge | inst_bgeu | inst_bl |
                             inst_blt | inst_bltu | inst_bne | inst_csrrd | inst_csrwr | inst_csrxchg | inst_div_w | inst_div_wu |
                             inst_ertn | inst_jirl | inst_ld | inst_ld_b | inst_ld_bu | inst_ld_h | inst_ld_hu | inst_ld_w | inst_lu12i_w |
                             inst_mod_w | inst_mod_wu | inst_mul_w | inst_mulh_w | inst_mulh_wu | inst_nor | inst_or | inst_ori |
-                            inst_pcaddu12i | inst_rdcntid | inst_rdcntvh | inst_rdcntvl | inst_sll_w | inst_slli_w | inst_slt | inst_slti |
+                            inst_pcaddu12i | inst_rdcntid | inst_rdcntvh_w | inst_rdcntvl_w | inst_sll_w | inst_slli_w | inst_slt | inst_slti |
                             inst_sltu | inst_sltui | inst_sra_w | inst_srai_w | inst_xor | inst_xori | inst_syscall | inst_break
-                            ) 
+                            ); 
 
     assign ds_syscall_except = inst_syscall;
     assign ds_break_except   = inst_break;
@@ -316,8 +316,8 @@ module IDreg(
      assign inst_syscall    = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h2] & op_19_15_d[5'h16];
      assign inst_break      = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h2] & op_19_15_d[5'h14];
      // rdcntvl.w, rdcntvh.w, rdcntid
-     assign inst_rdcntvl.w  = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h0] & op_19_15_d[5'h00] & (rk == 5'h18) & (rj == 5'h00);
-     assign inst_rdcntvh.w  = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h0] & op_19_15_d[5'h00] & (rk == 5'h19) & (rj == 5'h00);
+     assign inst_rdcntvl_w  = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h0] & op_19_15_d[5'h00] & (rk == 5'h18) & (rj == 5'h00);
+     assign inst_rdcntvh_w  = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h0] & op_19_15_d[5'h00] & (rk == 5'h19) & (rj == 5'h00);
      assign inst_rdcntid    = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h0] & op_19_15_d[5'h00] & (rk == 5'h18) & (rd == 5'h00);
 
      //oral code
@@ -476,8 +476,8 @@ module IDreg(
                                 };
 
     assign ds_to_es_bus =   {
-                            inst_rdcntvl, // 1 bit
-                            inst_rdcntvh, // 1 bit
+                            inst_rdcntvl_w, // 1 bit
+                            inst_rdcntvh_w, // 1 bit
                             ds_except_collect, // 6 bit
                             new_alu_op,
                             ds_res_from_mem,
