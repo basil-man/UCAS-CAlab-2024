@@ -68,6 +68,8 @@ module EXreg(
     wire [6:0] es_except_collect;
     wire es_ale_except;
 
+    reg inst_rdcntvl, inst_rdcntvh;
+
     assign es_ready_go    = long_insts ? reg_div_mod_done : 1'b1; //for further extension
     assign es_allowin     = ~es_valid | es_ready_go & ms_allowin;
     assign es_to_ms_valid = es_valid & es_ready_go;
@@ -82,12 +84,12 @@ module EXreg(
     
     always @(posedge clk) begin
         if (~resetn) begin
-            {from_ds_except, extend_es_alu_op, es_res_from_mem, es_alu_src1, es_alu_src2,
+            {inst_rdcntvl, inst_rdcntvh, from_ds_except, extend_es_alu_op, es_res_from_mem, es_alu_src1, es_alu_src2,
             es_mem_en, es_rf_we, es_rf_waddr, es_rkd_value, es_pc} <= 155'b0;
             {inst_st_w,inst_st_h,inst_st_b} <= 3'b000;
             es_mem_inst_bus <= 5'd0;
         end else if (ds_to_es_valid & es_allowin) begin
-            {from_ds_except, extend_es_alu_op, es_res_from_mem, es_alu_src1, es_alu_src2,
+            {inst_rdcntvl, inst_rdcntvh, from_ds_except, extend_es_alu_op, es_res_from_mem, es_alu_src1, es_alu_src2,
             es_mem_en, es_rf_we, es_rf_waddr, es_rkd_value, es_pc, csr_rvalue} <= ds_to_es_bus;
             {inst_st_w,inst_st_h,inst_st_b} <= ds_mem_inst_bus[2:0];
             es_mem_inst_bus <= ds_mem_inst_bus[7:3];
