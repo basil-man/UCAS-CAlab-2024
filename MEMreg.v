@@ -15,7 +15,10 @@ module MEMreg(
     input  wire [31:0] data_sram_rdata,
     input  wire [4:0]  mem_inst_bus,
     input  wire [6:0]  es_to_ms_bus,
-    output wire [6:0]  ms_to_ws_bus
+    output wire [6:0]  ms_to_ws_bus,
+
+    input wire except_flush,
+    output reg [6:0] ms_except
 );
     wire        ms_ready_go;
     reg         ms_valid;
@@ -32,14 +35,13 @@ module MEMreg(
     wire [31:0] word_rdata, half_rdata, byte_rdata;
 
     // add in exp12
-    reg [6:0] ms_except;
 
     assign ms_ready_go  = 1'b1;
     assign ms_allowin   = ~ms_valid | ms_ready_go & ws_allowin;     
     assign ms_to_ws_valid  = ms_valid & ms_ready_go;
     
     always @(posedge clk) begin
-        if (~resetn) begin
+        if (~resetn||except_flush) begin
             ms_valid <= 1'b0;
         end else begin
             ms_valid <= es_to_ms_valid & ms_allowin;

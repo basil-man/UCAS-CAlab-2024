@@ -12,7 +12,12 @@ module IFreg(
     input  wire [32:0]  br_collect,
     // fs to ds interface
     output wire         fs_to_ds_valid,
-    output wire [64:0]  fs_to_ds_bus
+    output wire [64:0]  fs_to_ds_bus,
+
+    input  wire         wb_ex,
+    input  wire         ertn_flush,
+    input  wire [31:0]  ex_entry,
+    input  wire [31:0]  ertn_entry
 );
 
     reg         fs_valid;
@@ -39,11 +44,10 @@ module IFreg(
     assign fs_to_ds_bus = {fs_inst, fs_pc};
 
     assign seq_pc   = fs_pc + 3'h4;
-    assign nextpc   = br_taken ? br_target : seq_pc;
 
     assign to_fs_valid      = resetn;
     assign fs_ready_go      = 1'b1;
-    assign fs_allowin       = ~fs_valid | fs_ready_go & ds_allowin;     
+    assign fs_allowin       = ~fs_valid | fs_ready_go & ds_allowin | ertn_flush | wb_ex;     
     assign fs_to_ds_valid   = fs_valid & fs_ready_go;
     
     always @(posedge clk) begin
@@ -59,10 +63,10 @@ module IFreg(
     assign inst_sram_addr   = nextpc;
     assign inst_sram_wdata  = 32'b0;
 
-    
+    wire [31:0] ex_pc=ex_entry;
     assign seq_pc   = fs_pc + 3'h4;  
-    assign nextpc   = br_taken ? br_target : seq_pc;
-
+    assign nextpc   = wb_ex ? ex_entry : ertn_flush ? ertn_entry : br_taken ? br_target : seq_pc;
+    
     always @(posedge clk) begin
         if (~resetn) begin
             fs_pc <= 32'h1bfffffc;

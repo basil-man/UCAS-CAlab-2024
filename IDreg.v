@@ -15,7 +15,9 @@ module IDreg(
 
     // csr interface
     output wire [79:0] csr_collect,
-    input wire [31:0] csr_rvalue
+    input wire [31:0] csr_rvalue,
+
+    input wire except_flush
 );
     
     wire        ds_ready_go;
@@ -211,9 +213,7 @@ module IDreg(
     assign ds_to_es_valid = ds_valid & ds_ready_go;
     
     always @(posedge clk) begin
-        if (~resetn) begin
-            ds_valid <= 1'b0;
-        end else if (br_taken) begin
+        if (~resetn||except_flush||br_taken) begin
             ds_valid <= 1'b0;
         end else if (ds_allowin) begin
             ds_valid <= fs_to_ds_valid;

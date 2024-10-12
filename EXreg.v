@@ -15,7 +15,10 @@ module EXreg(
     output wire [31:0] data_sram_wdata,
     output reg [4:0] es_mem_inst_bus,
     output wire [31:0] es_result,
-    output wire [6:0] es_to_ms_bus // new
+    output wire [6:0] es_to_ms_bus, // new
+
+    input wire except_flush,
+    input wire [6:0] ms_except
 );
     //debug signals
     wire bus_we;
@@ -74,7 +77,7 @@ module EXreg(
     assign es_to_ms_valid = es_valid & es_ready_go;
     
     always @(posedge clk) begin
-        if (~resetn) begin
+        if (~resetn||except_flush) begin
             es_valid <= 1'b0;
             end else if (es_allowin) begin
             es_valid <= ds_to_es_valid;
@@ -210,11 +213,11 @@ module EXreg(
 
     //assign es_mem_inst_bus = ds_mem_inst_bus[7:3];
     // pass ld inst mem_inst_bus 
-    
+    wire ms_adef_except, ms_ine_except, ms_syscall_except, ms_break_except, ms_int_except, inst_ertn;
     assign EX_result = mul_insts ? mul_result : div_mod_insts ? div_mod_result : csr_re ? csr_rvalue : es_alu_result;
     
-    assign data_sram_en    = (es_res_from_mem || es_mem_en) && es_valid;
-    assign data_sram_we    = mem_we & {4{es_valid}};
+    assign data_sram_en    = (es_res_from_mem || es_mem_en) & es_valid;
+    assign data_sram_we    = mem_we & {4{es_valid & ~ms_syscall_except}};
     assign data_sram_addr  = {es_alu_result[31:2],2'b00};
     assign data_sram_wdata = st_wdata;
     assign bus_we          = es_rf_we & es_valid;
@@ -232,5 +235,6 @@ module EXreg(
                             es_rf_waddr,
                             EX_result
                             };
+    assign {ms_adef_except, ms_ine_except, ms_syscall_except, ms_break_except, ms_int_except, inst_ertn} = ms_except;
     
 endmodule

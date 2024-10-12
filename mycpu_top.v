@@ -45,7 +45,7 @@ module mycpu_top(
     wire [7:0] ds_mem_inst_bus;
     wire [4:0] es_mem_inst_bus;
     wire       ertn_flush;
-    wire       ws_exc;
+    wire       wb_ex;
 
     //csr interface
     wire csr_re, csr_we;
@@ -54,6 +54,14 @@ module mycpu_top(
     wire [31:0] csr_wvalue;
     wire [79:0] csr_collect;
     wire [31:0] csr_rvalue;
+    wire [31:0] ex_entry;
+    wire [31:0] ertn_entry;
+    wire [31:0] wb_pc;
+    wire [ 5:0] wb_ecode;
+    wire [ 8:0] wb_esubcode;
+    wire has_int;
+    wire [6:0] ms_except;
+
 
     IFreg my_ifReg(
         .clk(clk),
@@ -68,7 +76,12 @@ module mycpu_top(
         .ds_allowin(ds_allowin),
         .br_collect(br_collect),
         .fs_to_ds_valid(fs_to_ds_valid),
-        .fs_to_ds_bus(fs_to_ds_bus)
+        .fs_to_ds_bus(fs_to_ds_bus),
+
+        .wb_ex(wb_ex),
+        .ertn_flush(ertn_flush),
+        .ex_entry(ex_entry),
+        .ertn_entry(ertn_entry)
     );
 
     IDreg my_idReg(
@@ -90,7 +103,9 @@ module mycpu_top(
         .es_rf_collect(es_rf_collect),
 
         .csr_collect(csr_collect),
-        .csr_rvalue(csr_rvalue)
+        .csr_rvalue(csr_rvalue),
+
+        .except_flush(wb_ex|ertn_flush)
     );
     assign {csr_re, csr_num, csr_we, csr_wmask, csr_wvalue} = csr_collect;
 
@@ -114,7 +129,10 @@ module mycpu_top(
         .data_sram_wdata(data_sram_wdata),
         
         .es_mem_inst_bus(es_mem_inst_bus),
-        .es_to_ms_bus(es_to_ms_bus)
+        .es_to_ms_bus(es_to_ms_bus),
+
+        .except_flush(wb_ex|ertn_flush),
+        .ms_except(ms_except)
     );
 
     MEMreg my_memReg(
@@ -135,7 +153,10 @@ module mycpu_top(
 
         .mem_inst_bus(es_mem_inst_bus),
         .es_to_ms_bus(es_to_ms_bus),
-        .ms_to_ws_bus(ms_to_ws_bus)
+        .ms_to_ws_bus(ms_to_ws_bus),
+
+        .except_flush(wb_ex|ertn_flush),
+        .ms_except(ms_except)
     ) ;
 
     WBreg my_wbReg(
