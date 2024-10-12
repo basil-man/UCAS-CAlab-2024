@@ -75,7 +75,7 @@ module EXreg(
     always @(posedge clk) begin
         if (~resetn) begin
             es_valid <= 1'b0;
-            end else if (es_allowin) begin
+        end else if (es_allowin) begin
             es_valid <= ds_to_es_valid;
         end
     end
@@ -106,9 +106,9 @@ module EXreg(
     always @(posedge clk) begin
         if (~resetn) begin
             reg_div_mod_done <= 1'b0;
-            end else if (es_valid & es_allowin) begin
+        end else if (es_valid & es_allowin) begin
             reg_div_mod_done <= 1'b0;
-            end else if (div_mod_done) begin
+        end else if (div_mod_done) begin
             reg_div_mod_done <= 1'b1;
         end
     end
@@ -121,9 +121,9 @@ module EXreg(
     always @(posedge clk) begin
         if (~resetn) begin
             valid_cnt <= 0;
-            end else if (es_valid & es_allowin) begin
+        end else if (es_valid & es_allowin) begin
             valid_cnt <= 0;
-            end else if (div_mod_insts) begin
+        end else if (div_mod_insts) begin
             valid_cnt <= 1;
         end
     end
@@ -137,7 +137,7 @@ module EXreg(
             signed_divisor_tvalid    <= 1'b0;
             unsigned_dividend_tvalid <= 1'b0;
             unsigned_divisor_tvalid  <= 1'b0;
-            end else if (div_mod_insts&&~valid_cnt) begin
+        end else if (div_mod_insts&&~valid_cnt) begin
             signed_dividend_tvalid   <= inst_div_w || inst_mod_w;
             signed_divisor_tvalid    <= inst_div_w || inst_mod_w;
             unsigned_dividend_tvalid <= inst_div_wu || inst_mod_wu;
