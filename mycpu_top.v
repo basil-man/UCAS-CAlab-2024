@@ -61,8 +61,10 @@ module mycpu_top(
     wire [ 8:0] wb_esubcode;
     wire has_int;
     wire [6:0] ms_except;
-
-
+    wire [31:0] vaddr;
+    wire [31:0] wb_vaddr;
+    wire [1:0] collect_inst_rd_cnt;
+    
     IFreg my_ifReg(
         .clk(clk),
         .resetn(resetn),
@@ -106,7 +108,8 @@ module mycpu_top(
         .csr_rvalue(csr_rvalue),
         .ds_int_except(has_int),
 
-        .except_flush(wb_ex|ertn_flush)
+        .except_flush(wb_ex|ertn_flush),
+        .collect_inst_rd_cnt(collect_inst_rd_cnt)
     );
     assign {csr_re, csr_num, csr_we, csr_wmask, csr_wvalue} = csr_collect;
 
@@ -133,7 +136,8 @@ module mycpu_top(
         .es_to_ms_bus(es_to_ms_bus),
 
         .except_flush(wb_ex|ertn_flush),
-        .ms_except(ms_except)
+        .ms_except(ms_except),
+        .collect_inst_rd_cnt(collect_inst_rd_cnt)
     );
 
     MEMreg my_memReg(
@@ -157,7 +161,8 @@ module mycpu_top(
         .ms_to_ws_bus(ms_to_ws_bus),
 
         .except_flush(wb_ex|ertn_flush),
-        .ms_except(ms_except)
+        .ms_except(ms_except),
+        .vaddr(vaddr)
     ) ;
 
     WBreg my_wbReg(
@@ -181,7 +186,9 @@ module mycpu_top(
         .wb_ex(wb_ex),
         .wb_ecode(wb_ecode),
         .wb_esubcode(wb_esubcode),
-        .wb_pc(wb_pc)
+        .wb_pc(wb_pc),
+        .vaddr(vaddr),
+        .wb_vaddr(wb_vaddr)
     );
 
     csr my_csr(
@@ -202,7 +209,7 @@ module mycpu_top(
         .wb_ex     (wb_ex), //来自WB阶段的异常处理触发信号
         .wb_ecode  (wb_ecode), //来自WB阶段的异常类型
         .wb_esubcode(wb_esubcode),//来自WB阶段的异常类型辅助码
-        .wb_vaddr  (0) ,//来自WB阶段的访存地址
+        .wb_vaddr  (wb_vaddr) ,//来自WB阶段的访存地址
         .wb_pc     (wb_pc) //写回的返回地址
     );
 endmodule

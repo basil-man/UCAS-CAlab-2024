@@ -26,7 +26,9 @@ module WBreg(
     output wire wb_ex     , //来自WB阶段的异常处理触发信号
     output wire [ 5:0] wb_ecode  , //来自WB阶段的异常类型
     output wire [ 8:0] wb_esubcode,//来自WB阶段的异常类型辅助码
-    output wire [31:0] wb_pc       //写回的返回地址
+    output wire [31:0] wb_pc,       //写回的返回地址
+    input wire [31:0] vaddr,
+    output reg [31:0] wb_vaddr
 );
     
     wire        ws_ready_go;
@@ -60,11 +62,13 @@ module WBreg(
             ws_pc <= 32'b0;
             {ws_rf_we, ws_rf_waddr, ws_rf_wdata} <= 38'b0;
             {ws_except} <= 7'b0;
+            wb_vaddr <= 32'b0;
         end
         if (ms_to_ws_valid & ws_allowin) begin
             ws_pc <= ms_pc;
             {ws_rf_we, ws_rf_waddr, ws_rf_wdata} <= ms_rf_collect;
             {ws_except} <= ms_to_ws_bus;
+            wb_vaddr <= vaddr;
         end
     end
     assign {ws_ale_except, ws_adef_except, ws_ine_except, ws_syscall_except,

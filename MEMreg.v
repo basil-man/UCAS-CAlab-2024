@@ -18,7 +18,8 @@ module MEMreg(
     output wire [6:0]  ms_to_ws_bus,
 
     input wire except_flush,
-    output reg [6:0] ms_except
+    output reg [6:0] ms_except,
+    output wire [31:0] vaddr
 );
     wire        ms_ready_go;
     reg         ms_valid;
@@ -76,7 +77,7 @@ module MEMreg(
     assign ms_mem_result = inst_ld_w ? word_rdata : ((inst_ld_h | inst_ld_hu) ? half_rdata : (inst_ld_b|inst_ld_bu) ? byte_rdata : 32'b0);
     assign ms_rf_wdata      = ms_res_from_mem ? ms_mem_result : ms_alu_result;
     assign ms_rf_collect    = {ms_rf_we & ms_valid, ms_rf_waddr, ms_rf_wdata};
-
+    assign vaddr=ms_alu_result;
     // add in exp12:
     assign ms_to_ws_bus =   {
                             ms_except

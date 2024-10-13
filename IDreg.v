@@ -19,7 +19,8 @@ module IDreg(
     input wire [31:0] csr_rvalue,
     input wire ds_int_except,
 
-    input wire except_flush
+    input wire except_flush,
+    output wire [1:0] collect_inst_rd_cnt
 );
     
     wire        ds_ready_go;
@@ -214,6 +215,18 @@ module IDreg(
     assign ds_allowin     = ~ds_valid | ds_ready_go & es_allowin;
     assign ds_stall       = es_res_from_mem & (hazard_r1_exe & need_r1 | hazard_r2_exe & need_r2);
     assign ds_to_es_valid = ds_valid & ds_ready_go;
+
+    reg [3:0] except_cnt;
+    always @(posedge clk) begin
+        if (~resetn) begin
+            except_cnt <= 4'b0;
+        end else if (inst_ertn && fs_to_ds_valid && ds_allowin) begin
+            except_cnt <= 4'd4;
+        end
+        else if (except_cnt != 4'b0 && fs_to_ds_valid && ds_allowin) begin
+            except_cnt <= except_cnt - 1'b1;
+        end
+    end
     
     always @(posedge clk) begin
         if (~resetn||except_flush||br_taken) begin
@@ -420,7 +433,7 @@ module IDreg(
      
     assign rf_raddr1   = rj;
     assign rf_raddr2   = src_reg_is_rd ? rd :rk;
-    assign ds_rf_we    = gr_we;
+    assign ds_rf_we    = gr_we&except_cnt == 4'b0;
     assign ds_rf_waddr = dest;
      
     assign {ws_rf_we, ws_rf_waddr, ws_rf_wdata}                  = ws_rf_collect;
@@ -464,7 +477,7 @@ module IDreg(
     wire [31:0] csr_wvalue;
     assign csr_re    = inst_csrrd | inst_csrxchg | inst_csrwr;
     assign csr_num   = inst_rdcntid ? `CSR_TID : csr;
-    assign csr_we    = (inst_csrwr | inst_csrxchg) & ds_valid;
+    assign csr_we    = (inst_csrwr | inst_csrxchg) & ds_valid & except_cnt == 4'b0;
     assign csr_wmask = ({32{inst_csrxchg}} & rj_value) | {32{inst_csrwr}};
     assign csr_wvalue= rkd_value;
     assign csr_collect = {csr_re, csr_num, csr_we, csr_wmask, csr_wvalue};
@@ -505,4 +518,10 @@ module IDreg(
                             inst_st_h,
                             inst_st_b
                             };
+
+    assign collect_inst_rd_cnt =   {
+                                    inst_rdcntvl_w,
+                                    inst_rdcntvh_w
+    };
+    
     endmodule
