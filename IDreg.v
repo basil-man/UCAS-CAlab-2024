@@ -5,7 +5,7 @@ module IDreg(
     input wire fs_to_ds_valid,
     output wire ds_allowin,
     output wire [32:0] br_collect,
-    input wire [63:0] fs_to_ds_bus,
+    input wire [64:0] fs_to_ds_bus,
     input wire es_allowin,
     output wire ds_to_es_valid,
     output wire [195:0] ds_to_es_bus, // from 155bit -> 196bit (add from_ds_except, inst_rdcnt**, csr_rvalue, csr_re)

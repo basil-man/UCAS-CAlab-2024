@@ -41,7 +41,6 @@ module IFreg(
 
     assign {br_taken, br_target} = br_collect;
 
-    assign fs_to_ds_bus = {fs_inst, fs_pc};
 
     assign seq_pc   = fs_pc + 3'h4;
 
