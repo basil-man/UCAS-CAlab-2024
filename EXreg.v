@@ -239,10 +239,10 @@ module EXreg(
     // pass ld inst mem_inst_bus 
     wire ms_adef_except, ms_ine_except, ms_syscall_except, ms_break_except, ms_int_except, inst_ertn;
     assign EX_result = mul_insts ? mul_result : div_mod_insts ? div_mod_result : es_alu_result;
-    wire [31:0] ex_to_ms_result =inst_rdcntvl? cnt[31:0] : inst_rdcntvh ? cnt[63:32] : (csr_re ? csr_rvalue : EX_result);
+    wire [31:0] ex_to_ms_result =inst_rdcntvl ? cnt[31:0] : inst_rdcntvh ? cnt[63:32] : (csr_re ? csr_rvalue : EX_result);
 
     assign data_sram_en    = (es_res_from_mem || es_mem_en) & es_valid;
-    assign data_sram_we    = mem_we & {4{es_valid & ~ms_syscall_except & ~inst_ertn}};
+    assign data_sram_we    = mem_we & {4{es_valid & ~|ms_except & ~|es_except_collect & ~except_flush}};
     assign data_sram_addr  = {es_alu_result[31:2],2'b00};
     assign data_sram_wdata = st_wdata;
     assign bus_we          = es_rf_we & es_valid;

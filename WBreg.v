@@ -72,20 +72,20 @@ module WBreg(
 
     assign wb_ex = (ws_ale_except | ws_adef_except | ws_ine_except | ws_syscall_except | ws_break_except | ws_int_except) & ws_valid;
     //assign wb_ex = ws_syscall_except & ws_valid;
-    assign wb_ecode =  ws_int_except ? `ECODE_INT:
-                       ws_adef_except? `ECODE_ADE:
-                       ws_ale_except? `ECODE_ALE: 
-                       ws_syscall_except? `ECODE_SYS:
-                       ws_break_except? `ECODE_BRK:
-                       ws_ine_except? `ECODE_INE:
+    assign wb_ecode =   ws_int_except ? `ECODE_INT:
+                        ws_adef_except? `ECODE_ADE:
+                        ws_ale_except? `ECODE_ALE: 
+                        ws_syscall_except? `ECODE_SYS:
+                        ws_break_except? `ECODE_BRK:
+                        ws_ine_except? `ECODE_INE:
                         6'b0;
     //assign wb_ecode = ws_syscall_except ? `ECODE_SYS : 6'b0;
     assign wb_esubcode = 9'b0;
     assign wb_pc = ws_pc;
-    assign ws_rf_collect = {ws_rf_we & ws_valid, ws_rf_waddr, ws_rf_wdata};
+    assign ws_rf_collect = {ws_rf_we & ws_valid & ~wb_ex, ws_rf_waddr, ws_rf_wdata};
     
     assign debug_wb_pc          = ws_pc;
     assign debug_wb_rf_wdata    = ws_rf_wdata;
-    assign debug_wb_rf_we       = {4{ws_rf_we & ws_valid}};
+    assign debug_wb_rf_we       = {4{ws_rf_we & ws_valid & ~wb_ex}};
     assign debug_wb_rf_wnum     = ws_rf_waddr;
 endmodule
