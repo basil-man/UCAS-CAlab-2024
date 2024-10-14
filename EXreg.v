@@ -74,6 +74,8 @@ module EXreg(
     reg inst_rdcntvl;
     reg inst_rdcntvh;
     reg [1:0] tmp;
+    wire ms_adef_except, ms_ine_except, ms_syscall_except, ms_break_except, ms_int_except, inst_ertn;
+    
     assign es_ready_go    = long_insts ? reg_div_mod_done : 1'b1; //for further extension
     assign es_allowin     = ~es_valid | es_ready_go & ms_allowin;
     assign es_to_ms_valid = es_valid & es_ready_go;
@@ -243,7 +245,7 @@ module EXreg(
     always @(posedge clk) begin
         if (~resetn) begin
             cnt <= 64'b0;
-        end else if (es_valid & es_allowin) begin
+        end else begin
             cnt <= cnt + 1'b1;
         end
         
@@ -251,7 +253,7 @@ module EXreg(
 
     //assign es_mem_inst_bus = ds_mem_inst_bus[7:3];
     // pass ld inst mem_inst_bus 
-    wire ms_adef_except, ms_ine_except, ms_syscall_except, ms_break_except, ms_int_except, inst_ertn;
+    
     assign EX_result = mul_insts ? mul_result : div_mod_insts ? div_mod_result : es_alu_result;
     wire [31:0] ex_to_ms_result =inst_rdcntvl ? cnt[31:0] : inst_rdcntvh ? cnt[63:32] : (csr_re ? csr_rvalue : EX_result);
 

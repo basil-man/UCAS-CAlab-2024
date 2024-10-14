@@ -475,7 +475,7 @@ module IDreg(
     wire [13:0] csr_num;
     wire [31:0] csr_wmask;
     wire [31:0] csr_wvalue;
-    assign csr_re    = inst_csrrd | inst_csrxchg | inst_csrwr;
+    assign csr_re    = inst_csrrd | inst_csrxchg | inst_csrwr | inst_rdcntid;
     assign csr_num   = inst_rdcntid ? `CSR_TID : csr;
     assign csr_we    = (inst_csrwr | inst_csrxchg) & ds_valid & except_cnt == 4'b0;
     assign csr_wmask = ({32{inst_csrxchg}} & rj_value) | {32{inst_csrwr}};
