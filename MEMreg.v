@@ -1,3 +1,4 @@
+`include "width.h"
 module MEMreg(
     input  wire        clk,
     input  wire        resetn,

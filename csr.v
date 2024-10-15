@@ -1,3 +1,5 @@
+`include "width.h"
+
 `define CSR_CRMD   14'h00
 `define CSR_PRMD   14'h01
 `define CSR_EUEN   14'h02
@@ -44,11 +46,11 @@ module csr(
     input  wire          reset     ,
     // command access interface(指令访问接口)
     input  wire          csr_re    ,
-    input  wire [13:0]   csr_num   ,
+    input  wire [`D2C_CSRNUM_WID:0]   csr_num   ,
     output wire [31:0]   csr_rvalue,
     input  wire          csr_we    ,
-    input  wire [31:0]   csr_wmask ,
-    input  wire [31:0]   csr_wvalue,
+    input  wire [`D2C_CSRWMASK_WID:0]   csr_wmask ,
+    input  wire [`D2C_CSRWVAL_WID:0]   csr_wvalue,
 
     /* interface signals for direct interaction with hardware circuits
     (与硬件电路交互的接口信号) */

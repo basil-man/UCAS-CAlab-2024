@@ -1,3 +1,4 @@
+`include "width.h"
 module mycpu_top(
     input  wire        clk,
     input  wire        resetn,
@@ -32,38 +33,38 @@ module mycpu_top(
     wire [31:0] es_pc;
     wire [31:0] ms_pc;
 
-    wire [38:0] es_rf_collect;
-    wire [37:0] ms_rf_collect;
-    wire [37:0] ws_rf_collect;
+    wire [`E_RFC_WID] es_rf_collect;
+    wire [`M_RFC_WID] ms_rf_collect;
+    wire [`W_RFC_WID] ws_rf_collect;
 
-    wire [32:0] br_collect;
-    wire [64:0] fs_to_ds_bus;
-    wire [195:0] ds_to_es_bus; // from 155bit -> 196bit (add from_ds_except, inst_rdcnt**, csr_rvalue, csr_re)
-    wire [6:0] es_to_ms_bus; // new
-    wire [6:0] ms_to_ws_bus; // new
+    wire [`D2F_BRC_WID] br_collect;
+    wire [`F2D_WID] fs_to_ds_bus;
+    wire [`D2E_WID] ds_to_es_bus; // from 155bit -> 196bit (add from_ds_except, inst_rdcnt**, csr_rvalue, csr_re)
+    wire [`E2M_WID] es_to_ms_bus; // new
+    wire [`M2W_WID] ms_to_ws_bus; // new
 
-    wire [7:0] ds_mem_inst_bus;
-    wire [4:0] es_mem_inst_bus;
+    wire [`D2E_MINST_WID] ds_mem_inst_bus;
+    wire [`E2M_MINST_WID] es_mem_inst_bus;
     wire       ertn_flush;
     wire       wb_ex;
 
     //csr interface
     wire csr_re, csr_we;
-    wire [13:0] csr_num;
-    wire [31:0] csr_wmask;
-    wire [31:0] csr_wvalue;
-    wire [79:0] csr_collect;
+    wire [`D2C_CSRNUM_WID] csr_num;
+    wire [`D2C_CSRWMASK_WID] csr_wmask;
+    wire [`D2C_CSRWVAL_WID] csr_wvalue;
+    wire [`D2C_CSRC_WID] csr_collect;
     wire [31:0] csr_rvalue;
     wire [31:0] ex_entry;
     wire [31:0] ertn_entry;
     wire [31:0] wb_pc;
-    wire [ 5:0] wb_ecode;
-    wire [ 8:0] wb_esubcode;
+    wire [`W2C_ECODE_WID] wb_ecode;
+    wire [`W2C_ESUBCODE_WID] wb_esubcode;
     wire has_int;
-    wire [6:0] ms_except;
+    wire [`E2M_EXCEPT_WID] ms_except;
     wire [31:0] vaddr;
     wire [31:0] wb_vaddr;
-    wire [1:0] collect_inst_rd_cnt;
+    wire [`D2E_RDCNT_WID] collect_inst_rd_cnt;
     
     IFreg my_ifReg(
         .clk(clk),

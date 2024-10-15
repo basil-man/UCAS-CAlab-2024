@@ -1,3 +1,4 @@
+`include "width.h"
 `define CSR_TID    14'h40
 module IDreg(
     input wire clk,

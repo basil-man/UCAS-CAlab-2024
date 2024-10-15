@@ -1,3 +1,4 @@
+`include "width.h"
 module EXreg(
     input wire clk,
     input wire resetn,

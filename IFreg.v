@@ -1,3 +1,4 @@
+`include "width.h"
 module IFreg(
     input  wire   clk,
     input  wire   resetn,
@@ -9,10 +10,10 @@ module IFreg(
     input  wire [31:0]  inst_sram_rdata,
     // ds to fs interface
     input  wire         ds_allowin,
-    input  wire [32:0]  br_collect,
+    input  wire [`D2F_BRC_WID]  br_collect,
     // fs to ds interface
     output wire         fs_to_ds_valid,
-    output wire [64:0]  fs_to_ds_bus,
+    output wire [`F2D_WID]  fs_to_ds_bus,
 
     input  wire         wb_ex,
     input  wire         ertn_flush,

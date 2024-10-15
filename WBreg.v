@@ -1,3 +1,5 @@
+`include "width.h"
+
 `define ECODE_INT       6'h00
 `define ECODE_ADE       6'h08
 `define ECODE_ALE       6'h09   
