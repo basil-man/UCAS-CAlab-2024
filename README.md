@@ -17,7 +17,7 @@
 1. 完善 AXI 总线接口设计使其在采用 AXI 总线的 SoC 验证环境里完成 exp16 对应 func 的
 随机延迟功能验证，要求成功通过仿真和上板验证。
 
-## team member's work allcation:
+## team member's work allocation:
 
 | name | job |
 | ---- | --- |
@@ -27,4 +27,4 @@
 
 ## message:
 phk: test new branch
-rhl: cnm
+rhl: cnm sb phk wo shi ni die
