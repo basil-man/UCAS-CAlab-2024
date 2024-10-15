@@ -12,7 +12,7 @@ module WBreg(
     input  wire        resetn,
     // mem and ws state interface
     output wire        ws_allowin,
-    input  wire [37:0] ms_rf_collect, // {ms_rf_we, ms_rf_waddr, ms_rf_wdata}
+    input  wire [`M_RFC_WID] ms_rf_collect, // {ms_rf_we, ms_rf_waddr, ms_rf_wdata}
     input  wire        ms_to_ws_valid,
     input  wire [31:0] ms_pc,    
     // trace debug interface
@@ -21,13 +21,13 @@ module WBreg(
     output wire [ 4:0] debug_wb_rf_wnum,
     output wire [31:0] debug_wb_rf_wdata,
     // id and ws state interface
-    output wire [37:0] ws_rf_collect,  // {ws_rf_we, ws_rf_waddr, ws_rf_wdata}
-    input  wire [ 6:0] ms_to_ws_bus, // new
+    output wire [`W_RFC_WID] ws_rf_collect,  // {ws_rf_we, ws_rf_waddr, ws_rf_wdata}
+    input  wire [`M2W_WID] ms_to_ws_bus, // new
     // wb-csr interface
     output wire ertn_flush, //来自WB阶段的ertn指令执行有效信号
     output wire wb_ex     , //来自WB阶段的异常处理触发信号
-    output wire [ 5:0] wb_ecode  , //来自WB阶段的异常类型
-    output wire [ 8:0] wb_esubcode,//来自WB阶段的异常类型辅助码
+    output wire [`W2C_ECODE_WID] wb_ecode  , //来自WB阶段的异常类型
+    output wire [`W2C_ESUBCODE_WID] wb_esubcode,//来自WB阶段的异常类型辅助码
     output wire [31:0] wb_pc,       //写回的返回地址
     input wire [31:0] vaddr,
     output reg [31:0] wb_vaddr

@@ -4,10 +4,10 @@ module EXreg(
     input wire resetn,
     output wire es_allowin,
     input wire ds_to_es_valid,
-    input wire [195:0] ds_to_es_bus,     // from 155bit -> 196bit (add from_ds_except, inst_rdcnt**, csr_rvalue, csr_re)
-    input wire [7:0] ds_mem_inst_bus,
+    input wire [`D2E_WID] ds_to_es_bus,     // from 155bit -> 196bit (add from_ds_except, inst_rdcnt**, csr_rvalue, csr_re)
+    input wire [`D2E_MINST_WID] ds_mem_inst_bus,
     input wire ms_allowin,
-    output wire [38:0] es_rf_collect,    // {es_res_from_mem, es_rf_we, es_rf_waddr, es_alu_result}
+    output wire [`E_RFC_WID] es_rf_collect,    // {es_res_from_mem, es_rf_we, es_rf_waddr, es_alu_result}
     output wire es_to_ms_valid,
     output reg [31:0] es_pc,
     output wire data_sram_en,
@@ -16,11 +16,11 @@ module EXreg(
     output wire [31:0] data_sram_wdata,
     output reg [4:0] es_mem_inst_bus,
     output wire [31:0] es_result,
-    output wire [6:0] es_to_ms_bus, // new
+    output wire [`E2M_WID] es_to_ms_bus, // new
 
     input wire except_flush,
-    input wire [6:0] ms_except,
-    input wire [1:0] collect_inst_rd_cnt
+    input wire [`E2M_EXCEPT_WID] ms_except,
+    input wire [`D2E_RDCNT_WID] collect_inst_rd_cnt
 );
     //debug signals
     wire bus_we;

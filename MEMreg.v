@@ -4,12 +4,12 @@ module MEMreg(
     input  wire        resetn,
     // ex and mem state interface
     output wire        ms_allowin,
-    input  wire [38:0] es_rf_collect, // es_to_ms_bus  {es_res_from_mem, es_rf_we, es_rf_waddr, es_rf_wdata}
+    input  wire [`E_RFC_WID] es_rf_collect, // es_to_ms_bus  {es_res_from_mem, es_rf_we, es_rf_waddr, es_rf_wdata}
     input  wire        es_to_ms_valid,
     input  wire [31:0] es_pc,    
     // mem and wb state interface
     input  wire        ws_allowin,
-    output wire [37:0] ms_rf_collect, // {ms_rf_we, ms_rf_waddr, ms_rf_wdata}
+    output wire [`M_RFC_WID] ms_rf_collect, // {ms_rf_we, ms_rf_waddr, ms_rf_wdata}
     output wire        ms_to_ws_valid,
     output reg  [31:0] ms_pc,
     // data sram interface
@@ -19,7 +19,7 @@ module MEMreg(
     output wire [6:0]  ms_to_ws_bus,
 
     input wire except_flush,
-    output reg [6:0] ms_except,
+    output reg [`E2M_EXCEPT_WID] ms_except,
     output wire [31:0] vaddr
 );
     wire        ms_ready_go;

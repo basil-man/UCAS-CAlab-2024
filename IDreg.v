@@ -5,23 +5,23 @@ module IDreg(
     input wire resetn,
     input wire fs_to_ds_valid,
     output wire ds_allowin,
-    output wire [32:0] br_collect,
-    input wire [64:0] fs_to_ds_bus,
+    output wire [`D2F_BRC_WID] br_collect,
+    input wire [`F2D_WID] fs_to_ds_bus,
     input wire es_allowin,
     output wire ds_to_es_valid,
-    output wire [195:0] ds_to_es_bus, // from 155bit -> 196bit (add from_ds_except, inst_rdcnt**, csr_rvalue, csr_re)
-    output wire [7:0] mem_inst_bus,
-    input wire [37:0] ws_rf_collect,  // {ws_rf_we, ws_rf_waddr, ws_rf_wdata}
-    input wire [37:0] ms_rf_collect,  // {ms_rf_we, ms_rf_waddr, ms_rf_wdata}
-    input wire [38:0] es_rf_collect, // {es_res_from_mem, es_rf_we, es_rf_waddr, es_alu_result}
+    output wire [`D2E_WID] ds_to_es_bus, // from 155bit -> 196bit (add from_ds_except, inst_rdcnt**, csr_rvalue, csr_re)
+    output wire [`D2E_MINST_WID] mem_inst_bus,
+    input wire [`W_RFC_WID] ws_rf_collect,  // {ws_rf_we, ws_rf_waddr, ws_rf_wdata}
+    input wire [`M_RFC_WID] ms_rf_collect,  // {ms_rf_we, ms_rf_waddr, ms_rf_wdata}
+    input wire [`E_RFC_WID] es_rf_collect, // {es_res_from_mem, es_rf_we, es_rf_waddr, es_alu_result}
 
     // csr interface
-    output wire [79:0] csr_collect,
+    output wire [`D2C_CSRC_WID] csr_collect,
     input wire [31:0] csr_rvalue,
     input wire ds_int_except,
 
     input wire except_flush,
-    output wire [1:0] collect_inst_rd_cnt
+    output wire [`D2E_RDCNT_WID] collect_inst_rd_cnt
 );
     
     wire        ds_ready_go;

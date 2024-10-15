@@ -59,8 +59,8 @@ module csr(
     output wire          has_int   , //送往ID阶段的中断有效信号
     input  wire          ertn_flush, //来自WB阶段的ertn指令执行有效信号
     input  wire          wb_ex     , //来自WB阶段的异常处理触发信号
-    input  wire [ 5:0]   wb_ecode  , //来自WB阶段的异常类型
-    input  wire [ 8:0]   wb_esubcode,//来自WB阶段的异常类型辅助码
+    input  wire [`W2C_ECODE_WID]   wb_ecode  , //来自WB阶段的异常类型
+    input  wire [`W2C_ESUBCODE_WID]   wb_esubcode,//来自WB阶段的异常类型辅助码
     input  wire [31:0]   wb_vaddr   ,//来自WB阶段的访存地址
     input  wire [31:0]   wb_pc      //写回的返回地址
 );
