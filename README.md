@@ -1,25 +1,31 @@
-# prj4 repo
+# prj5 repo
 
-### exp12
+### exp14
 
-1. ~~为 CPU 增加csrrd、csrwr、csrxchg 和 ertn 指令。~~
-2. ~~为 CPU 增加控制状态寄存器CRMD、PRMD、ESTAT、ERA、EENTRY、SAVE0~3。~~
-3. ~~为 CPU 增加syscall 指令，实现系统调用异常支持。~~
+1. 将 CPU 对外接口修改为类 SRAM 总线接口。
+2. 在采用握手机制的 block RAM 的 SoC 验证环境中完成 exp14 对应 func 的随机延迟功能验证。
 
-### exp13
+### exp15
 
-1. ~~为CPU增加取指地址错（ADEF）、地址非对齐（ALE）、断点（BRK）和指令不存在（INE）异常的支持。~~
-2. ~~为 CPU 增加中断的支持，包括2个软件中断、8个硬件中断和定时器中断。~~
-3. ~~为 CPU 增加控制状态寄存器ECFG、BADV、TID、TCFG、TVAL、TICLR。~~
-4. ~~为 CPU 增加rdcntvl.w、rdcntvh.w 和 rdcntid 指令。~~
+1. 将 CPU 顶层接口修改为 AXI 总线接口。CPU 对外只有一个 AXI 接口，需在内部完成取
+指和数据访问的仲裁。推荐在本任务中实现一个类 SRAM-AXI 的 2x1 的转接桥，然后拼接
+上实践任务一完成的类 SRAM 接口的 CPU，将 myCPU 封装为 AXI 接口。
+2. 在采用 AXI 总线的 SoC 验证环境里完成 exp15 对应 func 的固定延迟功能验证，要求成功通过仿真和上板验证。
 
-## team member's work allcation:
+### exp16
+
+1. 完善 AXI 总线接口设计使其在采用 AXI 总线的 SoC 验证环境里完成 exp16 对应 func 的
+随机延迟功能验证，要求成功通过仿真和上板验证。
+
+## team member's work allocation:
 
 | name | job |
 | ---- | --- |
 | phk  |  |
-| rhl  |为 CPU 增加csrrd、csrwr、csrxchg 和 ertn 指令、修改phk的错误、基于cassielim和课本完成csr.v|
+| rhl  | 划水 |
 | zc   |  |
 
 ## message:
-phk:test new branch
+phk: test new branch
+
+rhl: cnm sb phk wo shi ni die
