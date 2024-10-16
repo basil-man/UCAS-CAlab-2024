@@ -72,7 +72,8 @@ module mycpu_top(
     wire [31:0] vaddr;
     wire [31:0] wb_vaddr;
     wire [`D2E_RDCNT_WID] collect_inst_rd_cnt;
-    
+    wire [`E_EXCEPT_WID] es_except_collect;
+    wire [`M_EXCEPT_WID] ms_except_collect;
     IFreg my_ifReg(
         .clk(clk),
         .resetn(resetn),
@@ -120,6 +121,9 @@ module mycpu_top(
         .csr_rvalue(csr_rvalue),
         .ds_int_except(has_int),
 
+        .es_except_collect(es_except_collect), //Forward signal
+        .ms_except_collect(ms_except_collect), //Forward signal
+
         .except_flush(wb_ex|ertn_flush),
         .collect_inst_rd_cnt(collect_inst_rd_cnt)
     );
@@ -148,8 +152,9 @@ module mycpu_top(
         .data_sram_addr_ok(data_sram_addr_ok),
         
         .es_mem_inst_bus(es_mem_inst_bus),
-        .es_to_ms_bus(es_to_ms_bus),
+        .es_to_ms_bus(es_to_ms_bus), //Forward signal
 
+        .es_except_collect(es_except_collect),
         .except_flush(wb_ex|ertn_flush),
         .ms_except(ms_except),
         .collect_inst_rd_cnt(collect_inst_rd_cnt)
@@ -175,6 +180,7 @@ module mycpu_top(
         .es_to_ms_bus(es_to_ms_bus),
         .ms_to_ws_bus(ms_to_ws_bus),
 
+        .ms_except_collect(ms_except_collect), //Forward signal
         .except_flush(wb_ex|ertn_flush),
         .ms_except(ms_except),
         .vaddr(vaddr)

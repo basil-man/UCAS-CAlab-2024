@@ -20,7 +20,8 @@ module MEMreg(
 
     input wire except_flush,
     output reg [`E2M_EXCEPT_WID] ms_except,
-    output wire [31:0] vaddr
+    output wire [31:0] vaddr,
+    output wire [`M_EXCEPT_WID] ms_except_collect
 );
     wire        ms_ready_go;
     reg         ms_valid;
@@ -83,5 +84,6 @@ module MEMreg(
     assign ms_to_ws_bus =   {
                             ms_except
                             };
+    assign ms_except_collect = ms_except & {7{ms_valid}};
 
 endmodule

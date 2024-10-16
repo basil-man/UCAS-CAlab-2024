@@ -43,3 +43,6 @@
 //rdcnt related bus width
 `define D2E_RDCNT_WID 1:0
 
+//forward exception bus width
+`define E_EXCEPT_WID 6:0
+`define M_EXCEPT_WID 6:0

@@ -14,7 +14,8 @@ module IDreg(
     input wire [`W_RFC_WID] ws_rf_collect,  // {ws_rf_we, ws_rf_waddr, ws_rf_wdata}
     input wire [`M_RFC_WID] ms_rf_collect,  // {ms_rf_we, ms_rf_waddr, ms_rf_wdata}
     input wire [`E_RFC_WID] es_rf_collect, // {es_res_from_mem, es_rf_we, es_rf_waddr, es_alu_result}
-
+    input wire [`E_EXCEPT_WID] es_except_collect,
+    input wire [`M_EXCEPT_WID] ms_except_collect,
     // csr interface
     output wire [`D2C_CSRC_WID] csr_collect,
     input wire [31:0] csr_rvalue,
@@ -198,6 +199,8 @@ module IDreg(
     wire ds_break_except;
     reg ds_adef_except;
 
+    wire flush_by_former_except = (|ds_except_collect) | (|es_except_collect) | (|ms_except_collect) | except_flush;
+
     assign ds_ine_except =  ~(
                             inst_add_w | inst_addi_w | inst_and | inst_andi | inst_b | inst_beq | inst_bge | inst_bgeu | inst_bl |
                             inst_blt | inst_bltu | inst_bne | inst_break | inst_csrrd | inst_csrwr | inst_csrxchg | inst_div_w |
@@ -217,18 +220,6 @@ module IDreg(
     assign ds_stall       = es_res_from_mem & (hazard_r1_exe & need_r1 | hazard_r2_exe & need_r2);
     assign ds_to_es_valid = ds_valid & ds_ready_go;
 
-    reg [3:0] except_cnt;
-    always @(posedge clk) begin
-        if (~resetn) begin
-            except_cnt <= 4'b0;
-        end else if (inst_ertn && fs_to_ds_valid && ds_allowin) begin
-            except_cnt <= 4'd4;
-        end
-        else if (except_cnt != 4'b0 && fs_to_ds_valid && ds_allowin) begin
-            except_cnt <= except_cnt - 1'b1;
-        end
-    end
-    
     always @(posedge clk) begin
         if (~resetn||except_flush||br_taken) begin
             ds_valid <= 1'b0;
@@ -434,7 +425,7 @@ module IDreg(
      
     assign rf_raddr1   = rj;
     assign rf_raddr2   = src_reg_is_rd ? rd :rk;
-    assign ds_rf_we    = gr_we&except_cnt == 4'b0;
+    assign ds_rf_we    = gr_we & ~flush_by_former_except;
     assign ds_rf_waddr = dest;
      
     assign {ws_rf_we, ws_rf_waddr, ws_rf_wdata}                  = ws_rf_collect;
@@ -478,7 +469,7 @@ module IDreg(
     wire [31:0] csr_wvalue;
     assign csr_re    = inst_csrrd | inst_csrxchg | inst_csrwr | inst_rdcntid;
     assign csr_num   = inst_rdcntid ? `CSR_TID : csr;
-    assign csr_we    = (inst_csrwr | inst_csrxchg) & ds_valid & except_cnt == 4'b0;
+    assign csr_we    = (inst_csrwr | inst_csrxchg) & ds_valid & ~flush_by_former_except;
     assign csr_wmask = ({32{inst_csrxchg}} & rj_value) | {32{inst_csrwr}};
     assign csr_wvalue= rkd_value;
     assign csr_collect = {csr_re, csr_num, csr_we, csr_wmask, csr_wvalue};
@@ -490,7 +481,7 @@ module IDreg(
                                 ds_break_except,
                                 ds_int_except,
                                 inst_ertn
-                                };
+                                } & {6{ds_valid}};
 
     assign ds_to_es_bus =   {
                             inst_rdcntvl_w, // 1 bit
