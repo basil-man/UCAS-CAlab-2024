@@ -46,11 +46,11 @@ module csr(
     input  wire          reset     ,
     // command access interface(指令访问接口)
     input  wire          csr_re    ,
-    input  wire [`D2C_CSRNUM_WID:0]   csr_num   ,
+    input  wire [`D2C_CSRNUM_WID]   csr_num   ,
     output wire [31:0]   csr_rvalue,
     input  wire          csr_we    ,
-    input  wire [`D2C_CSRWMASK_WID:0]   csr_wmask ,
-    input  wire [`D2C_CSRWVAL_WID:0]   csr_wvalue,
+    input  wire [`D2C_CSRWMASK_WID]   csr_wmask ,
+    input  wire [`D2C_CSRWVAL_WID]   csr_wvalue,
 
     /* interface signals for direct interaction with hardware circuits
     (与硬件电路交互的接口信号) */
