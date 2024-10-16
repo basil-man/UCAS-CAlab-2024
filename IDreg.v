@@ -13,6 +13,8 @@ module IDreg(
     input wire [37:0] ws_rf_collect,  // {ws_rf_we, ws_rf_waddr, ws_rf_wdata}
     input wire [37:0] ms_rf_collect,  // {ms_rf_we, ms_rf_waddr, ms_rf_wdata}
     input wire [38:0] es_rf_collect, // {es_res_from_mem, es_rf_we, es_rf_waddr, es_alu_result}
+    input wire [6:0] es_except_collect,
+    input wire [6:0] ms_except_collect,
 
     // csr interface
     output wire [79:0] csr_collect,
@@ -196,6 +198,8 @@ module IDreg(
     wire ds_syscall_except;
     wire ds_break_except;
     reg ds_adef_except;
+
+    wire flush_by_former_except = (|ds_except_collect) | (|es_except_collect) | (|ms_except_collect) | except_flush;
 
     assign ds_ine_except =  ~(
                             inst_add_w | inst_addi_w | inst_and | inst_andi | inst_b | inst_beq | inst_bge | inst_bgeu | inst_bl |
@@ -433,7 +437,7 @@ module IDreg(
      
     assign rf_raddr1   = rj;
     assign rf_raddr2   = src_reg_is_rd ? rd :rk;
-    assign ds_rf_we    = gr_we&except_cnt == 4'b0;
+    assign ds_rf_we    = gr_we & ~flush_by_former_except;
     assign ds_rf_waddr = dest;
      
     assign {ws_rf_we, ws_rf_waddr, ws_rf_wdata}                  = ws_rf_collect;
@@ -477,7 +481,7 @@ module IDreg(
     wire [31:0] csr_wvalue;
     assign csr_re    = inst_csrrd | inst_csrxchg | inst_csrwr | inst_rdcntid;
     assign csr_num   = inst_rdcntid ? `CSR_TID : csr;
-    assign csr_we    = (inst_csrwr | inst_csrxchg) & ds_valid & except_cnt == 4'b0;
+    assign csr_we    = (inst_csrwr | inst_csrxchg) & ds_valid & ~flush_by_former_except;
     assign csr_wmask = ({32{inst_csrxchg}} & rj_value) | {32{inst_csrwr}};
     assign csr_wvalue= rkd_value;
     assign csr_collect = {csr_re, csr_num, csr_we, csr_wmask, csr_wvalue};
@@ -489,7 +493,7 @@ module IDreg(
                                 ds_break_except,
                                 ds_int_except,
                                 inst_ertn
-                                };
+                                } & {6{ds_valid}};
 
     assign ds_to_es_bus =   {
                             inst_rdcntvl_w, // 1 bit
