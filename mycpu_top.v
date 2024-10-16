@@ -21,6 +21,7 @@ module mycpu_top(
     output wire [ 1:0] data_sram_size,
     input  wire        data_sram_addr_ok,
     input  wire [31:0] data_sram_rdata,
+    input  wire        data_sram_data_ok,
     // trace debug interface
     output wire [31:0] debug_wb_pc,
     output wire [ 3:0] debug_wb_rf_we,
@@ -121,7 +122,8 @@ module mycpu_top(
         .ds_int_except(has_int),
 
         .except_flush(wb_ex|ertn_flush),
-        .collect_inst_rd_cnt(collect_inst_rd_cnt)
+        .collect_inst_rd_cnt(collect_inst_rd_cnt),
+        .wb_ex(wb_ex)
     );
     assign {csr_re, csr_num, csr_we, csr_wmask, csr_wvalue} = csr_collect;
 
@@ -152,7 +154,8 @@ module mycpu_top(
 
         .except_flush(wb_ex|ertn_flush),
         .ms_except(ms_except),
-        .collect_inst_rd_cnt(collect_inst_rd_cnt)
+        .collect_inst_rd_cnt(collect_inst_rd_cnt),
+        .wb_ex(wb_ex)
     );
 
     MEMreg my_memReg(
@@ -169,6 +172,7 @@ module mycpu_top(
         .ms_to_ws_valid(ms_to_ws_valid),
         .ms_pc(ms_pc),
 
+        .data_sram_data_ok(data_sram_data_ok),
         .data_sram_rdata(data_sram_rdata),
 
         .mem_inst_bus(es_mem_inst_bus),
@@ -177,8 +181,9 @@ module mycpu_top(
 
         .except_flush(wb_ex|ertn_flush),
         .ms_except(ms_except),
-        .vaddr(vaddr)
-    ) ;
+        .vaddr(vaddr),
+        .wb_ex(wb_ex)
+    );
 
     WBreg my_wbReg(
         .clk(clk),

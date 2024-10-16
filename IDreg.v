@@ -21,7 +21,8 @@ module IDreg(
     input wire ds_int_except,
 
     input wire except_flush,
-    output wire [`D2E_RDCNT_WID] collect_inst_rd_cnt
+    output wire [`D2E_RDCNT_WID] collect_inst_rd_cnt,
+    input wb_ex
 );
     
     wire        ds_ready_go;

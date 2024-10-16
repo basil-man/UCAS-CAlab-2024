@@ -7,6 +7,7 @@
 `define ECODE_BRK       6'h0C   
 `define ECODE_INE       6'h0D
 `define ECODE_TLBR      6'h3F
+
 module WBreg(
     input  wire        clk,
     input  wire        resetn,
@@ -40,14 +41,14 @@ module WBreg(
     reg  [4 :0] ws_rf_waddr;
     reg         ws_rf_we;
 
-    // add in exp12
-    reg [6:0] ws_except;
-    wire       ws_adef_except;
-    wire       ws_ale_except;
-    wire       ws_syscall_except;
-    wire       ws_break_except;
-    wire       ws_ine_except;
-    wire       ws_int_except;
+    reg  [6:0]  ws_except;
+    wire        ws_ertn_except;
+    wire        ws_adef_except;
+    wire        ws_ale_except;
+    wire        ws_syscall_except;
+    wire        ws_break_except;
+    wire        ws_ine_except;
+    wire        ws_int_except;
 
     assign ws_ready_go      = 1'b1;
     assign ws_allowin       = ~ws_valid | ws_ready_go ;     
@@ -74,8 +75,10 @@ module WBreg(
         end
     end
     assign {ws_ale_except, ws_adef_except, ws_ine_except, ws_syscall_except,
-            ws_break_except, ws_int_except, ertn_flush} = ws_except;
+            ws_break_except, ws_int_except, ws_ertn_except} = ws_except;
 
+
+    assign ertn_flush = ws_ertn_except & ws_valid;
     assign wb_ex = (ws_ale_except | ws_adef_except | ws_ine_except | ws_syscall_except | ws_break_except | ws_int_except) & ws_valid;
     //assign wb_ex = ws_syscall_except & ws_valid;
     assign wb_ecode =   ws_int_except ? `ECODE_INT:

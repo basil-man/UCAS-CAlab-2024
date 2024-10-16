@@ -13,6 +13,7 @@ module MEMreg(
     output wire        ms_to_ws_valid,
     output reg  [31:0] ms_pc,
     // data sram interface
+    input  wire        data_sram_data_ok,
     input  wire [31:0] data_sram_rdata,
     input  wire [4:0]  mem_inst_bus,
     input  wire [6:0]  es_to_ms_bus,
@@ -20,7 +21,8 @@ module MEMreg(
 
     input wire except_flush,
     output reg [`E2M_EXCEPT_WID] ms_except,
-    output wire [31:0] vaddr
+    output wire [31:0] vaddr,
+    input  wire wb_ex,
 );
     wire        ms_ready_go;
     reg         ms_valid;
@@ -36,12 +38,16 @@ module MEMreg(
     wire is_sign_extend;
     wire [31:0] word_rdata, half_rdata, byte_rdata;
 
-    // add in exp12
+    reg  [31:0] ms_data_buf;
+    reg         data_buf_valid;
+    wire        ms_wait_data_ok;
+    reg         ms_wait_data_ok_r;
 
-    assign ms_ready_go  = 1'b1;
+    assign ms_wait_data_ok  = ms_wait_data_ok_r & ms_valid & ~wb_ex;
+    assign ms_ready_go  = ~ms_wait_data_ok | ms_wait_data_ok & data_sram_data_ok;
     assign ms_allowin   = ~ms_valid | ms_ready_go & ws_allowin;     
     assign ms_to_ws_valid  = ms_valid & ms_ready_go;
-    
+
     always @(posedge clk) begin
         if (~resetn||except_flush) begin
             ms_valid <= 1'b0;
@@ -79,7 +85,29 @@ module MEMreg(
     assign ms_rf_wdata      = ms_res_from_mem ? ms_mem_result : ms_alu_result;
     assign ms_rf_collect    = {ms_rf_we & ms_valid, ms_rf_waddr, ms_rf_wdata};
     assign vaddr=ms_alu_result;
-    // add in exp12:
+
+    always @(posedge clk) begin
+        if (~resetn) begin
+            data_buf_valid <= 1'b0;
+            ms_data_buf <= 32'b0;
+        end else if (ms_to_ws_valid & ms_allowin) begin
+            data_buf_valid <= 1'b0;
+        end else if (~data_buf_valid & data_sram_data_ok & ms_valid) begin
+            data_buf_valid <= 1'b1;
+            ms_data_buf <= data_sram_rdata;
+        end
+    end
+
+    // add in exp14
+    assign ms_wait_data_ok = data_buf_valid & ms_wait_data_ok_r;
+    always @(posedge clk) begin
+        if (~resetn) begin
+            ms_wait_data_ok_r <= 1'b0;
+        end else begin
+            ms_wait_data_ok_r <= ms_wait_data_ok;
+        end
+    end
+
     assign ms_to_ws_bus =   {
                             ms_except
                             };

@@ -23,7 +23,8 @@ module EXreg(
 
     input wire except_flush,
     input wire [`E2M_EXCEPT_WID] ms_except,
-    input wire [`D2E_RDCNT_WID] collect_inst_rd_cnt
+    input wire [`D2E_RDCNT_WID] collect_inst_rd_cnt,
+    input                       wb_ex
 );
     //debug signalse
     wire bus_we;
