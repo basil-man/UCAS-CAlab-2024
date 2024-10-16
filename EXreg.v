@@ -11,10 +11,13 @@ module EXreg(
     output wire es_to_ms_valid,
     output reg [31:0] es_pc,
     output wire data_sram_en,
-    output wire [3:0] data_sram_we,
-    output wire [31:0] data_sram_addr,
-    output wire [31:0] data_sram_wdata,
-    output reg [4:0] es_mem_inst_bus,
+    output wire         inst_sram_req,
+    output wire [ 3:0]  inst_sram_wstrb,
+    output wire [31:0]  inst_sram_addr,
+    output wire [31:0]  inst_sram_wdata,
+    output wire         inst_sram_wr,
+    output wire [ 1:0]  inst_sram_size,
+    input  wire         inst_sram_addr_ok,
     output wire [31:0] es_result,
     output wire [`E2M_WID] es_to_ms_bus, // new
 
