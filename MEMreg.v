@@ -22,7 +22,7 @@ module MEMreg(
     input wire except_flush,
     output reg [`E2M_EXCEPT_WID] ms_except,
     output wire [31:0] vaddr,
-    input  wire wb_ex,
+    input  wire wb_ex
 );
     wire        ms_ready_go;
     reg         ms_valid;
