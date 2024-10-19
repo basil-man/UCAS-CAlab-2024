@@ -60,13 +60,13 @@ module MEMreg(
     always @(posedge clk) begin
         if (~resetn) begin
             ms_pc <= 32'b0;
-            {ms_res_from_mem, ms_rf_we, ms_rf_waddr, ms_alu_result} <= 38'b0;
+            {ms_res_from_mem, ms_rf_we, ms_rf_waddr, ms_alu_result} <= 39'b0;
             {inst_ld_w,inst_ld_h,inst_ld_hu,inst_ld_b,inst_ld_bu} <= 5'd0;
             {ms_except} <= 7'b0;
         end
         if (es_to_ms_valid & ms_allowin) begin
             ms_pc <= es_pc;
-            {ms_res_from_mem, ms_rf_we, ms_rf_waddr, ms_alu_result} <= es_rf_collect;
+            {ms_wait_data_ok_r, ms_res_from_mem, ms_rf_we, ms_rf_waddr, ms_alu_result} <= es_rf_collect;
             {inst_ld_w,inst_ld_h,inst_ld_hu,inst_ld_b,inst_ld_bu} <= mem_inst_bus;
             {ms_except} <= es_to_ms_bus;
         end

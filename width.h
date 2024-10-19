@@ -23,11 +23,11 @@
 
 //regfile related (we,waddr,result..)bus width 
 `define E_RFC_WID 38:0
-`define M_RFC_WID 37:0
+`define M_RFC_WID 39:0
 `define W_RFC_WID 37:0
 
 //br_collect(br_taken,br_target) ID->IF bus width
-`define D2F_BRC_WID 32:0
+`define D2F_BRC_WID 33:0
 
 //csr.v related bus width
 `define D2C_CSRNUM_WID 13:0

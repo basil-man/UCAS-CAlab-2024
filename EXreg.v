@@ -19,7 +19,7 @@ module EXreg(
     input  wire         data_sram_addr_ok,
     output reg  [4:0]   es_mem_inst_bus,
     output wire [31:0] es_result,
-    output wire [`E2M_WID] es_to_ms_bus, // new
+    output wire [`E2M_WID] es_to_ms_bus,
 
     input wire except_flush,
     input wire [`E2M_EXCEPT_WID] ms_except,
@@ -71,7 +71,6 @@ module EXreg(
     reg reg_div_mod_done;
     wire [31:0] st_wdata;
     
-    // add in exp12
     reg csr_re;
     reg [5:0] from_ds_except;
     
@@ -83,7 +82,11 @@ module EXreg(
     wire ms_adef_except, ms_ine_except, ms_syscall_except, ms_break_except, ms_int_except, inst_ertn;
 
     wire flush_by_former_except =(|es_to_ms_bus) | (|es_to_ms_bus) | except_flush;
-    
+
+    wire es_ex;
+    wire es_mem_req;
+
+    assign es_ex          = (|es_except_collect) & es_valid;
     assign es_ready_go    = (long_insts ? reg_div_mod_done : 1'b1) & (~data_sram_req | data_sram_req & data_sram_addr_ok); //for further extension
     assign es_allowin     = ~es_valid | es_ready_go & ms_allowin;
     assign es_to_ms_valid = es_valid & es_ready_go;
@@ -254,18 +257,19 @@ module EXreg(
     assign EX_result = mul_insts ? mul_result : div_mod_insts ? div_mod_result : es_alu_result;
     wire [31:0] ex_to_ms_result =inst_rdcntvl ? cnt[31:0] : inst_rdcntvh ? cnt[63:32] : (csr_re ? csr_rvalue : EX_result);
 
-    assign data_sram_req    = (es_res_from_mem || es_mem_en) & es_valid & ~flush_by_former_except;
+    assign data_sram_req    = (es_res_from_mem || es_mem_en) & es_valid & ~flush_by_former_except & es_mem_req;
     assign data_sram_wstrb  = mem_we & {4{es_valid & ~|ms_except & ~|es_except_collect & ~except_flush & ~flush_by_former_except}};
-    assign data_sram_wr     = (|data_sram_wstrb) & es_valid;
+    assign data_sram_wr     = (|data_sram_wstrb) & es_valid & ~es_ex;
     assign data_sram_addr   = {es_alu_result[31:2],2'b00};
     assign data_sram_wdata  = st_wdata;
     assign data_sram_size   = ({2{inst_st_w}} & 2'b10) | ({2{inst_st_h}} & 2'b01) | ({2{inst_st_b}} & 2'b00);
     assign bus_we           = es_rf_we & es_valid;
     assign bus_es_res_from_mem = es_res_from_mem & es_valid;
+    assign es_mem_req       = (es_res_from_mem | (|data_sram_wstrb));
 
 
-    // add in exp12
     assign es_to_ms_bus =   {
+                            es_mem_req,
                             es_except_collect
                             };
 

@@ -12,7 +12,7 @@ module IDreg(
     output wire [`D2E_WID] ds_to_es_bus, // from 155bit -> 196bit (add from_ds_except, inst_rdcnt**, csr_rvalue, csr_re)
     output wire [`D2E_MINST_WID] mem_inst_bus,
     input wire [`W_RFC_WID] ws_rf_collect,  // {ws_rf_we, ws_rf_waddr, ws_rf_wdata}
-    input wire [`M_RFC_WID] ms_rf_collect,  // {ms_rf_we, ms_rf_waddr, ms_rf_wdata}
+    input wire [`M_RFC_WID] ms_rf_collect,  // {ms_res_from_mem, ms_rf_we, ms_rf_waddr, ms_rf_wdata}
     input wire [`E_RFC_WID] es_rf_collect, // {es_res_from_mem, es_rf_we, es_rf_waddr, es_alu_result}
     input wire [`E_EXCEPT_WID] es_except_collect,
     input wire [`M_EXCEPT_WID] ms_except_collect,
@@ -180,8 +180,9 @@ module IDreg(
     wire        ws_rf_we   ;
     wire [4:0] ws_rf_waddr;
     wire [31:0] ws_rf_wdata;
+    wire        ms_res_from_mem;
     wire        ms_rf_we   ;
-    wire [4:0] ms_rf_waddr;
+    wire [4:0]  ms_rf_waddr;
     wire [31:0] ms_rf_wdata;
     wire        es_rf_we   ;
     wire [4:0] es_rf_waddr;
@@ -193,12 +194,15 @@ module IDreg(
 
     wire inst_ld, inst_st;
     
-    // add in exp12
     wire [5:0] ds_except_collect;
     wire ds_ine_except;
     wire ds_syscall_except;
     wire ds_break_except;
     reg ds_adef_except;
+
+    wire br_stall;
+    wire branch_type;
+    
 
     wire flush_by_former_except = (|ds_except_collect) | (|es_except_collect) | (|ms_except_collect) | except_flush;
 
@@ -213,6 +217,8 @@ module IDreg(
                             inst_sub_w | inst_syscall | inst_xor | inst_xori
                             ); 
 
+    assign branch_type = inst_b | inst_bl | inst_beq | inst_bne | inst_blt | inst_bge | inst_bltu | inst_bgeu | inst_jirl;
+
     assign ds_syscall_except = inst_syscall;
     assign ds_break_except   = inst_break;
 
@@ -220,6 +226,7 @@ module IDreg(
     assign ds_allowin     = ~ds_valid | ds_ready_go & es_allowin;
     assign ds_stall       = es_res_from_mem & (hazard_r1_exe & need_r1 | hazard_r2_exe & need_r2);
     assign ds_to_es_valid = ds_valid & ds_ready_go;
+    assign br_stall       = ds_stall & branch_type;
 
     always @(posedge clk) begin
         if (~resetn||except_flush||br_taken) begin
@@ -251,12 +258,12 @@ module IDreg(
                         | inst_bge  & rj_ge_rd
                         | inst_bltu & ~unsigned_rj_ge_rd
                         | inst_bgeu & unsigned_rj_ge_rd
-                        ) & ds_valid;
+                        ) & ds_valid & ~br_stall;
     
     assign is_branch = inst_beq | inst_bne | inst_bl | inst_b | inst_blt | inst_bge | inst_bltu | inst_bgeu;
     assign br_target = is_branch ? (ds_pc + br_offs) :
     /*inst_jirl*/ (rj_value + jirl_offs);
-     assign br_collect = {br_taken, br_target};
+     assign br_collect = {br_stall, br_taken, br_target};
      
      assign op_31_26 = ds_inst[31:26];
      assign op_25_22 = ds_inst[25:22];
@@ -430,7 +437,7 @@ module IDreg(
     assign ds_rf_waddr = dest;
      
     assign {ws_rf_we, ws_rf_waddr, ws_rf_wdata}                  = ws_rf_collect;
-    assign {ms_rf_we, ms_rf_waddr, ms_rf_wdata}                  = ms_rf_collect;
+    assign {ms_res_from_mem, ms_rf_we, ms_rf_waddr, ms_rf_wdata} = ms_rf_collect;
     assign {es_res_from_mem, es_rf_we, es_rf_waddr, es_rf_wdata} = es_rf_collect;
      
     regfile u_regfile(
