@@ -1,4 +1,5 @@
 `define DATA_WIDTH 31:0
+`define DATA_WID 31:0 //vvvvvvvvvvvvvvv
 
 //总线长度命名规范
 //type1:用于一对一连接的总线
@@ -56,4 +57,4 @@
 `define A_LOCK_WID 1:0
 `define A_CACHE_WID 3:0
 `define A_PROT_WID 2:0
-`define A_strb_WID 3:0
+`define A_STRB_WID 3:0
