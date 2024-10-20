@@ -482,7 +482,6 @@ module IDreg(
     assign csr_wmask = ({32{inst_csrxchg}} & rj_value) | {32{inst_csrwr}};
     assign csr_wvalue= rkd_value;
     assign csr_collect = {csr_re, csr_num, csr_we, csr_wmask, csr_wvalue};
-    // add in exp12: collect exception wires
     assign ds_except_collect =  {
                                 ds_adef_except,
                                 ds_ine_except,

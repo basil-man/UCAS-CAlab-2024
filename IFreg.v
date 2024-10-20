@@ -91,7 +91,7 @@ module IFreg(
     
     
     assign fs_ready_go      = (inst_sram_data_ok | inst_buf_valid) & ~inst_cancel;
-    assign fs_allowin       = ~fs_valid | fs_ready_go & ds_allowin | ertn_flush | wb_ex;
+    assign fs_allowin       = ~fs_valid | fs_ready_go & ds_allowin /*| ertn_flush | wb_ex*/;
     assign fs_to_ds_valid   = fs_valid & fs_ready_go;
     
     always @(posedge clk) begin

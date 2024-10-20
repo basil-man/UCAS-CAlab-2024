@@ -25,7 +25,7 @@
 
 //regfile related (we,waddr,result..)bus width 
 `define E_RFC_WID 38:0
-`define M_RFC_WID 38:0
+`define M_RFC_WID 37:0
 `define W_RFC_WID 37:0
 
 //br_collect(br_taken,br_target) ID->IF bus width
