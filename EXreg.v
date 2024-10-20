@@ -81,7 +81,7 @@ module EXreg(
     reg [1:0] tmp;
     wire ms_adef_except, ms_ine_except, ms_syscall_except, ms_break_except, ms_int_except, inst_ertn;
 
-    wire flush_by_former_except =(|es_to_ms_bus) | (|es_to_ms_bus) | except_flush;
+    wire flush_by_former_except =(|es_except_collect) | (|es_except_collect) | except_flush;
 
     wire es_ex;
     wire es_mem_req;

@@ -12,7 +12,7 @@ module IDreg(
     output wire [`D2E_WID] ds_to_es_bus, // from 155bit -> 196bit (add from_ds_except, inst_rdcnt**, csr_rvalue, csr_re)
     output wire [`D2E_MINST_WID] mem_inst_bus,
     input wire [`W_RFC_WID] ws_rf_collect,  // {ws_rf_we, ws_rf_waddr, ws_rf_wdata}
-    input wire [`M_RFC_WID] ms_rf_collect,  // {ms_res_from_mem, ms_rf_we, ms_rf_waddr, ms_rf_wdata}
+    input wire [`M_RFC_WID] ms_rf_collect,  // {ms_res_from_mem, ms_rf_we, ms_rf_waddr, ms_rf_wdata} 1+1+5+32=39
     input wire [`E_RFC_WID] es_rf_collect, // {es_res_from_mem, es_rf_we, es_rf_waddr, es_alu_result}
     input wire [`E_EXCEPT_WID] es_except_collect,
     input wire [`M_EXCEPT_WID] ms_except_collect,
@@ -224,7 +224,8 @@ module IDreg(
 
     assign ds_ready_go    = ~ds_stall;
     assign ds_allowin     = ~ds_valid | ds_ready_go & es_allowin;
-    assign ds_stall       = es_res_from_mem & (hazard_r1_exe & need_r1 | hazard_r2_exe & need_r2);
+    assign ds_stall       = es_res_from_mem & (hazard_r1_exe & need_r1 | hazard_r2_exe & need_r2) |
+                            ms_res_from_mem & (hazard_r1_mem & need_r1 | hazard_r2_mem & need_r2);
     assign ds_to_es_valid = ds_valid & ds_ready_go;
     assign br_stall       = ds_stall & branch_type;
 
