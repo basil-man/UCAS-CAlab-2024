@@ -10,6 +10,7 @@
 //X_ZZ(C)_WIDTH
 //X:发送流水级
 //csr.v简称为C
+//AXI简称为A
 
 //bus width between stages
 `define F2D_WID 64:0
@@ -46,3 +47,13 @@
 //forward exception bus width
 `define E_EXCEPT_WID 6:0
 `define M_EXCEPT_WID 6:0
+
+//AXI related bus width
+`define A_ID_WID 3:0
+`define A_LEN_WID 7:0
+`define A_SIZE_WID 2:0
+`define A_BURST_WID 1:0
+`define A_LOCK_WID 1:0
+`define A_CACHE_WID 3:0
+`define A_PROT_WID 2:0
+`define A_strb_WID 3:0
