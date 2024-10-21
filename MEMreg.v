@@ -46,7 +46,7 @@ module MEMreg(
     wire [31:0] shift_rdata;
 
     assign ms_wait_data_ok  = ms_wait_data_ok_r & ms_valid & ~wb_ex;
-    assign ms_ready_go      = ~ms_wait_data_ok | ms_wait_data_ok & data_sram_data_ok;
+    assign ms_ready_go      = ~ms_wait_data_ok | ms_wait_data_ok & data_sram_data_ok | (|ms_except);
     assign ms_allowin       = ~ms_valid | ms_ready_go & ws_allowin;     
     assign ms_to_ws_valid   = ms_valid & ms_ready_go;
 

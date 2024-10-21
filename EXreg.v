@@ -81,7 +81,7 @@ module EXreg(
     reg [1:0] tmp;
     wire ms_adef_except, ms_ine_except, ms_syscall_except, ms_break_except, ms_int_except, inst_ertn;
 
-    wire flush_by_former_except =(|es_except_collect) | (|es_except_collect) | except_flush;
+    wire flush_by_former_except =(|es_except_collect) | (|ms_except) | except_flush;
 
     wire es_ex;
     wire es_mem_req;
@@ -260,7 +260,7 @@ module EXreg(
     assign data_sram_req    = (es_res_from_mem || es_mem_en) & es_valid & ~flush_by_former_except & es_mem_req & ms_allowin;
     assign data_sram_wstrb  = mem_we & {4{es_valid & ~|ms_except & ~|es_except_collect & ~except_flush & ~flush_by_former_except}};
     assign data_sram_wr     = (|data_sram_wstrb) & es_valid & ~es_ex;
-    assign data_sram_addr   = {es_alu_result[31:2],2'b00};
+    assign data_sram_addr   = es_alu_result;
     assign data_sram_wdata  = st_wdata;
     assign data_sram_size   = ({2{inst_st_w}} & 2'b10) | ({2{inst_st_h}} & 2'b01) | ({2{inst_st_b}} & 2'b00);
     assign bus_we           = es_rf_we & es_valid;
