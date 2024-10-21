@@ -32,7 +32,7 @@ module EXreg(
     wire bus_es_res_from_mem;
     wire inst_ld_w, inst_ld_h, inst_ld_hu, inst_ld_b, inst_ld_bu;
     wire inst_mul_w, inst_mulh_w, inst_mulh_wu, inst_div_w, inst_mod_w, inst_div_wu, inst_mod_wu; //mul & div insts
-    wire long_insts    = inst_div_w | inst_mod_w | inst_div_wu | inst_mod_wu; //insts that need multi cycles, reserved for future extension
+    wire mulit_cycle_insts    = inst_div_w | inst_mod_w | inst_div_wu | inst_mod_wu; //insts that need multi cycles, reserved for future extension
     wire div_mod_insts = inst_div_w | inst_mod_w | inst_div_wu | inst_mod_wu; //div insts
     wire mul_insts     = inst_mul_w | inst_mulh_w | inst_mulh_wu; //mul insts
     
@@ -87,7 +87,7 @@ module EXreg(
     wire es_mem_req;
 
     assign es_ex          = (|es_except_collect) & es_valid;
-    assign es_ready_go    = (long_insts ? reg_div_mod_done : 1'b1) & (~data_sram_req | data_sram_req & data_sram_addr_ok); //for further extension
+    assign es_ready_go = (data_sram_req & data_sram_addr_ok) | (mulit_cycle_insts & reg_div_mod_done) | ~(data_sram_req | mulit_cycle_insts);
     assign es_allowin     = ~es_valid | es_ready_go & ms_allowin;
     assign es_to_ms_valid = es_valid & es_ready_go;
     
@@ -257,7 +257,7 @@ module EXreg(
     assign EX_result = mul_insts ? mul_result : div_mod_insts ? div_mod_result : es_alu_result;
     wire [31:0] ex_to_ms_result =inst_rdcntvl ? cnt[31:0] : inst_rdcntvh ? cnt[63:32] : (csr_re ? csr_rvalue : EX_result);
 
-    assign data_sram_req    = (es_res_from_mem || es_mem_en) & es_valid & ~flush_by_former_except & es_mem_req;
+    assign data_sram_req    = (es_res_from_mem || es_mem_en) & es_valid & ~flush_by_former_except & es_mem_req & ms_allowin;
     assign data_sram_wstrb  = mem_we & {4{es_valid & ~|ms_except & ~|es_except_collect & ~except_flush & ~flush_by_former_except}};
     assign data_sram_wr     = (|data_sram_wstrb) & es_valid & ~es_ex;
     assign data_sram_addr   = {es_alu_result[31:2],2'b00};

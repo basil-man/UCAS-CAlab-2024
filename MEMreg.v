@@ -53,7 +53,7 @@ module MEMreg(
     always @(posedge clk) begin
         if (~resetn||except_flush) begin
             ms_valid <= 1'b0;
-        end else begin
+        end else if(ms_allowin) begin
             ms_valid <= es_to_ms_valid & ms_allowin;
         end 
     end
@@ -86,14 +86,14 @@ module MEMreg(
         end
     end
 
-    assign ms_wait_data_ok = data_buf_valid & ms_wait_data_ok_r;
-    always @(posedge clk) begin
-        if (~resetn) begin
-            ms_wait_data_ok_r <= 1'b0;
-        end else begin
-            ms_wait_data_ok_r <= ms_wait_data_ok;
-        end
-    end
+    // assign ms_wait_data_ok = data_buf_valid & ms_wait_data_ok_r;
+    // always @(posedge clk) begin
+    //     if (~resetn) begin
+    //         ms_wait_data_ok_r <= 1'b0;
+    //     end else begin
+    //         ms_wait_data_ok_r <= ms_wait_data_ok;
+    //     end
+    // end
 
     //assign {inst_ld_w,inst_ld_h,inst_ld_hu,inst_ld_b,inst_ld_bu} = mem_inst_bus;
     assign inst_ld = inst_ld_w | inst_ld_h | inst_ld_hu | inst_ld_b | inst_ld_bu;
