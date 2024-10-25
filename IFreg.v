@@ -52,18 +52,19 @@ module IFreg(
     // add in exp14
     wire pf_ready_go;
     wire fs_cancel;
-    wire pf_cancel;
+    reg  pf_cancel;
 
     reg [31:0] fs_inst_buf;
     reg inst_buf_valid;
     reg inst_cancel;
+
 
     assign adef_except = (|fs_pc[1:0]) & fs_valid;
 
     assign {br_stall, br_taken, br_target} = br_collect;
 
     assign pf_ready_go      = inst_sram_req & inst_sram_addr_ok; 
-    assign to_fs_valid      = pf_ready_go;
+    assign to_fs_valid      = pf_ready_go & ~pf_cancel ;
     
     always @(posedge clk) begin
         if(~resetn) begin
@@ -104,20 +105,28 @@ module IFreg(
         end
     end
     
-    assign inst_sram_req     = fs_allowin & resetn & ~pf_cancel & ~br_stall;
+    assign inst_sram_req     = fs_allowin & resetn & ~pf_cancel & ~br_stall & ~pf_cancel;
     assign inst_sram_wr     = |inst_sram_wstrb;
     assign inst_sram_wstrb   = 4'b0;
     assign inst_sram_addr   = nextpc;
     assign inst_sram_wdata  = 32'b0;
 
     assign fs_cancel = wb_ex | ertn_flush | br_taken;
-    assign pf_cancel = 1'b0;
+
+    always @(posedge clk) begin
+        if(~resetn)
+            pf_cancel <= 1'b0;
+        else if(fs_cancel & ~pf_cancel)
+            pf_cancel <= 1'b1;
+        else if(inst_sram_data_ok)
+            pf_cancel <= 1'b0;
+    end
 
     always @(posedge clk) begin
         if(~resetn)
             inst_cancel <= 1'b0;
         // 流水级取消：当pre-IF阶段发送错误地址请求已被指令SRAM接受 or IF内有有效指令且正在等待数据返回时，需要丢弃一条指令
-        else if(fs_cancel & ~fs_allowin & ~fs_ready_go | pf_cancel & to_fs_valid)
+        else if(fs_cancel & ~fs_allowin & ~fs_ready_go | fs_cancel & inst_sram_req )
             inst_cancel <= 1'b1;
         else if(inst_cancel & inst_sram_data_ok)
             inst_cancel <= 1'b0;
