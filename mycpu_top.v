@@ -1,9 +1,9 @@
 `include "width.h"
 module mycpu_top(
-    /*
-    input  wire        clk,
-    input  wire        resetn,
-    // inst sram interface
+    
+    input  wire        aclk,
+    input  wire        aresetn,
+    /*// inst sram interface
     output wire         inst_sram_req,
     output wire [ 3:0]  inst_sram_wstrb,
     output wire [31:0]  inst_sram_addr,
@@ -74,6 +74,9 @@ module mycpu_top(
     output wire [ 4:0] debug_wb_rf_wnum,
     output wire [31:0] debug_wb_rf_wdata
 );
+    wire clk = aclk;
+    wire resetn = aresetn;
+
     wire        ds_allowin;
     wire        es_allowin;
     wire        ms_allowin;
@@ -121,6 +124,25 @@ module mycpu_top(
     wire [`D2E_RDCNT_WID] collect_inst_rd_cnt;
     wire [`E_EXCEPT_WID] es_except_collect;
     wire [`M_EXCEPT_WID] ms_except_collect;
+
+    wire         inst_sram_req;
+    wire [ 3:0]  inst_sram_wstrb;
+    wire [31:0]  inst_sram_addr;
+    wire [31:0]  inst_sram_wdata;
+    wire         inst_sram_wr;
+    wire [ 1:0]  inst_sram_size;
+    wire [31:0]  inst_sram_rdata;
+    wire         inst_sram_addr_ok;
+    wire         inst_sram_data_ok;
+    wire        data_sram_req;
+    wire [ 3:0] data_sram_wstrb;
+    wire [31:0] data_sram_addr;
+    wire [31:0] data_sram_wdata;
+    wire        data_sram_wr;
+    wire [ 1:0] data_sram_size;
+    wire        data_sram_addr_ok;
+    wire [31:0] data_sram_rdata;
+    wire        data_sram_data_ok;
 
     AXI_bridge my_AXIbridge(
         .aclk(clk),
