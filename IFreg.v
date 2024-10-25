@@ -105,7 +105,7 @@ module IFreg(
         end
     end
     
-    assign inst_sram_req     = fs_allowin & resetn & ~pf_cancel & ~br_stall & ~pf_cancel;
+    assign inst_sram_req     = fs_allowin & resetn & ~pf_cancel & ~br_stall ;
     assign inst_sram_wr     = |inst_sram_wstrb;
     assign inst_sram_wstrb   = 4'b0;
     assign inst_sram_addr   = nextpc;

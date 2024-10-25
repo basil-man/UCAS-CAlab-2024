@@ -235,9 +235,9 @@ module AXI_bridge(
             `W_START:begin
                 if(awready & awvalid & wready & wvalid | (|aw_cnt) & (|w_cnt))
                     w_next_state = `W_FINISH;
-                else if(awready & awvalid)
+                else if(awready & awvalid | (|aw_cnt))
                     w_next_state = `W_ADDR;
-                else if(wready & wvalid)
+                else if(wready & wvalid  | (|w_cnt))
                     w_next_state = `W_DATA;
                 else 
                     w_next_state = `W_START;
@@ -368,8 +368,8 @@ module AXI_bridge(
     assign wlast   = 'b1;
 
     //写请求&写数据通道信号逻辑
-    assign awvalid = w_state_start | w_state_addr;
-    assign wvalid  = w_state_start | w_state_data;
+    assign awvalid = w_state_start | w_state_data;
+    assign wvalid  = w_state_start | w_state_addr;
 
     always @(posedge aclk)begin
         if(~aresetn)begin
