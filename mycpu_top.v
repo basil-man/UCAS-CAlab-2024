@@ -1,5 +1,6 @@
 `include "width.h"
 module mycpu_top(
+    /*
     input  wire        clk,
     input  wire        resetn,
     // inst sram interface
@@ -22,8 +23,9 @@ module mycpu_top(
     input  wire        data_sram_addr_ok,
     input  wire [31:0] data_sram_rdata,
     input  wire        data_sram_data_ok,
+    */
     //注释掉以上代码，将下面的代码取消注释，即可转换为AXI接口
-    /*
+    
     //读请求通道,（以 ar 开头）
     output wire [`A_ID_WID]     arid,   //读请求的 ID 号,取指置为 0；取数置为 1
     output wire [`DATA_WID]     araddr, //读请求的地址
@@ -38,6 +40,8 @@ module mycpu_top(
     //读响应通道,（以 r 开头）
     input  wire [`A_ID_WID]     rid,    //读请求的 ID 号，同一请求的 rid 应和 arid 一致,0 对应取指；1 对应数据。
     input  wire [`DATA_WID]     rdata,  //读请求的读回数据
+    input  wire [`A_RESP_WID]   rresp,  //读请求控制信号，本次读请求是否成功完成(可忽略)
+    input  wire                 rlast,  //读请求控制信号，本次读请求的最后一拍数据的指示信号
     input  wire                 rvalid, //读请求数据握手信号，读请求数据有效
     output wire                 rready, //读请求数据握手信号，master 端准备好接收数据传输
     //写请求通道,（以 aw 开头）
@@ -59,9 +63,11 @@ module mycpu_top(
     output wire                 wvalid, //写请求数据握手信号，写请求数据有效
     input  wire                 wready, //写请求数据握手信号，slave 端准备好接收数据传输
     //写响应通道,（以 b 开头）
-    input  wire                 bvaild, //写请求响应握手信号，写请求响应有效
-    output wire                 bready  //写请求响应握手信号，master 端准备好接收写响应
-    */
+    input  wire [`A_ID_WID]     bid,    //写请求的 ID 号，同一请求的 bid 应和 awid 一致(可忽略)
+    input  wire [`A_RESP_WID]   bresp,  //写请求控制信号，本次写请求是否成功完成(可忽略)
+    input  wire                 bvalid, //写请求响应握手信号，写请求响应有效
+    output wire                 bready,  //写请求响应握手信号，master 端准备好接收写响应
+    
     // trace debug interface
     output wire [31:0] debug_wb_pc,
     output wire [ 3:0] debug_wb_rf_we,
@@ -153,6 +159,8 @@ module mycpu_top(
 
         .rid(rid),
         .rdata(rdata),
+        .rresp(rresp),
+        .rlast(rlast),
         .rvalid(rvalid),
         .rready(rready),
 
@@ -174,7 +182,9 @@ module mycpu_top(
         .wvalid(wvalid),
         .wready(wready),
 
-        .bvaild(bvaild),
+        .bid(bid),
+        .bresp(bresp),
+        .bvalid(bvalid),
         .bready(bready)
     );
 

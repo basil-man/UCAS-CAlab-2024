@@ -28,26 +28,28 @@ module AXI_bridge(
 
     //AXI
     //读请求通道,（以 ar 开头）
-    output wire [`A_ID_WID]     arid,   //读请求的 ID 号,取指置为 0；取数置为 1
-    output wire [`DATA_WID]     araddr, //读请求的地址
-    output wire [`A_LEN_WID]    arlen,  //读请求控制信号,请求传输的长度 (数据传输拍数),固定为 0
-    output wire [`A_SIZE_WID]   arsize, //读请求控制信号,请求传输的大小 (数据传输每拍的字节数)
-    output wire [`A_BURST_WID]  arburst,//读请求控制信号,传输类型，固定为 0b01
-    output wire [`A_LOCK_WID]   arlock, //读请求控制信号,原子锁,固定为 0
-    output wire [`A_CACHE_WID]  arcache,//读请求控制信号,CATHE属性,固定为 0
-    output wire [`A_PROT_WID]   arprot, //读请求控制信号,保护属性,固定为 0
+    output reg  [`A_ID_WID]     arid,   //读请求的 ID 号,取指置为 0；取数置为 1
+    output reg  [`DATA_WID]     araddr, //读请求的地址
+    output wire  [`A_LEN_WID]   arlen,  //读请求控制信号,请求传输的长度 (数据传输拍数),固定为 0
+    output reg   [`A_SIZE_WID]  arsize, //读请求控制信号,请求传输的大小 (数据传输每拍的字节数)
+    output wire  [`A_BURST_WID] arburst,//读请求控制信号,传输类型，固定为 0b01
+    output wire  [`A_LOCK_WID]  arlock, //读请求控制信号,原子锁,固定为 0
+    output wire  [`A_CACHE_WID] arcache,//读请求控制信号,CATHE属性,固定为 0
+    output wire  [`A_PROT_WID]  arprot, //读请求控制信号,保护属性,固定为 0
     output wire                 arvalid,//读请求地址握手信号，读请求地址有效
     input  wire                 arready,//读请求地址握手信号，slave 端准备好接收地址传输
     //读响应通道,（以 r 开头）
     input  wire [`A_ID_WID]     rid,    //读请求的 ID 号，同一请求的 rid 应和 arid 一致,0 对应取指；1 对应数据。
     input  wire [`DATA_WID]     rdata,  //读请求的读回数据
+    input  wire [`A_RESP_WID]   rresp,  //读请求控制信号，本次读请求是否成功完成(可忽略)
+    input  wire                 rlast,  //读请求控制信号，本次读请求的最后一拍数据的指示信号(可忽略)
     input  wire                 rvalid, //读请求数据握手信号，读请求数据有效
     output wire                 rready, //读请求数据握手信号，master 端准备好接收数据传输
     //写请求通道,（以 aw 开头）
     output wire [`A_ID_WID]     awid,   //写请求的 ID 号,固定为 1
-    output wire [`DATA_WID]     awaddr, //写请求的地址
+    output reg  [`DATA_WID]     awaddr, //写请求的地址
     output wire [`A_LEN_WID]    awlen,  //写请求控制信号,请求传输的长度 (数据传输拍数),固定为 0
-    output wire [`A_SIZE_WID]   awsize, //写请求控制信号,请求传输的大小 (数据传输每拍的字节数)
+    output reg  [`A_SIZE_WID]   awsize, //写请求控制信号,请求传输的大小 (数据传输每拍的字节数)
     output wire [`A_BURST_WID]  awburst,//写请求控制信号,传输类型，固定为 0b01
     output wire [`A_LOCK_WID]   awlock, //写请求控制信号,原子锁,固定为 0
     output wire [`A_CACHE_WID]  awcache,//写请求控制信号,CATHE属性,固定为 0
@@ -56,13 +58,15 @@ module AXI_bridge(
     input  wire                 awready,//写请求地址握手信号，slave 端准备好接收地址传输
     //写数据通道,（以 w 开头）
     output wire [`A_ID_WID]     wid,    //写请求的 ID 号，固定为 1 
-    output wire [`DATA_WID]     wdata,  //写请求的写数据
-    output wire [`A_STRB_WID]   wstrb,  //写请求控制信号，字节选通位
+    output reg  [`DATA_WID]     wdata,  //写请求的写数据
+    output reg  [`A_STRB_WID]   wstrb,  //写请求控制信号，字节选通位
     output wire                 wlast,  //写请求控制信号，本次写请求的最后一拍数据的指示信号,固定为 1
     output wire                 wvalid, //写请求数据握手信号，写请求数据有效
     input  wire                 wready, //写请求数据握手信号，slave 端准备好接收数据传输
     //写响应通道,（以 b 开头）
-    input  wire                 bvaild, //写请求响应握手信号，写请求响应有效
+    input  wire [`A_ID_WID]     bid,    //写请求的 ID 号，同一请求的 bid 应和 awid 一致(可忽略)
+    input  wire [`A_RESP_WID]   bresp,  //写请求控制信号，本次写请求是否成功完成(可忽略)
+    input  wire                 bvalid, //写请求响应握手信号，写请求响应有效
     output wire                 bready  //写请求响应握手信号，master 端准备好接收写响应
 );
     `define IDLE        3'b001 //空闲状态
@@ -96,7 +100,7 @@ module AXI_bridge(
 
 
     //写请求&写数据通道
-    reg [4:0] w_current_state;
+    reg [4:0] w_state;
     reg [4:0] w_next_state;
 
     wire w_state_idle   = (w_state == `W_IDLE);
@@ -106,7 +110,7 @@ module AXI_bridge(
     wire w_state_finish = (w_state == `W_FINISH);
 
     //写响应通道
-    reg  [2:0] b_current_state;
+    reg  [2:0] b_state;
     reg  [2:0] b_next_state;
     reg  [1:0] aw_cnt,w_cnt;
 
@@ -140,7 +144,7 @@ module AXI_bridge(
             `IDLE:begin
                 if(~aresetn | ar_block)
                     ar_next_state = `IDLE;
-                else if()
+                else if(inst_sram_req & ~ inst_sram_wr | data_sram_req & ~data_sram_wr) 
                     ar_next_state = `START;
                 else 
                     ar_next_state = `IDLE;
@@ -182,7 +186,7 @@ module AXI_bridge(
             `IDLE:begin
                 if(~aresetn)
                     r_next_state = `IDLE;
-                else if()
+                else if(arvalid & arready | (|r_cnt))
                     r_next_state = `START;
                 else 
                     r_next_state = `IDLE;
@@ -211,29 +215,29 @@ module AXI_bridge(
     //写请求&写数据通道状态机时序逻辑
     always @(posedge aclk) begin
         if (!aresetn) begin
-            w_current_state <= W_IDLE;
+            w_state <= `W_IDLE;
         end else begin
-            w_current_state <= w_next_state;
+            w_state <= w_next_state;
         end
     end
 
     //写请求&写数据通道状态机next_state逻辑
     always @(*) begin
-        case(w_current_state)
+        case(w_state)
             `W_IDLE:begin
                 if(~aresetn)
                     w_next_state = `W_IDLE;
-                else if()
+                else if(data_sram_req & data_sram_wr)
                     w_next_state = `W_START;
                 else 
                     w_next_state = `W_IDLE;
             end
             `W_START:begin
-                if()
+                if(awready & awvalid & wready & wvalid | (|aw_cnt) & (|w_cnt))
                     w_next_state = `W_FINISH;
-                else if()
+                else if(awready & awvalid)
                     w_next_state = `W_ADDR;
-                else if()
+                else if(wready & wvalid)
                     w_next_state = `W_DATA;
                 else 
                     w_next_state = `W_START;
@@ -271,9 +275,9 @@ module AXI_bridge(
     //写响应通道状态机时序逻辑
     always @(posedge aclk) begin
         if (!aresetn) begin
-            b_current_state <= `IDLE;
+            b_state <= `IDLE;
         end else begin
-            b_current_state <= b_next_state;
+            b_state <= b_next_state;
         end
     end
 
@@ -283,7 +287,7 @@ module AXI_bridge(
             `IDLE:begin
                 if(~aresetn)
                     b_next_state = `IDLE;
-                else if()
+                else if(bready)
                     b_next_state = `START;
                 else 
                     b_next_state = `IDLE;
@@ -392,6 +396,8 @@ module AXI_bridge(
 
     ////////////////////////////写响应通道////////////////////////////
 
+    assign bid = 1'b1;
+
     //写响应通道信号逻辑
     assign bready = w_state_finish;
 
@@ -439,14 +445,14 @@ module AXI_bridge(
     assign is_data_r = arid[0];
     assign is_data_w = awid[0];
     assign is_data_r_buffer = rid_buffer[0];
-    assign is_data_w_buffer = ;
+    assign is_data_w_buffer = bid[0];
 
     assign inst_sram_rdata = rdata_buffer[0];
-    assign inst_sram_addr_ok = ~is_data_r & arvalid & arready | ~is_dara_w & awvalid & awready;
-    assign inst_sram_data_ok = 
+    assign inst_sram_addr_ok = ~is_data_r & arvalid & arready | ~is_data_w & awvalid & awready;
+    assign inst_sram_data_ok = ~is_data_r_buffer & r_state_finish | ~is_data_w_buffer & bvalid & bready;
 
     assign data_sram_rdata = rdata_buffer[1];
-    assign data_sram_addr_ok = is_data_r & arvalid & arready | is_dara_w & awvalid & awready; 
-    assign data_sram_data_ok =
+    assign data_sram_addr_ok = is_data_r & arvalid & arready | is_data_w & awvalid & awready; 
+    assign data_sram_data_ok = is_data_r_buffer & r_state_finish | is_data_w_buffer & bvalid & bready;
 
 endmodule

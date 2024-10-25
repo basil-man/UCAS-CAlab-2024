@@ -58,3 +58,4 @@
 `define A_CACHE_WID 3:0
 `define A_PROT_WID 2:0
 `define A_STRB_WID 3:0
+`define A_RESP_WID 1:0
