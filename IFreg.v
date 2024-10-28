@@ -59,6 +59,7 @@ module IFreg(
     reg [31:0] fs_inst_buf;
     reg inst_buf_valid;
     reg inst_cancel;
+    reg inst_sram_addr_get;
 
     assign inst_sram_size = 2'b10;
 
@@ -67,7 +68,7 @@ module IFreg(
     assign {br_stall, br_taken, br_target} = br_collect;
 
     assign pf_ready_go      = inst_sram_req & inst_sram_addr_ok; 
-    assign to_fs_valid      = pf_ready_go & ~pf_cancel ;
+    assign to_fs_valid      = pf_ready_go & ~pf_cancel & ~fs_cancel;
     
     always @(posedge clk) begin
         if(~resetn) begin
@@ -108,7 +109,7 @@ module IFreg(
         end
     end
     
-    assign inst_sram_req     = fs_allowin & resetn & ~pf_cancel & ~br_stall ;
+    assign inst_sram_req     = fs_allowin & resetn & ~pf_cancel & ~br_stall  & ~inst_sram_addr_get;
     assign inst_sram_wr     = |inst_sram_wstrb;
     assign inst_sram_wstrb   = 4'b0;
     assign inst_sram_addr   = nextpc;
@@ -119,10 +120,19 @@ module IFreg(
     always @(posedge clk) begin
         if(~resetn)
             pf_cancel <= 1'b0;
-        else if(fs_cancel & ~pf_cancel & ~axi_arid[0])
+        else if(fs_cancel & ~pf_cancel & ~axi_arid[0] & ~inst_sram_data_ok)
             pf_cancel <= 1'b1;
         else if(inst_sram_data_ok)
             pf_cancel <= 1'b0;
+    end
+
+    always @(posedge clk) begin
+         if(~resetn)
+            inst_sram_addr_get <= 1'b0;
+        else if(pf_ready_go)
+            inst_sram_addr_get <= 1'b1;
+        else if(inst_sram_data_ok)
+            inst_sram_addr_get <= 1'b0;
     end
 
     always @(posedge clk) begin
@@ -154,7 +164,7 @@ module IFreg(
         if (~resetn) begin
             fs_inst_buf <= 32'b0;
             inst_buf_valid <= 1'b0;
-        end else if (fs_to_ds_valid & ds_allowin) begin
+        end else if (to_fs_valid & fs_allowin) begin
             inst_buf_valid <= 1'b0;
         end else if (fs_cancel) begin // if取消后需要清空
             inst_buf_valid <= 1'b0;
