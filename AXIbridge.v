@@ -245,7 +245,7 @@ module AXI_bridge(
             end
             `W_ADDR:begin
                 if(wready & wvalid)
-                    w_next_state = `W_DATA;
+                    w_next_state = `W_FINISH;
                 else 
                     w_next_state = `W_ADDR;
             end
