@@ -262,7 +262,7 @@ module EXreg(
     assign data_sram_wr     = (|data_sram_wstrb) & es_valid & ~es_ex;
     assign data_sram_addr   = es_alu_result;
     assign data_sram_wdata  = st_wdata;
-    assign data_sram_size   = ({2{inst_st_w}} & 2'b10) | ({2{inst_st_h}} & 2'b01) | ({2{inst_st_b}} & 2'b00);
+    assign data_sram_size   = ({2{inst_st_w|inst_ld_w}} & 2'b10) | ({2{inst_st_h | inst_ld_h | inst_ld_hu}} & 2'b01) | ({2{inst_st_b}} & 2'b00) ;
     assign bus_we           = es_rf_we & es_valid;
     assign bus_es_res_from_mem = es_res_from_mem & es_valid;
     assign es_mem_req       = (es_res_from_mem | (|data_sram_wstrb));

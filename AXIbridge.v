@@ -330,11 +330,11 @@ module AXI_bridge(
             if(inst_sram_req & ~inst_sram_wr)begin
                 arid   <= 4'b0;
                 araddr <= inst_sram_addr;
-                arsize <= inst_sram_size;
+                arsize <={inst_sram_size,1'b0};
             end else if(data_sram_req & ~data_sram_wr)begin
                 arid   <= 4'b1;
                 araddr <= data_sram_addr;
-                arsize <= data_sram_size;
+                arsize <=(|data_sram_size) ? {data_sram_size,1'b0} : 3'b1;
             end
         end
     end

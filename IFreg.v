@@ -60,6 +60,7 @@ module IFreg(
     reg inst_buf_valid;
     reg inst_cancel;
 
+    assign inst_sram_size = 2'b10;
 
     assign adef_except = (|fs_pc[1:0]) & fs_valid;
 
