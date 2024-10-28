@@ -436,11 +436,11 @@ module IDreg(
     assign rf_raddr2   = src_reg_is_rd ? rd :rk;
     assign ds_rf_we    = gr_we & ~flush_by_former_except;
     assign ds_rf_waddr = dest;
-     
+    wire space;
     assign {ws_rf_we, ws_rf_waddr, ws_rf_wdata}                  = ws_rf_collect;
-    assign {ms_res_from_mem, ms_rf_we, ms_rf_waddr, ms_rf_wdata} = ms_rf_collect;
+    assign {space, ms_rf_we, ms_rf_waddr, ms_rf_wdata} = ms_rf_collect;
     assign {es_res_from_mem, es_rf_we, es_rf_waddr, es_rf_wdata} = es_rf_collect;
-     
+    assign ms_res_from_mem = ms_rf_collect[37];
     regfile u_regfile(
         .clk    (clk),
         .raddr1 (rf_raddr1),
