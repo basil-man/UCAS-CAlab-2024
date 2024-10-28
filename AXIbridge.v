@@ -378,10 +378,10 @@ module AXI_bridge(
         end else if(w_state_idle)begin
             if(data_sram_wr)begin
                 awaddr <= data_sram_addr;
-                awsize <= {1'b0,data_sram_size};
+                awsize <= (|data_sram_size) ? {data_sram_size,1'b0} : 3'b1;
             end else begin
                 awaddr <= inst_sram_addr;
-                awsize <= {1'b0,inst_sram_size};
+                awsize <= {inst_sram_size,1'b0};
             end
         end
     end
