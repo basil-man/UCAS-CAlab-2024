@@ -184,6 +184,7 @@ module AXI_bridge(
     always @(*)begin
         case(r_state)
             `IDLE:begin
+                debug_catch_defualt = 0;
                 if(~aresetn)
                     r_next_state = `IDLE;
                 else if(arvalid & arready | (|r_cnt))

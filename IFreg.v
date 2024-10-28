@@ -23,7 +23,9 @@ module IFreg(
     input  wire         wb_ex,
     input  wire         ertn_flush,
     input  wire [31:0]  ex_entry,
-    input  wire [31:0]  ertn_entry
+    input  wire [31:0]  ertn_entry,
+
+    input  wire [`A_ID_WID] axi_arid
 );
 
     reg         fs_valid;
@@ -116,7 +118,7 @@ module IFreg(
     always @(posedge clk) begin
         if(~resetn)
             pf_cancel <= 1'b0;
-        else if(fs_cancel & ~pf_cancel)
+        else if(fs_cancel & ~pf_cancel & ~axi_arid[0])
             pf_cancel <= 1'b1;
         else if(inst_sram_data_ok)
             pf_cancel <= 1'b0;

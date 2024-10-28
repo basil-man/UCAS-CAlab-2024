@@ -232,7 +232,9 @@ module mycpu_top(
         .wb_ex(wb_ex),
         .ertn_flush(ertn_flush),
         .ex_entry(ex_entry),
-        .ertn_entry(ertn_entry)
+        .ertn_entry(ertn_entry),
+
+        .axi_arid(arid)
     );
 
     IDreg my_idReg(
