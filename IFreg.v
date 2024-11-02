@@ -59,7 +59,9 @@ module IFreg(
     reg [31:0] fs_inst_buf;
     reg inst_buf_valid;
     reg inst_cancel;
-    reg inst_sram_addr_get;
+    reg inst_sram_addr_get_r;
+    wire inst_sram_addr_get;
+    reg inst_sram_addr_ok_r;
 
     assign inst_sram_size = 2'b10;
 
@@ -67,24 +69,32 @@ module IFreg(
 
     assign {br_stall, br_taken, br_target} = br_collect;
 
-    assign pf_ready_go      = inst_sram_req & inst_sram_addr_ok; 
+    assign pf_ready_go      = inst_sram_req & inst_sram_addr_ok_r; 
     assign to_fs_valid      = pf_ready_go & ~pf_cancel & ~fs_cancel;
+
+    always @(posedge clk) begin
+        if(~resetn)
+            inst_sram_addr_ok_r <= 1'b0;
+        else if(inst_sram_addr_ok & ~ inst_cancel )
+            inst_sram_addr_ok_r <= 1'b1;
+        else if(inst_sram_req )
+            inst_sram_addr_ok_r <= 1'b0;
+    end
     
     always @(posedge clk) begin
         if(~resetn) begin
             {wb_ex_r, ertn_flush_r, br_taken_r} <= 3'b0;
             {ex_entry_r, ertn_entry_r, br_target_r} <= {3{32'b0}};
         end
-        // 当前仅当遇到fs_cancel时未等到pf_ready_go，需要将cancel相关信号存储在寄存器
-        else if(wb_ex & ~pf_ready_go) begin
+        else if(wb_ex) begin
             ex_entry_r <= ex_entry;
             wb_ex_r <= 1'b1;
         end
-        else if(ertn_flush & ~pf_ready_go) begin
+        else if(ertn_flush ) begin
             ertn_entry_r <= ertn_entry;
             ertn_flush_r <= 1'b1;
         end    
-        else if(br_taken & ~pf_ready_go) begin
+        else if(br_taken ) begin
             br_target_r <= br_target;
             br_taken_r <= 1'b1;
         end
@@ -128,12 +138,14 @@ module IFreg(
 
     always @(posedge clk) begin
          if(~resetn)
-            inst_sram_addr_get <= 1'b0;
+            inst_sram_addr_get_r <= 1'b0;
         else if(pf_ready_go)
-            inst_sram_addr_get <= 1'b1;
+            inst_sram_addr_get_r <= 1'b1;
         else if(inst_sram_data_ok)
-            inst_sram_addr_get <= 1'b0;
+            inst_sram_addr_get_r <= 1'b0;
     end
+
+    assign inst_sram_addr_get = inst_sram_addr_get_r & ~inst_sram_data_ok;
 
     always @(posedge clk) begin
         if(~resetn)
