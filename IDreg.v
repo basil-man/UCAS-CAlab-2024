@@ -202,6 +202,7 @@ module IDreg(
 
     wire br_stall;
     wire branch_type;
+    wire es_csr_re,ms_csr_re;
     
 
     wire flush_by_former_except = (|ds_except_collect) | (|es_except_collect) | (|ms_except_collect) | except_flush;
@@ -224,8 +225,8 @@ module IDreg(
 
     assign ds_ready_go    = ~ds_stall;
     assign ds_allowin     = ~ds_valid | ds_ready_go & es_allowin;
-    assign ds_stall       = es_res_from_mem & (hazard_r1_exe & need_r1 | hazard_r2_exe & need_r2) |
-                            ms_res_from_mem & (hazard_r1_mem & need_r1 | hazard_r2_mem & need_r2);
+    assign ds_stall       = (es_res_from_mem | es_csr_re) & (hazard_r1_exe & need_r1 | hazard_r2_exe & need_r2) |
+                            (ms_res_from_mem | ms_csr_re) & (hazard_r1_mem & need_r1 | hazard_r2_mem & need_r2);
     assign ds_to_es_valid = ds_valid & ds_ready_go;
     assign br_stall       = ds_stall & branch_type;
 
@@ -438,9 +439,9 @@ module IDreg(
     assign ds_rf_waddr = dest;
     wire space;
     assign {ws_rf_we, ws_rf_waddr, ws_rf_wdata}                  = ws_rf_collect;
-    assign {space, ms_rf_we, ms_rf_waddr, ms_rf_wdata} = ms_rf_collect;
-    assign {es_res_from_mem, es_rf_we, es_rf_waddr, es_rf_wdata} = es_rf_collect;
-    assign ms_res_from_mem = ms_rf_collect[37];
+    assign {ms_res_from_mem,ms_csr_re,space, ms_rf_we, ms_rf_waddr, ms_rf_wdata} = ms_rf_collect;
+    assign {es_csr_re,es_res_from_mem, es_rf_we, es_rf_waddr, es_rf_wdata} = es_rf_collect;
+    // assign ms_res_from_mem = ms_rf_collect[37];
     regfile u_regfile(
         .clk    (clk),
         .raddr1 (rf_raddr1),

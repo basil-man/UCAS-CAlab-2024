@@ -45,6 +45,8 @@ module MEMreg(
     reg         ms_wait_data_ok_r;
     wire [31:0] shift_rdata;
 
+    reg ms_csr_re;
+
     assign ms_wait_data_ok  = ms_wait_data_ok_r & ms_valid & ~wb_ex;
     assign ms_ready_go      = ~ms_wait_data_ok | ms_wait_data_ok & data_sram_data_ok | (|ms_except);
     assign ms_allowin       = ~ms_valid | ms_ready_go & ws_allowin;     
@@ -63,13 +65,13 @@ module MEMreg(
             ms_pc <= 32'b0;
             {ms_res_from_mem, ms_rf_we, ms_rf_waddr, ms_alu_result} <= 39'b0;
             {inst_ld_w,inst_ld_h,inst_ld_hu,inst_ld_b,inst_ld_bu} <= 5'd0;
-            {ms_wait_data_ok_r, ms_except} <= 8'b0;
+            {ms_csr_re,ms_wait_data_ok_r, ms_except} <= 9'b0;
         end
         if (es_to_ms_valid & ms_allowin) begin
             ms_pc <= es_pc;
             {ms_res_from_mem, ms_rf_we, ms_rf_waddr, ms_alu_result} <= es_rf_collect;
             {inst_ld_w,inst_ld_h,inst_ld_hu,inst_ld_b,inst_ld_bu} <= mem_inst_bus;
-            {ms_wait_data_ok_r, ms_except} <= es_to_ms_bus;
+            {ms_csr_re,ms_wait_data_ok_r, ms_except} <= es_to_ms_bus;
         end
     end
 
@@ -108,7 +110,7 @@ module MEMreg(
                         {32{ ms_alu_result[1:0] == 2'b11}} & {{24{shift_rdata[31] & is_sign_extend}}, shift_rdata[31:24]};
     assign ms_mem_result = inst_ld_w ? word_rdata : ((inst_ld_h | inst_ld_hu) ? half_rdata : (inst_ld_b|inst_ld_bu) ? byte_rdata : 32'b0);
     assign ms_rf_wdata      = ms_res_from_mem ? ms_mem_result : ms_alu_result;
-    assign ms_rf_collect    = {ms_rf_we & ms_valid, ms_rf_waddr, ms_rf_wdata}; // 1+5+32=38
+    assign ms_rf_collect    = {ms_res_from_mem & ms_valid & ~ ms_to_ws_valid ,ms_csr_re,ms_rf_we & ms_valid, ms_rf_waddr, ms_rf_wdata}; // 1+1+1+5+32=40
     assign vaddr=ms_alu_result;
 
     assign ms_to_ws_bus =   {

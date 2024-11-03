@@ -269,11 +269,13 @@ module EXreg(
 
 
     assign es_to_ms_bus =   {
+                            csr_re,
                             es_mem_req,
                             es_except_collect
                             };
 
     assign es_rf_collect =  {
+                            csr_re,
                             bus_es_res_from_mem,
                             bus_we,
                             es_rf_waddr,

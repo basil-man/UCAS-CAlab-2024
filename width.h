@@ -16,7 +16,7 @@
 //bus width between stages
 `define F2D_WID 64:0
 `define D2E_WID 195:0
-`define E2M_WID 7:0
+`define E2M_WID 8:0
 `define M2W_WID 6:0
 
 //mem inst (ld/st) bus width
@@ -24,8 +24,8 @@
 `define E2M_MINST_WID 4:0
 
 //regfile related (we,waddr,result..)bus width 
-`define E_RFC_WID 38:0
-`define M_RFC_WID 37:0
+`define E_RFC_WID 39:0
+`define M_RFC_WID 39:0
 `define W_RFC_WID 37:0
 
 //br_collect(br_taken,br_target) ID->IF bus width

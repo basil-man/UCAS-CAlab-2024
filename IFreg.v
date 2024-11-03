@@ -57,11 +57,12 @@ module IFreg(
     reg  pf_cancel;
 
     reg [31:0] fs_inst_buf;
-    reg inst_buf_valid;
-    reg inst_cancel;
-    reg inst_sram_addr_get_r;
-    wire inst_sram_addr_get;
-    reg inst_sram_addr_ok_r;
+    reg fs_inst_buf_valid;
+    wire inst_cancel;
+    reg br_stall_r;
+    reg [2:0] inst_cancel_num;
+    wire inst_sram_req_send;
+    // reg inst_sram_addr_ok_r;
 
     assign inst_sram_size = 2'b10;
 
@@ -69,16 +70,16 @@ module IFreg(
 
     assign {br_stall, br_taken, br_target} = br_collect;
 
-    assign pf_ready_go      = inst_sram_req & inst_sram_addr_ok_r; 
-    assign to_fs_valid      = pf_ready_go & ~pf_cancel & ~fs_cancel;
+    assign pf_ready_go      = inst_sram_req & inst_sram_addr_ok; 
+    assign to_fs_valid      = pf_ready_go & fs_allowin & ~pf_cancel & ~wb_ex & ~ertn_flush;
 
     always @(posedge clk) begin
         if(~resetn)
-            inst_sram_addr_ok_r <= 1'b0;
-        else if(inst_sram_addr_ok & ~ inst_cancel )
-            inst_sram_addr_ok_r <= 1'b1;
-        else if(inst_sram_req )
-            inst_sram_addr_ok_r <= 1'b0;
+            br_stall_r <= 1'b0;
+        else if(br_stall)
+            br_stall_r <= 1'b1;
+        else if(to_fs_valid & fs_allowin)
+            br_stall_r <= 1'b0;
     end
     
     always @(posedge clk) begin
@@ -105,56 +106,62 @@ module IFreg(
     end
     
     
-    assign fs_ready_go      = (inst_sram_data_ok | inst_buf_valid) & ~inst_cancel;
+    assign fs_ready_go      = (inst_sram_data_ok | fs_inst_buf_valid) & ~inst_cancel;
     assign fs_allowin       = ~fs_valid | fs_ready_go & ds_allowin /*| ertn_flush | wb_ex*/;
-    assign fs_to_ds_valid   = fs_valid & fs_ready_go;
+    assign fs_to_ds_valid   = fs_valid & fs_ready_go & ~wb_ex & ~ertn_flush;
     
     always @(posedge clk) begin
         if (~resetn) begin
             fs_valid <= 1'b0;
         end else if (fs_allowin) begin
             fs_valid <= to_fs_valid;
-        end else if (fs_cancel) begin
+        end else if (fs_cancel | br_taken_r) begin
             fs_valid <= 1'b0;
         end
     end
     
-    assign inst_sram_req     = fs_allowin & resetn & ~pf_cancel & ~br_stall  & ~inst_sram_addr_get;
+    assign inst_sram_req     = fs_allowin & resetn & ~pf_cancel & ~br_stall;
     assign inst_sram_wr     = |inst_sram_wstrb;
     assign inst_sram_wstrb   = 4'b0;
     assign inst_sram_addr   = nextpc;
     assign inst_sram_wdata  = 32'b0;
 
-    assign fs_cancel = wb_ex | ertn_flush | br_taken;
+    assign fs_cancel = wb_ex | ertn_flush | br_taken ;
 
-    always @(posedge clk) begin
+    always @(posedge clk)begin
         if(~resetn)
-            pf_cancel <= 1'b0;
-        else if(fs_cancel & ~pf_cancel & ~axi_arid[0] & ~inst_sram_data_ok)
-            pf_cancel <= 1'b1;
-        else if(inst_sram_data_ok)
-            pf_cancel <= 1'b0;
-    end
-
-    always @(posedge clk) begin
-         if(~resetn)
-            inst_sram_addr_get_r <= 1'b0;
-        else if(pf_ready_go)
-            inst_sram_addr_get_r <= 1'b1;
-        else if(inst_sram_data_ok)
-            inst_sram_addr_get_r <= 1'b0;
-    end
-
-    assign inst_sram_addr_get = inst_sram_addr_get_r & ~inst_sram_data_ok;
-
-    always @(posedge clk) begin
-        if(~resetn)
-            inst_cancel <= 1'b0;
-        // 流水级取消：当pre-IF阶段发送错误地址请求已被指令SRAM接受 or IF内有有效指令且正在等待数据返回时，需要丢弃一条指令
-        else if(fs_cancel & ~fs_allowin & ~fs_ready_go | fs_cancel & inst_sram_req )
-            inst_cancel <= 1'b1;
+            inst_cancel_num <= 'b0;
+        else if((fs_cancel) & (fs_valid & ~fs_ready_go))
+            inst_cancel_num <= inst_cancel_num + 'b1;
         else if(inst_cancel & inst_sram_data_ok)
-            inst_cancel <= 1'b0;
+            inst_cancel_num <= inst_cancel_num - 'b1;
+    end
+
+    assign inst_cancel = | inst_cancel_num;
+
+    assign inst_sram_req_send = inst_sram_req | br_stall;
+
+    always @(posedge clk) begin
+        if(~resetn)
+            pf_cancel <= 1'b0;
+        else if(inst_sram_req_send & (fs_cancel | (br_stall | br_stall_r) & inst_sram_addr_ok) & ~axi_arid[0])
+            pf_cancel <= 1'b1;
+        else if(inst_sram_data_ok & ~inst_cancel)
+            pf_cancel <= 1'b0;
+    end
+
+    always @(posedge clk) begin
+        if(~resetn)begin
+            fs_inst_buf <= 32'b0;
+            fs_inst_buf_valid <= 1'b0;
+        end else if(fs_to_ds_valid & fs_allowin)begin
+            fs_inst_buf_valid <= 1'b0;
+        end else if(fs_cancel)begin
+            fs_inst_buf_valid <= 1'b0;
+        end else if(~fs_inst_buf_valid & inst_sram_data_ok & ~inst_cancel & ~pf_cancel)begin
+            fs_inst_buf <= fs_inst;
+            fs_inst_buf_valid <= 1'b1;
+        end
     end
 
     wire [31:0] ex_pc=ex_entry;
@@ -172,21 +179,8 @@ module IFreg(
         end
     end
     
-    always @(posedge clk) begin
-        if (~resetn) begin
-            fs_inst_buf <= 32'b0;
-            inst_buf_valid <= 1'b0;
-        end else if (to_fs_valid & fs_allowin) begin
-            inst_buf_valid <= 1'b0;
-        end else if (fs_cancel) begin // if取消后需要清空
-            inst_buf_valid <= 1'b0;
-        end else if (~inst_buf_valid & inst_sram_data_ok & ~inst_cancel) begin
-            fs_inst_buf <= fs_inst;
-            inst_buf_valid <= 1'b1;
-        end
-    end
 
-    assign fs_inst      = inst_buf_valid ? fs_inst_buf : inst_sram_rdata;
+    assign fs_inst      = (fs_inst_buf_valid | inst_cancel | ~inst_sram_data_ok) ? fs_inst_buf : inst_sram_rdata;
     assign fs_to_ds_bus =   {
                             adef_except,
                             fs_inst,
