@@ -234,11 +234,11 @@ module AXI_bridge(
                     w_next_state = `W_IDLE;
             end
             `W_START:begin
-                if(awready & awvalid & wready & wvalid | (|aw_cnt) & (|w_cnt))
+                if(awready & awvalid & wready & wvalid)
                     w_next_state = `W_FINISH;
-                else if(awready & awvalid | (|aw_cnt))
+                else if(awready & awvalid)
                     w_next_state = `W_ADDR;
-                else if(wready & wvalid  | (|w_cnt))
+                else if(wready & wvalid)
                     w_next_state = `W_DATA;
                 else 
                     w_next_state = `W_START;
@@ -378,10 +378,10 @@ module AXI_bridge(
         end else if(w_state_idle)begin
             if(data_sram_wr)begin
                 awaddr <= data_sram_addr;
-                awsize <= (|data_sram_size) ? {data_sram_size,1'b0} : 3'b1;
+                awsize <= {1'b0,data_sram_size};
             end else begin
                 awaddr <= inst_sram_addr;
-                awsize <= {inst_sram_size,1'b0};
+                awsize <= {1'b0,inst_sram_size};
             end
         end
     end
@@ -401,29 +401,6 @@ module AXI_bridge(
 
     //写响应通道信号逻辑
     assign bready = w_state_finish;
-
-    //写响应通道计数器
-    always @(posedge aclk) begin
-        if(~aresetn)
-            aw_cnt <= 2'b0;
-        else if(awvalid & awready & bvalid & bready)
-            aw_cnt <= aw_cnt;
-        else if(awvalid & awready)
-            aw_cnt <= aw_cnt + 2'b1;
-        else if(bvalid & bready)
-            aw_cnt <= aw_cnt - 2'b1;
-    end
-
-    always @(posedge aclk) begin
-        if(~aresetn)
-            w_cnt <= 2'b0;
-        else if(wvalid & wready & bvalid & bready)
-            w_cnt <= w_cnt;
-        else if(wvalid & wready)
-            w_cnt <= w_cnt + 2'b1;
-        else if(bvalid & bready)
-            w_cnt <= w_cnt - 2'b1;
-    end
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //rdata buffer
