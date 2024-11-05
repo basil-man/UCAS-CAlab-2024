@@ -98,6 +98,9 @@ module tlb
 
     wire [TLBNUM-1:0] invtlb_mask [31:0];
 
+    wire s0_whichpage;
+    wire s1_whichpage;
+
     genvar i;
     generate
         for (i = 0; i < TLBNUM; i = i + 1) begin
@@ -133,5 +136,74 @@ module tlb
         end
     endgenerate
 
+    // search port
+    assign s0_found = |match0;
+    assign s1_found = |match1;
+
+    assign s0_index = {4{match0[ 0]}} & 4'd0  | {4{match0[ 1]}} & 4'd1  | {4{match0[ 2]}} & 4'd2  | {4{match0[ 3]}} & 4'd3
+                    | {4{match0[ 4]}} & 4'd4  | {4{match0[ 5]}} & 4'd5  | {4{match0[ 6]}} & 4'd6  | {4{match0[ 7]}} & 4'd7
+                    | {4{match0[ 8]}} & 4'd8  | {4{match0[ 9]}} & 4'd9  | {4{match0[10]}} & 4'd10 | {4{match0[11]}} & 4'd11
+                    | {4{match0[12]}} & 4'd12 | {4{match0[13]}} & 4'd13 | {4{match0[14]}} & 4'd14 | {4{match0[15]}} & 4'd15;
+
+    assign s1_index = {4{match1[ 0]}} & 4'd0  | {4{match1[ 1]}} & 4'd1  | {4{match1[ 2]}} & 4'd2  | {4{match1[ 3]}} & 4'd3
+                    | {4{match1[ 4]}} & 4'd4  | {4{match1[ 5]}} & 4'd5  | {4{match1[ 6]}} & 4'd6  | {4{match1[ 7]}} & 4'd7
+                    | {4{match1[ 8]}} & 4'd8  | {4{match1[ 9]}} & 4'd9  | {4{match1[10]}} & 4'd10 | {4{match1[11]}} & 4'd11
+                    | {4{match1[12]}} & 4'd12 | {4{match1[13]}} & 4'd13 | {4{match1[14]}} & 4'd14 | {4{match1[15]}} & 4'd15;
+
+    assign s0_whichpage = (tlb_ps4MB[s0_index]) ? s0_vppn[8] : s0_va_bit12;
+    assign s0_ps        = (tlb_ps4MB[s0_index]) ? 6'd21 : 6'd12;
+    assign s0_ppn       = (s0_whichpage) ? tlb_ppn1[s0_index] : tlb_ppn0[s0_index];
+    assign s0_plv       = (s0_whichpage) ? tlb_plv1[s0_index] : tlb_plv0[s0_index];
+    assign s0_mat       = (s0_whichpage) ? tlb_mat1[s0_index] : tlb_mat0[s0_index];
+    assign s0_d         = (s0_whichpage) ? tlb_d1  [s0_index] : tlb_d0  [s0_index];
+    assign s0_v         = (s0_whichpage) ? tlb_v1  [s0_index] : tlb_v0  [s0_index];
+
+    assign s1_whichpage = (tlb_ps4MB[s1_index]) ? s1_vppn[8] : s1_va_bit12;
+    assign s1_ps        = (tlb_ps4MB[s1_index]) ? 6'd21 : 6'd12;
+    assign s1_ppn       = (s1_whichpage) ? tlb_ppn1[s1_index] : tlb_ppn0[s1_index];
+    assign s1_plv       = (s1_whichpage) ? tlb_plv1[s1_index] : tlb_plv0[s1_index];
+    assign s1_mat       = (s1_whichpage) ? tlb_mat1[s1_index] : tlb_mat0[s1_index];
+    assign s1_d         = (s1_whichpage) ? tlb_d1  [s1_index] : tlb_d0  [s1_index];
+    assign s1_v         = (s1_whichpage) ? tlb_v1  [s1_index] : tlb_v0  [s1_index];
+
+    // read port
+    assign r_e    = tlb_e    [r_index];
+    assign r_vppn = tlb_vppn [r_index];
+    assign r_ps   = tlb_ps4MB[r_index] ? 6'd21 : 6'd12;
+    assign r_asid = tlb_asid [r_index];
+    assign r_g    = tlb_g    [r_index];
+    assign r_ppn0 = tlb_ppn0 [r_index];
+    assign r_plv0 = tlb_plv0 [r_index];
+    assign r_mat0 = tlb_mat0 [r_index];
+    assign r_d0   = tlb_d0   [r_index];
+    assign r_v0   = tlb_v0   [r_index];
+    assign r_ppn1 = tlb_ppn1 [r_index];
+    assign r_plv1 = tlb_plv1 [r_index];
+    assign r_mat1 = tlb_mat1 [r_index];
+    assign r_d1   = tlb_d1   [r_index];
+    assign r_v1   = tlb_v1   [r_index];
+
+    // write port
+    always @(posedge clk) begin
+        if (we) begin
+            tlb_e    [w_index] <= w_e;
+            tlb_vppn [w_index] <= w_vppn;
+            tlb_ps4MB[w_index] <= (w_ps == 6'd21);
+            tlb_asid [w_index] <= w_asid;
+            tlb_g    [w_index] <= w_g;
+            tlb_ppn0 [w_index] <= w_ppn0;
+            tlb_plv0 [w_index] <= w_plv0;
+            tlb_mat0 [w_index] <= w_mat0;
+            tlb_d0   [w_index] <= w_d0;
+            tlb_v0   [w_index] <= w_v0;
+            tlb_ppn1 [w_index] <= w_ppn1;
+            tlb_plv1 [w_index] <= w_plv1;
+            tlb_mat1 [w_index] <= w_mat1;
+            tlb_d1   [w_index] <= w_d1;
+            tlb_v1   [w_index] <= w_v1;
+        end else if (invtlb_valid) begin
+            tlb_e <= ~invtlb_mask[invtlb_op] & tlb_e;
+        end
+    end
 
 endmodule
