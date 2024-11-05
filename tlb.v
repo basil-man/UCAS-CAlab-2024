@@ -96,6 +96,8 @@ module tlb
     wire [TLBNUM-1:0] cond3;
     wire [TLBNUM-1:0] cond4;
 
+    wire [TLBNUM-1:0] invtlb_mask [31:0];
+
     genvar i;
     generate
         for (i = 0; i < TLBNUM; i = i + 1) begin
@@ -108,7 +110,28 @@ module tlb
         end    
     endgenerate
     
+    generate
+        for (i = 0; i < TLBNUM; i = i + 1) begin
+            assign cond1[i] = ~tlb_g[i];
+            assign cond2[i] = tlb_g[i];
+            assign cond3[i] = s1_asid == tlb_asid[i];
+            assign cond4[i] = (s1_vppn[18:10] == tlb_vppn[i][18:10]) 
+                               && (tlb_ps4MB[i] || s1_vppn[9:0] == tlb_vppn[i][9:0]);
+        end
+    endgenerate
 
+    assign invtlb_mask[0] = 16'hffff;  
+    assign invtlb_mask[1] = 16'hffff;
+    assign invtlb_mask[2] = cond2;
+    assign invtlb_mask[3] = cond1;
+    assign invtlb_mask[4] = cond1 & cond3;
+    assign invtlb_mask[5] = cond1 & cond3 & cond4;
+    assign invtlb_mask[6] = (cond1 | cond3) & cond4;
+    generate
+        for (i = 7; i < 32; i = i + 1) begin
+            assign invtlb_mask[i] = 16'b0;
+        end
+    endgenerate
 
 
 endmodule
