@@ -1,4 +1,4 @@
-# prj4 branch released
+# prj6 branch released
 
 # calab-group-repository
 group repository of ca-lab
