@@ -72,19 +72,43 @@ module tlb
     output wire                      r_d1,
     output wire                      r_v1
 );
-    reg [TLBNUM-1:0] tlb_e;
-    reg [TLBNUM-1:0] tlb_ps4MB; //pagesize1:4MB,0:4KB
-    reg [      18:0] tlb_vppn   [TLBNUM-1:0];
-    reg [       9:0] tlb_asid   [TLBNUM-1:0];
-    reg              tlb_g      [TLBNUM-1:0];
-    reg [      19:0] tlb_ppn0   [TLBNUM-1:0];
-    reg [       1:0] tlb_plv0   [TLBNUM-1:0];
-    reg [       1:0] tlb_mat0   [TLBNUM-1:0];
-    reg              tlb_d0     [TLBNUM-1:0];
-    reg              tlb_v0     [TLBNUM-1:0];
-    reg [      19:0] tlb_ppn1   [TLBNUM-1:0];
-    reg [       1:0] tlb_plv1   [TLBNUM-1:0];
-    reg [       1:0] tlb_mat1   [TLBNUM-1:0];
-    reg              tlb_d1     [TLBNUM-1:0];
-    reg              tlb_v1     [TLBNUM-1:0];
+    reg  [TLBNUM-1:0] tlb_e;
+    reg  [TLBNUM-1:0] tlb_ps4MB; //pagesize1:4MB,0:4KB
+    reg  [      18:0] tlb_vppn   [TLBNUM-1:0];
+    reg  [       9:0] tlb_asid   [TLBNUM-1:0];
+    reg               tlb_g      [TLBNUM-1:0];
+    reg  [      19:0] tlb_ppn0   [TLBNUM-1:0];
+    reg  [       1:0] tlb_plv0   [TLBNUM-1:0];
+    reg  [       1:0] tlb_mat0   [TLBNUM-1:0];
+    reg               tlb_d0     [TLBNUM-1:0];
+    reg               tlb_v0     [TLBNUM-1:0];
+    reg  [      19:0] tlb_ppn1   [TLBNUM-1:0];
+    reg  [       1:0] tlb_plv1   [TLBNUM-1:0];
+    reg  [       1:0] tlb_mat1   [TLBNUM-1:0];
+    reg               tlb_d1     [TLBNUM-1:0];
+    reg               tlb_v1     [TLBNUM-1:0];
+
+    wire [TLBNUM-1:0] match0;
+    wire [TLBNUM-1:0] match1;
+
+    wire [TLBNUM-1:0] cond1;
+    wire [TLBNUM-1:0] cond2;
+    wire [TLBNUM-1:0] cond3;
+    wire [TLBNUM-1:0] cond4;
+
+    genvar i;
+    generate
+        for (i = 0; i < TLBNUM; i = i + 1) begin
+            assign match0[i] = (s0_vppn[18:10] == tlb_vppn[i][18:10])
+                                &&(tlb_ps4MB[i] || s0_vppn[9:0] == tlb_vppn[i][9:0])
+                                &&((s0_asid == tlb_asid[i]) || tlb_g[i]);
+            assign match1[i] = (s1_vppn[18:10] == tlb_vppn[i][18:10])
+                                &&(tlb_ps4MB[i] || s1_vppn[9:0] == tlb_vppn[i][9:0])
+                                &&((s1_asid == tlb_asid[i]) || tlb_g[i]);
+        end    
+    endgenerate
+    
+
+
+
 endmodule
