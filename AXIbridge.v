@@ -282,7 +282,7 @@ module AXI_bridge(
         end
     end
 
-    //写相应通道状态机next_state逻辑
+    //写响应通道状态机next_state逻辑
     always @(*)begin
         case(b_state)
             `IDLE:begin
@@ -327,14 +327,14 @@ module AXI_bridge(
         if(~aresetn)begin
             {arid,araddr,arsize} <= 'b0;
         end else if(ar_state_idle)begin
-            if(inst_sram_req & ~inst_sram_wr)begin
-                arid   <= 4'b0;
-                araddr <= inst_sram_addr;
-                arsize <={inst_sram_size,1'b0};
-            end else if(data_sram_req & ~data_sram_wr)begin
+            if(data_sram_req & ~data_sram_wr)begin
                 arid   <= 4'b1;
                 araddr <= data_sram_addr;
                 arsize <=(|data_sram_size) ? {data_sram_size,1'b0} : 3'b1;
+            end else if(inst_sram_req & ~inst_sram_wr)begin
+                arid   <= 4'b0;
+                araddr <= inst_sram_addr;
+                arsize <={inst_sram_size,1'b0};
             end
         end
     end
