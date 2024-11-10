@@ -62,7 +62,51 @@ module csr(
     input  wire [`W2C_ECODE_WID]   wb_ecode  , //来自WB阶段的异常类型
     input  wire [`W2C_ESUBCODE_WID]   wb_esubcode,//来自WB阶段的异常类型辅助码
     input  wire [31:0]   wb_vaddr   ,//来自WB阶段的访存地址
-    input  wire [31:0]   wb_pc      //写回的返回地址
+    input  wire [31:0]   wb_pc,      //写回的返回地址
+
+    // tlb related wires in exp 18
+    output reg  [`T_ASID_WID]       csr_asid,
+    output reg  [`T_VPPN_WID]       csr_tlbehi_vppn,
+    output reg  [`T_IDX_WID]        csr_tlbidx_index,
+
+    input  wire                     tlbsrch_we,
+    input  wire                     tlbsrch_hit,
+    input  wire                     tlbrd_we,
+    input  wire [`T_IDX_WID]        tlbsrch_hit_index,
+    
+    input  wire                     r_e,
+    input  wire [`T_PS_WID]         r_ps,
+    input  wire [`T_VPPN_WID]       r_vppn,
+    input  wire [`T_ASID_WID]       r_asid,
+    input  wire                     r_g,
+
+    input  wire [`T_PPN_WID]        r_ppn0,
+    input  wire [`T_plv_WID]        r_plv0,
+    input  wire [`T_MAT_WID]        r_mat0,
+    input  wire                     r_d0,
+    input  wire                     r_v0,
+    input  wire [`T_PPN_WID]        r_ppn1,
+    input  wire [`T_plv_WID]        r_plv1,
+    input  wire [`T_MAT_WID]        r_mat1,
+    input  wire                     r_d1,
+    input  wire                     r_v1,
+
+    output wire                     w_e,
+    output wire [`T_PS_WID]         w_ps,
+    output wire [`T_VPPN_WID]       w_vppn,
+    output wire [`T_ASID_WID]       w_asid,
+    output wire                     w_g,
+
+    output wire [`T_PPN_WID]        w_ppn0,
+    output wire [`T_plv_WID]        w_plv0,
+    output wire [`T_MAT_WID]        w_mat0,
+    output wire                     w_d0,
+    output wire                     w_v0,
+    output wire [`T_PPN_WID]        w_ppn1,
+    output wire [`T_plv_WID]        w_plv1,
+    output wire [`T_MAT_WID]        w_mat1,
+    output wire                     w_d1,
+    output wire                     w_v1
 );
     wire [ 7: 0] hw_int_in;
     wire         ipi_int_in;

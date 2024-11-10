@@ -144,6 +144,77 @@ module mycpu_top(
     wire [31:0] data_sram_rdata;
     wire        data_sram_data_ok;
 
+    wire [`T_VPPN_WID]  s0_vppn;
+    wire                s0_va_bit12;
+    wire [`T_ASID_WID]  s0_asid;
+    wire                s0_found;
+    wire [`T_IDX_WID]   s0_index;
+    wire [`T_PPN_WID]   s0_ppn;
+    wire [`T_PS_WID]    s0_ps;
+    wire [`T_plv_WID]   s0_plv;
+    wire [`T_MAT_WID]   s0_mat;
+    wire                s0_d;
+    wire                s0_v;
+
+    wire [`T_VPPN_WID]  s1_vppn;
+    wire                s1_va_bit12;
+    wire [`T_ASID_WID]  s1_asid;
+    wire                s1_found;
+    wire [`T_IDX_WID]   s1_index;
+    wire [`T_PPN_WID]   s1_ppn;
+    wire [`T_PS_WID]    s1_ps;
+    wire [`T_plv_WID]   s1_plv;
+    wire [`T_MAT_WID]   s1_mat;
+    wire                s1_d;
+    wire                s1_v;
+
+
+    wire [ 4:0] invtlb_op;
+    wire        invtlb_valid;
+
+    wire [`T_ASID_WID]       csr_asid;
+    wire [`T_VPPN_WID]       csr_tlbehi_vppn;
+    wire [`T_IDX_WID]        csr_tlbidx_index;
+
+    wire                     tlbsrch_we;
+    wire                     tlbsrch_hit;
+    wire                     tlbrd_we;
+    wire [`T_IDX_WID]        tlbsrch_hit_index;
+
+    wire                     r_e;
+    wire [`T_PS_WID]         r_ps;
+    wire [`T_VPPN_WID]       r_vppn;
+    wire [`T_ASID_WID]       r_asid;
+    wire                     r_g;
+
+    wire [`T_PPN_WID]        r_ppn0;
+    wire [`T_plv_WID]        r_plv0;
+    wire [`T_MAT_WID]        r_mat0;
+    wire                     r_d0;
+    wire                     r_v0;
+    wire [`T_PPN_WID]        r_ppn1;
+    wire [`T_plv_WID]        r_plv1;
+    wire [`T_MAT_WID]        r_mat1;
+    wire                     r_d1;
+    wire                     r_v1;
+
+    wire                     w_e;
+    wire [`T_PS_WID]         w_ps;
+    wire [`T_VPPN_WID]       w_vppn;
+    wire [`T_ASID_WID]       w_asid;
+    wire                     w_g;
+
+    wire [`T_PPN_WID]        w_ppn0;
+    wire [`T_plv_WID]        w_plv0;
+    wire [`T_MAT_WID]        w_mat0;
+    wire                     w_d0;
+    wire                     w_v0; 
+    wire [`T_PPN_WID]        w_ppn1;
+    wire [`T_plv_WID]        w_plv1;
+    wire [`T_MAT_WID]        w_mat1;
+    wire                     w_d1;
+    wire                     w_v1;
+
     AXI_bridge my_AXIbridge(
         .aclk(clk),
         .aresetn(resetn),
@@ -373,6 +444,116 @@ module mycpu_top(
         .wb_ecode  (wb_ecode), //来自WB阶段的异常类型
         .wb_esubcode(wb_esubcode),//来自WB阶段的异常类型辅助码
         .wb_vaddr  (wb_vaddr) ,//来自WB阶段的访存地址
-        .wb_pc     (wb_pc) //写回的返回地址
+        .wb_pc     (wb_pc), //写回的返回地址
+
+        .csr_asid        (csr_asid),
+        .csr_tlbehi_vppn (csr_tlbehi_vppn),
+        .csr_tlbidx_index(csr_tlbidx_index),
+
+        .tlbsrch_we        (tlbsrch_we),
+        .tlbsrch_hit       (tlbsrch_hit),
+        .tlbsrch_hit_index (tlbsrch_hit_index),
+        .tlbrd_we          (tlbrd_we),
+
+        .r_e         (r_e),
+        .r_ps        (r_ps),
+        .r_vppn      (r_vppn),
+        .r_asid      (r_asid),
+        .r_g         (r_g),
+        .r_ppn0      (r_ppn0),
+        .r_plv0      (r_plv0),
+        .r_mat0      (r_mat0),
+        .r_d0        (r_d0),
+        .r_v0        (r_v0),
+        .r_ppn1      (r_ppn1),
+        .r_plv1      (r_plv1),
+        .r_mat1      (r_mat1),
+        .r_d1        (r_d1),
+        .r_v1        (r_v1),
+
+
+        .w_e         (w_e),
+        .w_ps        (w_ps),
+        .w_vppn      (w_vppn),
+        .w_asid      (w_asid),
+        .w_g         (w_g),
+        .w_ppn0      (w_ppn0),
+        .w_plv0      (w_plv0),
+        .w_mat0      (w_mat0),
+        .w_d0        (w_d0),
+        .w_v0        (w_v0),
+        .w_ppn1      (w_ppn1),
+        .w_plv1      (w_plv1),
+        .w_mat1      (w_mat1),
+        .w_d1        (w_d1),
+        .w_v1        (w_v1)
+    );
+
+    tlb my_tlb(
+        .clk        (aclk),
+        
+        .s0_vppn    (s0_vppn),
+        .s0_va_bit12(s0_va_bit12),
+        .s0_asid    (s0_asid),
+        .s0_found   (s0_found),
+        .s0_index   (s0_index),
+        .s0_ppn     (s0_ppn),
+        .s0_ps      (s0_ps),
+        .s0_plv     (s0_plv),
+        .s0_mat     (s0_mat),
+        .s0_d       (s0_d),
+        .s0_v       (s0_v),
+
+        .s1_vppn    (s1_vppn),
+        .s1_va_bit12(s1_va_bit12),
+        .s1_asid    (s1_asid),
+        .s1_found   (s1_found),
+        .s1_index   (s1_index),
+        .s1_ppn     (s1_ppn),
+        .s1_ps      (s1_ps),
+        .s1_plv     (s1_plv),
+        .s1_mat     (s1_mat),
+        .s1_d       (s1_d),
+        .s1_v       (s1_v),
+
+        .invtlb_op  (invtlb_op),
+        .invtlb_valid(invtlb_valid),
+        
+        .we         (tlb_we),
+        .w_index    (w_index),
+        .w_e        (w_e),
+        .w_vppn     (w_vppn),
+        .w_ps       (w_ps),
+        .w_asid     (w_asid),
+        .w_g        (w_g),
+        .w_ppn0     (w_ppn0),
+        .w_plv0     (w_plv0),
+        .w_mat0     (w_mat0),
+        .w_d0       (w_d0),
+        .w_v0       (w_v0),
+        .w_ppn1     (w_ppn1),
+        .w_plv1     (w_plv1),
+        .w_mat1     (w_mat1),
+        .w_d1       (w_d1),
+        .w_v1       (w_v1),
+
+        .r_index    (r_index),
+        .r_e        (r_e),
+        .r_vppn     (r_vppn),
+        .r_ps       (r_ps),
+        .r_asid     (r_asid),
+        .r_g        (r_g),
+
+        .r_ppn0     (r_ppn0),
+        .r_plv0     (r_plv0),
+        .r_mat0     (r_mat0),
+        .r_d0       (r_d0),
+        .r_v0       (r_v0),
+
+        .r_ppn1     (r_ppn1),
+        .r_plv1     (r_plv1),
+        .r_mat1     (r_mat1),
+        .r_d1       (r_d1),
+        .r_v1       (r_v1)
     );
 endmodule
