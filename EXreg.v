@@ -25,7 +25,26 @@ module EXreg(
     input wire [`E2M_EXCEPT_WID] ms_except,
     input wire [`D2E_RDCNT_WID] collect_inst_rd_cnt,
     output wire [`E_EXCEPT_WID] es_except_collect,
-    input  wire wb_ex
+    input  wire wb_ex,
+
+    // exp 18    
+    // to tlb    
+    output wire [19:0]        s1_va_highbits,    
+    output wire [`T_ASID_WID] s1_asid,    
+    output wire               invtlb_valid,    
+    output wire [ 4:0]        invtlb_op,    
+    // from csr    
+    input  wire [`T_ASID_WID] csr_asid_asid,    
+    input  wire [`T_VPPN_WID] csr_tlbehi_vppn,    
+    //from tlb    
+    input  wire               s1_found,    
+    input  wire [`T_IDX_WID]  s1_index,    
+    //tlb block    
+    input  wire               ms_csr_tlbrd,    
+    input  wire               ws_csr_tlbrd,
+
+    input  wire [`D2C_CSRC_WID] ds_to_es_csr_collect,
+    output reg  [`D2C_CSRC_WID] es_to_ms_csr_collect
 );
     //debug signalse
     wire bus_we;
@@ -86,8 +105,11 @@ module EXreg(
     wire es_ex;
     wire es_mem_req;
 
+    reg [4:0] es_rd;
+    reg inst_tlbsrch,inst_tlbrd,inst_tlbwr,inst_tlbfill,inst_invtlb;
+
     assign es_ex          = (|es_except_collect) & es_valid;
-    assign es_ready_go = (data_sram_req & data_sram_addr_ok) | (mulit_cycle_insts & reg_div_mod_done) | ~(data_sram_req | mulit_cycle_insts);
+    assign es_ready_go = (data_sram_req & data_sram_addr_ok) | (mulit_cycle_insts & reg_div_mod_done)| (inst_tlbsrch & ~(ms_csr_tlbrd | ws_csr_tlbrd)) | ~(data_sram_req | mulit_cycle_insts | inst_tlbsrch) ;
     assign es_allowin     = ~es_valid | es_ready_go & ms_allowin;
     assign es_to_ms_valid = es_valid & es_ready_go;
     
@@ -101,16 +123,20 @@ module EXreg(
     always @(posedge clk) begin
         if (~resetn) begin
             {tmp, from_ds_except, extend_es_alu_op, es_res_from_mem, es_alu_src1, es_alu_src2,
-            es_mem_en, es_rf_we, es_rf_waddr, es_rkd_value, es_pc, csr_rvalue, csr_re} <= 196'b0;
+            es_mem_en, es_rf_we, es_rf_waddr, es_rkd_value, es_pc, csr_rvalue, csr_re,
+            es_rd,inst_tlbsrch,inst_tlbrd,inst_tlbwr,inst_tlbfill,inst_invtlb} <= 206'b0;
             {inst_st_w,inst_st_h,inst_st_b} <= 3'b000;
             es_mem_inst_bus <= 5'd0;
             {inst_rdcntvl,inst_rdcntvh} <= 2'b00;
+            es_to_ms_csr_collect <= 'b0;
         end else if (ds_to_es_valid & es_allowin) begin
             {tmp, from_ds_except, extend_es_alu_op, es_res_from_mem, es_alu_src1, es_alu_src2,
-            es_mem_en, es_rf_we, es_rf_waddr, es_rkd_value, es_pc, csr_rvalue, csr_re} <= ds_to_es_bus;
+            es_mem_en, es_rf_we, es_rf_waddr, es_rkd_value, es_pc, csr_rvalue, csr_re,
+            es_rd,inst_tlbsrch,inst_tlbrd,inst_tlbwr,inst_tlbfill,inst_invtlb } <= ds_to_es_bus;
             {inst_st_w,inst_st_h,inst_st_b} <= ds_mem_inst_bus[2:0];
             es_mem_inst_bus <= ds_mem_inst_bus[7:3];
             {inst_rdcntvl,inst_rdcntvh} <= collect_inst_rd_cnt;
+            es_to_ms_csr_collect <= ds_to_es_csr_collect;
         end
     end
     assign {inst_mul_w, inst_mulh_w, inst_mulh_wu, inst_div_w, inst_mod_w, inst_div_wu, inst_mod_wu, es_alu_op} = extend_es_alu_op;
@@ -251,6 +277,14 @@ module EXreg(
         
     end
 
+    //TLB
+    assign s1_va_highbits = {20{inst_tlbsrch}} & {csr_tlbehi_vppn, 1'b0} |
+                            {20{inst_invtlb}} & {es_rkd_value[31:12]};
+    assign s1_asid = {10{inst_tlbsrch}} & csr_asid_asid |
+                      {10{inst_invtlb}} & es_alu_src1[9:0];
+    assign invtlb_op = es_rd;
+    assign invtlb_valid = inst_invtlb & es_valid;
+
     //assign es_mem_inst_bus = ds_mem_inst_bus[7:3];
     // pass ld inst mem_inst_bus 
     
@@ -271,7 +305,14 @@ module EXreg(
     assign es_to_ms_bus =   {
                             csr_re,
                             es_mem_req,
-                            es_except_collect
+                            es_except_collect,
+                            s1_found, 
+                            s1_index,
+                            inst_tlbsrch,
+                            inst_tlbrd,
+                            inst_tlbwr,
+                            inst_tlbfill,
+                            inst_invtlb//total 5 bits
                             };
 
     assign es_rf_collect =  {

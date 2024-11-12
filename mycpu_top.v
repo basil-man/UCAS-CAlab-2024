@@ -104,6 +104,7 @@ module mycpu_top(
     wire [`E2M_MINST_WID] es_mem_inst_bus;
     wire       ertn_flush;
     wire       wb_ex;
+    wire       wb_flush;
 
     //csr interface
     wire csr_re, csr_we;
@@ -215,6 +216,9 @@ module mycpu_top(
     wire                     w_d1;
     wire                     w_v1;
 
+    wire ms_csr_tlbrd,ws_csr_tlbrd;
+    wire [`D2C_CSRC_WID] es_to_ms_csr_collect,ms_to_ws_csr_collect;
+
     AXI_bridge my_AXIbridge(
         .aclk(clk),
         .aresetn(resetn),
@@ -301,9 +305,10 @@ module mycpu_top(
         .fs_to_ds_bus(fs_to_ds_bus),
 
         .wb_ex(wb_ex),
-        .ertn_flush(ertn_flush),
+        .ertn_flush(wb_flush & ~ wb_ex),//ugly trick
+        .wb_flush(wb_flush),
         .ex_entry(ex_entry),
-        .ertn_entry(ertn_entry),
+        .ertn_entry(ertn_flush ? ertn_entry : (debug_wb_pc + 4'h4)),//ugly trick to reuse ertn 
 
         .axi_arid(arid)
     );
@@ -333,9 +338,10 @@ module mycpu_top(
         .es_except_collect(es_except_collect), //Forward signal
         .ms_except_collect(ms_except_collect), //Forward signal
 
-        .except_flush(wb_ex|ertn_flush),
+        .except_flush(wb_flush),
         .collect_inst_rd_cnt(collect_inst_rd_cnt),
         .wb_ex(wb_ex)
+
     );
     assign {csr_re, csr_num, csr_we, csr_wmask, csr_wvalue} = csr_collect;
 
@@ -365,10 +371,27 @@ module mycpu_top(
         .es_to_ms_bus(es_to_ms_bus), //Forward signal
 
         .es_except_collect(es_except_collect),
-        .except_flush(wb_ex|ertn_flush),
+        .except_flush(wb_flush),
         .ms_except(ms_except),
         .collect_inst_rd_cnt(collect_inst_rd_cnt),
-        .wb_ex(wb_ex)
+        .wb_ex(wb_ex),
+
+        .s1_va_highbits({s1_vppn,s1_va_bit12}),
+        .s1_asid(s1_asid),
+        .invtlb_valid(invtlb_valid),
+        .invtlb_op(invtlb_op),
+
+        .csr_asid_asid(csr_asid),
+        .csr_tlbehi_vppn(csr_tlbehi_vppn),
+
+        .s1_found(s1_found),
+        .s1_index(s1_index),
+
+        .ms_csr_tlbrd(ms_csr_tlbrd),
+        .ws_csr_tlbrd(ws_csr_tlbrd),
+
+        .ds_to_es_csr_collect(csr_collect),
+        .es_to_ms_csr_collect(es_to_ms_csr_collect)
     );
 
     MEMreg my_memReg(
@@ -393,10 +416,15 @@ module mycpu_top(
         .ms_to_ws_bus(ms_to_ws_bus),
 
         .ms_except_collect(ms_except_collect), //Forward signal
-        .except_flush(wb_ex|ertn_flush),
+        .except_flush(wb_flush),
         .ms_except(ms_except),
         .vaddr(vaddr),
-        .wb_ex(wb_ex)
+        .wb_ex(wb_ex),
+
+        .ms_csr_tlbrd(ms_csr_tlbrd),
+
+        .es_to_ms_csr_collect(es_to_ms_csr_collect),
+        .ms_to_ws_csr_collect(ms_to_ws_csr_collect)
     );
 
     WBreg my_wbReg(
@@ -418,11 +446,24 @@ module mycpu_top(
 
         .ertn_flush(ertn_flush),
         .wb_ex(wb_ex),
+        .wb_flush(wb_flush),
         .wb_ecode(wb_ecode),
         .wb_esubcode(wb_esubcode),
         .wb_pc(wb_pc),
         .vaddr(vaddr),
-        .wb_vaddr(wb_vaddr)
+        .wb_vaddr(wb_vaddr),
+        //exp18
+        .csr_tlbidx_index(csr_tlbidx_index),
+        .tlbrd_we(tlbrd_we),
+        .r_index(r_index),
+        .w_index(w_index),
+        .tlb_we(tlb_we),
+        .tlbsrch_we(tlbsrch_we),
+        .tlbsrch_hit(tlbsrch_hit),
+        .tlbsrch_hit_index(tlbsrch_hit_index),
+        .ws_csr_tlbrd(ws_csr_tlbrd),
+        .ms_to_ws_csr_collect(ms_to_ws_csr_collect)
+        
     );
 
     csr my_csr(

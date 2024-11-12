@@ -21,7 +21,8 @@ module IFreg(
     output wire [`F2D_WID]  fs_to_ds_bus,
 
     input  wire         wb_ex,
-    input  wire         ertn_flush,
+    input  wire         ertn_flush,//ugly trick:ertn includes tlb refetch
+    input  wire         wb_flush,
     input  wire [31:0]  ex_entry,
     input  wire [31:0]  ertn_entry,
 
@@ -71,7 +72,7 @@ module IFreg(
     assign {br_stall, br_taken, br_target} = br_collect;
 
     assign pf_ready_go      = inst_sram_req & inst_sram_addr_ok; 
-    assign to_fs_valid      = pf_ready_go & fs_allowin & ~pf_cancel & ~wb_ex & ~ertn_flush;
+    assign to_fs_valid      = pf_ready_go & fs_allowin & ~pf_cancel & ~wb_flush;
 
     always @(posedge clk) begin
         if(~resetn)
@@ -108,7 +109,7 @@ module IFreg(
     
     assign fs_ready_go      = (inst_sram_data_ok | fs_inst_buf_valid) & ~inst_cancel;
     assign fs_allowin       = ~fs_valid | fs_ready_go & ds_allowin /*| ertn_flush | wb_ex*/;
-    assign fs_to_ds_valid   = fs_valid & fs_ready_go & ~wb_ex & ~ertn_flush;
+    assign fs_to_ds_valid   = fs_valid & fs_ready_go & ~wb_flush;
     
     always @(posedge clk) begin
         if (~resetn) begin
@@ -126,7 +127,7 @@ module IFreg(
     assign inst_sram_addr   = nextpc;
     assign inst_sram_wdata  = 32'b0;
 
-    assign fs_cancel = wb_ex | ertn_flush | br_taken ;
+    assign fs_cancel = wb_flush | br_taken ;
 
     always @(posedge clk)begin
         if(~resetn)

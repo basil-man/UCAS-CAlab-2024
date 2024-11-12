@@ -159,6 +159,7 @@ module IDreg(
     wire        inst_tlbfill;
     wire        inst_invtlb ;
     wire        inst_type_tlb;
+    wire        inst_invtlb_valid;
     
     wire        need_ui5;
     wire        need_si12;
@@ -354,7 +355,9 @@ module IDreg(
     assign inst_tlbfill = op_31_26_d[6'h01] & op_25_22_d[4'h9] & op_21_20_d[2'h0] & op_19_15_d[5'h10] & rk == 5'h0d;
     assign inst_invtlb  = op_31_26_d[6'h01] & op_25_22_d[4'h9] & op_21_20_d[2'h0] & op_19_15_d[5'h13];
 
-    assign inst_type_tlb = inst_tlbsrch | inst_tlbrd | inst_tlbwr | inst_tlbfill | inst_invtlb;
+    assign inst_invtlb_valid = ~((|rd[4:3]) | (&rd[2:0]));//rd <= 0x7  
+
+    assign inst_type_tlb = inst_tlbsrch | inst_tlbrd | inst_tlbwr | inst_tlbfill | (inst_invtlb & inst_invtlb_valid);
 
      //oral code
      assign inst_add_w   = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h1] & op_19_15_d[5'h00];
@@ -524,7 +527,13 @@ module IDreg(
                             ds_rkd_value,
                             ds_pc,
                             csr_rvalue,// 32 bit
-                            csr_re
+                            csr_re,
+                            rd,//5 bit
+                            inst_tlbsrch,
+                            inst_tlbrd,
+                            inst_tlbwr,
+                            inst_tlbfill,
+                            inst_invtlb //5 bit total
                             };
 
     assign mem_inst_bus =   {

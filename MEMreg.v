@@ -1,4 +1,5 @@
 `include "width.h"
+`include "csr.vh"
 module MEMreg(
     input  wire        clk,
     input  wire        resetn,
@@ -23,7 +24,12 @@ module MEMreg(
     output reg [`E2M_EXCEPT_WID] ms_except,
     output wire [31:0] vaddr,
     output wire [`M_EXCEPT_WID] ms_except_collect,
-    input  wire wb_ex
+    input  wire wb_ex,
+
+    //exp18
+    output wire ms_csr_tlbrd,
+    input  wire [`D2C_CSRC_WID] es_to_ms_csr_collect,
+    output reg  [`D2C_CSRC_WID] ms_to_ws_csr_collect
 );
     wire        ms_ready_go;
     reg         ms_valid;
@@ -47,6 +53,13 @@ module MEMreg(
 
     reg ms_csr_re;
 
+    //exp18
+    reg               s1_found;
+    reg [`T_IDX_WID]  s1_index;
+    reg inst_tlbsrch,inst_tlbrd,inst_tlbwr,inst_tlbfill,inst_invtlb;
+    reg [13:0] ms_csr_num;
+    reg ms_csr_we;
+
     assign ms_wait_data_ok  = ms_wait_data_ok_r & ms_valid & ~wb_ex;
     assign ms_ready_go      = ~ms_wait_data_ok | ms_wait_data_ok & data_sram_data_ok | (|ms_except);
     assign ms_allowin       = ~ms_valid | ms_ready_go & ws_allowin;     
@@ -65,13 +78,19 @@ module MEMreg(
             ms_pc <= 32'b0;
             {ms_res_from_mem, ms_rf_we, ms_rf_waddr, ms_alu_result} <= 39'b0;
             {inst_ld_w,inst_ld_h,inst_ld_hu,inst_ld_b,inst_ld_bu} <= 5'd0;
-            {ms_csr_re,ms_wait_data_ok_r, ms_except} <= 9'b0;
+            {ms_csr_re,ms_wait_data_ok_r, ms_except,s1_found,s1_index,inst_tlbsrch,inst_tlbrd,inst_tlbwr,inst_tlbfill,inst_invtlb} <= 19'b0;
+            ms_to_ws_csr_collect <= 'b0;
+            ms_csr_we <= 1'b0;
+            ms_csr_num <= 14'b0;
         end
         if (es_to_ms_valid & ms_allowin) begin
             ms_pc <= es_pc;
             {ms_res_from_mem, ms_rf_we, ms_rf_waddr, ms_alu_result} <= es_rf_collect;
             {inst_ld_w,inst_ld_h,inst_ld_hu,inst_ld_b,inst_ld_bu} <= mem_inst_bus;
-            {ms_csr_re,ms_wait_data_ok_r, ms_except} <= es_to_ms_bus;
+            {ms_csr_re,ms_wait_data_ok_r, ms_except,s1_found,s1_index,inst_tlbsrch,inst_tlbrd,inst_tlbwr,inst_tlbfill,inst_invtlb} <= es_to_ms_bus;
+            ms_to_ws_csr_collect <= es_to_ms_csr_collect;
+            ms_csr_we <= es_to_ms_bus[`CSR_WE];
+            ms_csr_num <= es_to_ms_bus[`CSR_NUM];
         end
     end
 
@@ -87,15 +106,6 @@ module MEMreg(
             ms_data_buf <= data_sram_rdata;
         end
     end
-
-    // assign ms_wait_data_ok = data_buf_valid & ms_wait_data_ok_r;
-    // always @(posedge clk) begin
-    //     if (~resetn) begin
-    //         ms_wait_data_ok_r <= 1'b0;
-    //     end else begin
-    //         ms_wait_data_ok_r <= ms_wait_data_ok;
-    //     end
-    // end
 
     //assign {inst_ld_w,inst_ld_h,inst_ld_hu,inst_ld_b,inst_ld_bu} = mem_inst_bus;
     assign inst_ld = inst_ld_w | inst_ld_h | inst_ld_hu | inst_ld_b | inst_ld_bu;
@@ -114,8 +124,18 @@ module MEMreg(
     assign vaddr=ms_alu_result;
 
     assign ms_to_ws_bus =   {
-                            ms_except
+                            ms_except,
+                            s1_found,
+                            s1_index,
+                            inst_tlbsrch,
+                            inst_tlbrd,
+                            inst_tlbwr,
+                            inst_tlbfill,
+                            inst_invtlb
                             };
     assign ms_except_collect = ms_except & {7{ms_valid}};
+
+    //exp18    
+    assign ms_csr_tlbrd = ((ms_csr_num == `CSR_ASID | ms_csr_num == `CSR_TLBEHI) & ms_csr_we | inst_tlbrd) && ms_valid;
 
 endmodule
