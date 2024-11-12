@@ -7,7 +7,7 @@ module tlb
     input  wire                      clk,
     // search port 0 (for fetch)
     input  wire [              18:0] s0_vppn,
-    input  wire                      s0_va_bit12,
+    input  wire                      s0_va_bit12, 
     input  wire [               9:0] s0_asid,
     output wire                      s0_found,
     output wire [$clog2(TLBNUM)-1:0] s0_index,
@@ -88,8 +88,8 @@ module tlb
     reg               tlb_d1     [TLBNUM-1:0];
     reg               tlb_v1     [TLBNUM-1:0];
 
-    wire [TLBNUM-1:0] match0;
-    wire [TLBNUM-1:0] match1;
+    wire [TLBNUM-1:0] match0; // 用于取值阶段的查找
+    wire [TLBNUM-1:0] match1; // 用于访存阶段的查找
 
     wire [TLBNUM-1:0] cond1;
     wire [TLBNUM-1:0] cond2;
@@ -104,11 +104,11 @@ module tlb
     genvar i;
     generate
         for (i = 0; i < TLBNUM; i = i + 1) begin
-            assign match0[i] = (s0_vppn[18:10] == tlb_vppn[i][18:10])
-                                &&(tlb_ps4MB[i] || s0_vppn[9:0] == tlb_vppn[i][9:0])
-                                &&((s0_asid == tlb_asid[i]) || tlb_g[i]);
-            assign match1[i] = (s1_vppn[18:10] == tlb_vppn[i][18:10])
-                                &&(tlb_ps4MB[i] || s1_vppn[9:0] == tlb_vppn[i][9:0])
+            assign match0[i] = (s0_vppn[18:9] == tlb_vppn[i][18:9])
+                                &&(tlb_ps4MB[i] || s0_vppn[8:0] == tlb_vppn[i][8:0])// 4KB页表项，vppn[8:0]要匹配
+                                &&((s0_asid == tlb_asid[i]) || tlb_g[i]);           // g=1（全局）时，asid可以不匹配
+            assign match1[i] = (s1_vppn[18:9] == tlb_vppn[i][18:9])
+                                &&(tlb_ps4MB[i] || s1_vppn[8:0] == tlb_vppn[i][8:0])
                                 &&((s1_asid == tlb_asid[i]) || tlb_g[i]);
         end    
     endgenerate
@@ -118,8 +118,8 @@ module tlb
             assign cond1[i] = ~tlb_g[i];
             assign cond2[i] = tlb_g[i];
             assign cond3[i] = s1_asid == tlb_asid[i];
-            assign cond4[i] = (s1_vppn[18:10] == tlb_vppn[i][18:10]) 
-                               && (tlb_ps4MB[i] || s1_vppn[9:0] == tlb_vppn[i][9:0]);
+            assign cond4[i] = (s1_vppn[18:9] == tlb_vppn[i][18:9]) 
+                               && (tlb_ps4MB[i] || s1_vppn[8:0] == tlb_vppn[i][8:0]);
         end
     endgenerate
 
