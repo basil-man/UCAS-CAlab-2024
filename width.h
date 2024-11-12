@@ -12,6 +12,7 @@
 //X:发送流水级
 //csr.v简称为C
 //AXI简称为A
+//TLB简称为T
 
 //bus width between stages
 `define F2D_WID 64:0
@@ -59,3 +60,12 @@
 `define A_PROT_WID 2:0
 `define A_STRB_WID 3:0
 `define A_RESP_WID 1:0
+
+//TLB related bus width in exp 18
+`define T_ASID_WID 9:0
+`define T_VPPN_WID 18:0
+`define T_PPN_WID  19:0
+`define T_IDX_WID  3:0
+`define T_PS_WID   5:0
+`define T_plv_WID  1:0
+`define T_MAT_WID  1:0

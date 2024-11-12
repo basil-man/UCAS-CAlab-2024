@@ -150,7 +150,15 @@ module IDreg(
     wire        inst_bl;
     wire        inst_beq;
     wire        inst_bne;
+
+    //tlb inst
     wire        inst_lu12i_w;
+    wire        inst_tlbsrch;
+    wire        inst_tlbrd  ;
+    wire        inst_tlbwr  ;
+    wire        inst_tlbfill;
+    wire        inst_invtlb ;
+    wire        inst_type_tlb;
     
     wire        need_ui5;
     wire        need_si12;
@@ -215,7 +223,8 @@ module IDreg(
                             inst_nor | inst_or | inst_ori | inst_pcaddu12i | inst_rdcntid | inst_rdcntvh_w |
                             inst_rdcntvl_w | inst_sll_w | inst_slli_w | inst_slt | inst_slti | inst_sltu | inst_sltui |
                             inst_sra_w | inst_srai_w | inst_srl_w | inst_srli_w | inst_st | inst_st_b | inst_st_h | inst_st_w |
-                            inst_sub_w | inst_syscall | inst_xor | inst_xori
+                            inst_sub_w | inst_syscall | inst_xor | inst_xori |
+                            inst_type_tlb
                             ); 
 
     assign branch_type = inst_b | inst_bl | inst_beq | inst_bne | inst_blt | inst_bge | inst_bltu | inst_bgeu | inst_jirl;
@@ -337,6 +346,15 @@ module IDreg(
      assign inst_rdcntvl_w  = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h0] & op_19_15_d[5'h00] & (rk == 5'h18) & (rj == 5'h00);
      assign inst_rdcntvh_w  = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h0] & op_19_15_d[5'h00] & (rk == 5'h19) & (rj == 5'h00);
      assign inst_rdcntid    = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h0] & op_19_15_d[5'h00] & (rk == 5'h18) & (rd == 5'h00);
+
+     //tlb inst
+    assign inst_tlbsrch = op_31_26_d[6'h01] & op_25_22_d[4'h9] & op_21_20_d[2'h0] & op_19_15_d[5'h10] & rk == 5'h0a;
+    assign inst_tlbrd   = op_31_26_d[6'h01] & op_25_22_d[4'h9] & op_21_20_d[2'h0] & op_19_15_d[5'h10] & rk == 5'h0b;
+    assign inst_tlbwr   = op_31_26_d[6'h01] & op_25_22_d[4'h9] & op_21_20_d[2'h0] & op_19_15_d[5'h10] & rk == 5'h0c;
+    assign inst_tlbfill = op_31_26_d[6'h01] & op_25_22_d[4'h9] & op_21_20_d[2'h0] & op_19_15_d[5'h10] & rk == 5'h0d;
+    assign inst_invtlb  = op_31_26_d[6'h01] & op_25_22_d[4'h9] & op_21_20_d[2'h0] & op_19_15_d[5'h13];
+
+    assign inst_type_tlb = inst_tlbsrch | inst_tlbrd | inst_tlbwr | inst_tlbfill | inst_invtlb;
 
      //oral code
      assign inst_add_w   = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h1] & op_19_15_d[5'h00];
