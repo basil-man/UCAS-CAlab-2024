@@ -7,7 +7,7 @@ module tlb
     input  wire                      clk,
     // search port 0 (for fetch)
     input  wire [              18:0] s0_vppn,
-    input  wire                      s0_va_bit12,
+    input  wire                      s0_va_bit12, 
     input  wire [               9:0] s0_asid,
     output wire                      s0_found,
     output wire [$clog2(TLBNUM)-1:0] s0_index,
@@ -88,8 +88,8 @@ module tlb
     reg               tlb_d1     [TLBNUM-1:0];
     reg               tlb_v1     [TLBNUM-1:0];
 
-    wire [TLBNUM-1:0] match0;
-    wire [TLBNUM-1:0] match1;
+    wire [TLBNUM-1:0] match0; // 用于取值阶段的查找
+    wire [TLBNUM-1:0] match1; // 用于访存阶段的查找
 
     wire [TLBNUM-1:0] cond1;
     wire [TLBNUM-1:0] cond2;
@@ -105,8 +105,8 @@ module tlb
     generate
         for (i = 0; i < TLBNUM; i = i + 1) begin
             assign match0[i] = (s0_vppn[18:10] == tlb_vppn[i][18:10])
-                                &&(tlb_ps4MB[i] || s0_vppn[9:0] == tlb_vppn[i][9:0])
-                                &&((s0_asid == tlb_asid[i]) || tlb_g[i]);
+                                &&(tlb_ps4MB[i] || s0_vppn[9:0] == tlb_vppn[i][9:0])// 4KB页表项，vppn[9:0]要匹配
+                                &&((s0_asid == tlb_asid[i]) || tlb_g[i]);           // g=1（全局）时，asid可以不匹配
             assign match1[i] = (s1_vppn[18:10] == tlb_vppn[i][18:10])
                                 &&(tlb_ps4MB[i] || s1_vppn[9:0] == tlb_vppn[i][9:0])
                                 &&((s1_asid == tlb_asid[i]) || tlb_g[i]);
@@ -150,16 +150,16 @@ module tlb
                     | {4{match1[ 8]}} & 4'd8  | {4{match1[ 9]}} & 4'd9  | {4{match1[10]}} & 4'd10 | {4{match1[11]}} & 4'd11
                     | {4{match1[12]}} & 4'd12 | {4{match1[13]}} & 4'd13 | {4{match1[14]}} & 4'd14 | {4{match1[15]}} & 4'd15;
 
-    assign s0_whichpage = (tlb_ps4MB[s0_index]) ? s0_vppn[8] : s0_va_bit12;
-    assign s0_ps        = (tlb_ps4MB[s0_index]) ? 6'd21 : 6'd12;
+    assign s0_whichpage = (tlb_ps4MB[s0_index]) ? s0_vppn[9] : s0_va_bit12;
+    assign s0_ps        = (tlb_ps4MB[s0_index]) ? 6'd22 : 6'd12;
     assign s0_ppn       = (s0_whichpage) ? tlb_ppn1[s0_index] : tlb_ppn0[s0_index];
     assign s0_plv       = (s0_whichpage) ? tlb_plv1[s0_index] : tlb_plv0[s0_index];
     assign s0_mat       = (s0_whichpage) ? tlb_mat1[s0_index] : tlb_mat0[s0_index];
     assign s0_d         = (s0_whichpage) ? tlb_d1  [s0_index] : tlb_d0  [s0_index];
     assign s0_v         = (s0_whichpage) ? tlb_v1  [s0_index] : tlb_v0  [s0_index];
 
-    assign s1_whichpage = (tlb_ps4MB[s1_index]) ? s1_vppn[8] : s1_va_bit12;
-    assign s1_ps        = (tlb_ps4MB[s1_index]) ? 6'd21 : 6'd12;
+    assign s1_whichpage = (tlb_ps4MB[s1_index]) ? s1_vppn[9] : s1_va_bit12;
+    assign s1_ps        = (tlb_ps4MB[s1_index]) ? 6'd22 : 6'd12;
     assign s1_ppn       = (s1_whichpage) ? tlb_ppn1[s1_index] : tlb_ppn0[s1_index];
     assign s1_plv       = (s1_whichpage) ? tlb_plv1[s1_index] : tlb_plv0[s1_index];
     assign s1_mat       = (s1_whichpage) ? tlb_mat1[s1_index] : tlb_mat0[s1_index];
@@ -169,7 +169,7 @@ module tlb
     // read port
     assign r_e    = tlb_e    [r_index];
     assign r_vppn = tlb_vppn [r_index];
-    assign r_ps   = tlb_ps4MB[r_index] ? 6'd21 : 6'd12;
+    assign r_ps   = tlb_ps4MB[r_index] ? 6'd22 : 6'd12;
     assign r_asid = tlb_asid [r_index];
     assign r_g    = tlb_g    [r_index];
     assign r_ppn0 = tlb_ppn0 [r_index];
@@ -188,7 +188,7 @@ module tlb
         if (we) begin
             tlb_e    [w_index] <= w_e;
             tlb_vppn [w_index] <= w_vppn;
-            tlb_ps4MB[w_index] <= (w_ps == 6'd21);
+            tlb_ps4MB[w_index] <= (w_ps == 6'd22);
             tlb_asid [w_index] <= w_asid;
             tlb_g    [w_index] <= w_g;
             tlb_ppn0 [w_index] <= w_ppn0;
