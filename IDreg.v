@@ -450,7 +450,7 @@ module IDreg(
     assign gr_we =  ~inst_st    & ~inst_beq &
                     ~inst_bne   & ~inst_b   &
                     ~inst_bge   & ~inst_bgeu&
-                    ~inst_blt   & ~inst_bltu& ~inst_syscall;
+                    ~inst_blt   & ~inst_bltu& ~inst_syscall & ~inst_type_tlb;
     assign ds_mem_en = inst_st & ds_valid;
     assign dest      = dst_is_r1 ? 5'd1 : dst_is_rj ? rj : rd;
      

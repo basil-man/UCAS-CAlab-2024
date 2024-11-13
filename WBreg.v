@@ -148,7 +148,7 @@ module WBreg(
     
     assign debug_wb_pc          = ws_pc;
     assign debug_wb_rf_wdata    = ws_rf_wdata;
-    assign debug_wb_rf_we       = {4{ws_rf_we & ws_valid & ~wb_ex}};
+    assign debug_wb_rf_we       = {4{ws_rf_we & ws_valid & ~wb_ex }};
     assign debug_wb_rf_wnum     = ws_rf_waddr;
 endmodule
 
