@@ -93,8 +93,8 @@ module WBreg(
             {ws_except,s1_found,s1_index,inst_tlbsrch,inst_tlbrd,inst_tlbwr,inst_tlbfill,inst_invtlb} <= ms_to_ws_bus;
             wb_vaddr <= vaddr;
             ws_csr_collect <= ms_to_ws_csr_collect;
-            ws_csr_we <=  ms_to_ws_bus[`CSR_WE];
-            ws_csr_num <= ms_to_ws_bus[`CSR_NUM];
+            ws_csr_we <=  ms_to_ws_csr_collect[`CSR_WE];
+            ws_csr_num <= ms_to_ws_csr_collect[`CSR_NUM];
         end
     end
     assign {ws_ale_except, ws_adef_except, ws_ine_except, ws_syscall_except,
