@@ -17,7 +17,7 @@ module MEMreg(
     input  wire        data_sram_data_ok,
     input  wire [31:0] data_sram_rdata,
     input  wire [4:0]  mem_inst_bus,
-    input  wire [7:0]  es_to_ms_bus,
+    input  wire [`E2M_WID]  es_to_ms_bus,
     output wire [`M2W_WID]  ms_to_ws_bus,
 
     input wire except_flush,
@@ -89,8 +89,8 @@ module MEMreg(
             {inst_ld_w,inst_ld_h,inst_ld_hu,inst_ld_b,inst_ld_bu} <= mem_inst_bus;
             {ms_csr_re,ms_wait_data_ok_r, ms_except,s1_found,s1_index,inst_tlbsrch,inst_tlbrd,inst_tlbwr,inst_tlbfill,inst_invtlb} <= es_to_ms_bus;
             ms_to_ws_csr_collect <= es_to_ms_csr_collect;
-            ms_csr_we <= es_to_ms_bus[`CSR_WE];
-            ms_csr_num <= es_to_ms_bus[`CSR_NUM];
+            ms_csr_we <= ms_except_collect[`CSR_WE];
+            ms_csr_num <= ms_except_collect[`CSR_NUM];
         end
     end
 
