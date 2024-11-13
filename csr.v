@@ -556,22 +556,22 @@ module csr(
                       | {32{csr_num == `CSR_ASID  }} & csr_asid_rvalue
                       | {32{csr_num == `CSR_TLBRENTRY}} & csr_tlbrentry_rvalue;
 
-        assign w_tlb_e    = ~csr_tlbidx_ne;
-        assign w_tlb_ps   =  csr_tlbidx_ps;
-        assign w_tlb_vppn =  csr_tlbehi_vppn;
-        assign w_tlb_asid =  csr_asid;
-        assign w_tlb_g    =  csr_tlbelo0_g & csr_tlbelo1_g;
+    assign w_e    = ~csr_tlbidx_ne;
+    assign w_ps   =  csr_tlbidx_ps;
+    assign w_vppn =  csr_tlbehi_vppn;
+    assign w_asid =  csr_asid;
+    assign w_g    =  csr_tlbelo0_g & csr_tlbelo1_g;
 
-        assign w_tlb_ppn0 = csr_tlbelo0_ppn[19:0];
-        assign w_tlb_plv0 = csr_tlbelo0_plv;
-        assign w_tlb_mat0 = csr_tlbelo0_mat;
-        assign w_tlb_d0   = csr_tlbelo0_d;
-        assign w_tlb_v0   = csr_tlbelo0_v;
+    assign w_ppn0 = csr_tlbelo0_ppn[19:0];
+    assign w_plv0 = csr_tlbelo0_plv;
+    assign w_mat0 = csr_tlbelo0_mat;
+    assign w_d0   = csr_tlbelo0_d;
+    assign w_v0   = csr_tlbelo0_v;
 
-        assign w_tlb_ppn1 = csr_tlbelo1_ppn[19:0];
-        assign w_tlb_plv1 = csr_tlbelo1_plv;
-        assign w_tlb_mat1 = csr_tlbelo1_mat;
-        assign w_tlb_d1   = csr_tlbelo1_d;
-        assign w_tlb_v1   = csr_tlbelo1_v;
+    assign w_ppn1 = csr_tlbelo1_ppn[19:0];
+    assign w_plv1 = csr_tlbelo1_plv;
+    assign w_mat1 = csr_tlbelo1_mat;
+    assign w_d1   = csr_tlbelo1_d;
+    assign w_v1   = csr_tlbelo1_v;
 
 endmodule
