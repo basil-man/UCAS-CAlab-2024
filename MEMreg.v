@@ -18,7 +18,7 @@ module MEMreg(
     input  wire [31:0] data_sram_rdata,
     input  wire [4:0]  mem_inst_bus,
     input  wire [7:0]  es_to_ms_bus,
-    output wire [6:0]  ms_to_ws_bus,
+    output wire [`M2W_WID]  ms_to_ws_bus,
 
     input wire except_flush,
     output reg [`E2M_EXCEPT_WID] ms_except,
