@@ -182,6 +182,7 @@ module mycpu_top(
     wire                     tlbrd_we;
     wire [`T_IDX_WID]        tlbsrch_hit_index;
 
+    wire [`T_IDX_WID]        r_index;
     wire                     r_e;
     wire [`T_PS_WID]         r_ps;
     wire [`T_VPPN_WID]       r_vppn;
@@ -199,6 +200,7 @@ module mycpu_top(
     wire                     r_d1;
     wire                     r_v1;
 
+    wire [`T_IDX_WID]        w_index;
     wire                     w_e;
     wire [`T_PS_WID]         w_ps;
     wire [`T_VPPN_WID]       w_vppn;
