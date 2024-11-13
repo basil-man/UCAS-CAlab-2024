@@ -164,6 +164,7 @@ module csr(
 
     // ASID
     wire [ 7:0] csr_asid_asidbits;
+    wire [31:0] csr_asid_rvalue;
 
     // TLBRENTRY
     reg  [25:0] csr_tlbrentry_pa;
