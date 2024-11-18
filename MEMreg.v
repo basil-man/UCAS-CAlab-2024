@@ -133,7 +133,7 @@ module MEMreg(
                             inst_tlbfill,
                             inst_invtlb
                             };
-    assign ms_except_collect = ms_except & {7{ms_valid}};
+    assign ms_except_collect = ms_except & {16{ms_valid}};
 
     //exp18    
     assign ms_csr_tlbrd = ((ms_csr_num == `CSR_ASID | ms_csr_num == `CSR_TLBEHI) & ms_csr_we | inst_tlbrd) && ms_valid;

@@ -15,10 +15,10 @@
 //TLB简称为T
 
 //bus width between stages
-`define F2D_WID 64:0
-`define D2E_WID 205:0
-`define E2M_WID 18:0
-`define M2W_WID 16:0
+`define F2D_WID 68:0
+`define D2E_WID 209:0
+`define E2M_WID 27:0
+`define M2W_WID 25:0
 
 //mem inst (ld/st) bus width
 `define D2E_MINST_WID 7:0
@@ -41,14 +41,14 @@
 `define W2C_ESUBCODE_WID 8:0
 
 //except related bus width
-`define E2M_EXCEPT_WID 6:0
+`define E2M_EXCEPT_WID 15:0
 
 //rdcnt related bus width
 `define D2E_RDCNT_WID 1:0
 
 //forward exception bus width
-`define E_EXCEPT_WID 6:0
-`define M_EXCEPT_WID 6:0
+`define E_EXCEPT_WID 15:0
+`define M_EXCEPT_WID 15:0
 
 //AXI related bus width
 `define A_ID_WID 3:0

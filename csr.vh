@@ -57,7 +57,12 @@
 // TLBRENTRY
 `define CSR_TLBRENTRY_PA    31:6
 
-`define ECODE_INT       6'h00
+`define ECODE_INT       6'h0
+`define ECODE_PIL       6'h1
+`define ECODE_PIS       6'h2
+`define ECODE_PIF       6'h3
+`define ECODE_PME       6'h4
+`define ECODE_PPI       6'h7 
 `define ECODE_ADE       6'h08   // ADEM: esubcode=1; ADEF: esubcode=0
 `define ECODE_ALE       6'h09   
 `define ECODE_SYS       6'h0B

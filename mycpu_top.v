@@ -218,6 +218,19 @@ module mycpu_top(
     wire                     w_d1;
     wire                     w_v1;
 
+    wire [31:0]              inst_va;
+    wire [31:0]              inst_pa;
+    wire [31:0]              data_va;
+    wire [31:0]              data_pa;
+
+    wire [31:0] csr_crmd_data;
+    wire [31:0] csr_dmw0_data;
+    wire [31:0] csr_dmw1_data;
+    wire [31:0] csr_asid_data;
+
+    wire inst_ex_TLBR,inst_ex_PIx,inst_ex_PPI,inst_ex_PME;
+    wire data_ex_TLBR,data_ex_PIx,data_ex_PPI,data_ex_PME;
+
     wire ms_csr_tlbrd,ws_csr_tlbrd;
     wire [`D2C_CSRC_WID] es_to_ms_csr_collect,ms_to_ws_csr_collect;
 
@@ -312,7 +325,15 @@ module mycpu_top(
         .ex_entry(ex_entry),
         .ertn_entry(ertn_flush ? ertn_entry : (debug_wb_pc + 4'h4)),//ugly trick to reuse ertn 
 
-        .axi_arid(arid)
+        .axi_arid(arid),
+
+        .inst_va(inst_va),
+        .inst_pa(inst_pa),
+
+        .ex_TLBR(inst_ex_TLBR),
+        .ex_PIx(inst_ex_PIx),
+        .ex_PPI(inst_ex_PIx),
+        .ex_PME(inst_ex_PME)
     );
 
     IDreg my_idReg(
@@ -393,7 +414,15 @@ module mycpu_top(
         .ws_csr_tlbrd(ws_csr_tlbrd),
 
         .ds_to_es_csr_collect(csr_collect),
-        .es_to_ms_csr_collect(es_to_ms_csr_collect)
+        .es_to_ms_csr_collect(es_to_ms_csr_collect),
+
+        .data_va(data_va),
+        .data_pa(data_pa),
+
+        .ex_TLBR(data_ex_TLBR),
+        .ex_PIx(data_ex_PIx),
+        .ex_PPI(data_ex_PPI),
+        .ex_PME(data_ex_PME)
     );
 
     MEMreg my_memReg(
@@ -529,7 +558,12 @@ module mycpu_top(
         .w_plv1      (w_plv1),
         .w_mat1      (w_mat1),
         .w_d1        (w_d1),
-        .w_v1        (w_v1)
+        .w_v1        (w_v1),
+
+        .csr_crmd_data(csr_crmd_data),
+        .csr_dmw0_data(csr_dmw0_data),
+        .csr_dmw1_data(csr_dmw1_data),
+        .csr_asid_data(csr_asid_data)
     );
 
     tlb my_tlb(
@@ -601,63 +635,66 @@ module mycpu_top(
     );
 
     MMU inst_MMU(
+        .MMU_mode(0),
         //va & pa
-        .va(),
-        .pa(),
-        .asid(),
+        .va(inst_va),
+        .pa(inst_pa),
 
         //tlb interface
-        .s_vppn(),
-        .s_va_bit12(),
-        .s_asid(),
-        .s_found(),
-        .s_ppn(),
-        .s_ps(),
-        .s_plv(),
-        .s_mat(),
-        .s_d(),
-        .s_v(),
+        .s_vppn(s0_vppn),
+        .s_va_bit12(s0_va_bit12),
+        .s_asid(s0_asid),
+        .s_found(s0_found),
+        .s_ppn(s0_ppn),
+        .s_ps(s0_ps),
+        .s_plv(s0_plv),
+        .s_mat(s0_mat),
+        .s_d(s0_d),
+        .s_v(s0_v),
 
         //from csr
-        .csr_crmd_data(),
-        .csr_dmw0_data(),
-        .csr_dmw1_data(),
+        .csr_crmd_data(csr_crmd_data),
+        .csr_dmw0_data(csr_dmw0_data),
+        .csr_dmw1_data(csr_dmw1_data),
+        .csr_asid_data(csr_asid_data),
 
         //exception  
-        .ex_TLBR(),
-        .ex_PIx(),
-        .ex_PPI(),
-        .ex_PME()
+        .ex_TLBR(inst_ex_TLBR),
+        .ex_PIx(inst_ex_PIx),
+        .ex_PPI(inst_ex_PIx),
+        .ex_PME(inst_ex_PME)
     );
 
     MMU data_MMU(
+        .MMU_mode(1),
         //va & pa
-        .va(),
-        .pa(),
-        .asid(),
+        .va(data_va),
+        .pa(data_pa),
 
         //tlb interface
-        .s_vppn(),
-        .s_va_bit12(),
-        .s_asid(),
-        .s_found(),
-        .s_ppn(),
-        .s_ps(),
-        .s_plv(),
-        .s_mat(),
-        .s_d(),
-        .s_v(),
+        .s_vppn(s1_vppn),
+        .s_va_bit12(s1_va_bit12),
+        .s_asid(s1_asid),
+        .s_found(s1_found),
+        .s_ppn(s1_ppn),
+        .s_ps(s1_ps),
+        .s_plv(s1_plv),
+        .s_mat(s1_mat),
+        .s_d(s1_d),
+        .s_v(s1_v),
 
         //from csr
-        .csr_crmd_data(),
-        .csr_dmw0_data(),
-        .csr_dmw1_data(),
+        .csr_crmd_data(csr_crmd_data),
+        .csr_dmw0_data(csr_dmw0_data),
+        .csr_dmw1_data(csr_dmw1_data),
+        .csr_asid_data(csr_asid_data),
 
         //exception  
-        .ex_TLBR(),
-        .ex_PIx(),
-        .ex_PPI(),
-        .ex_PME()
+        .ex_TLBR(data_ex_TLBR),
+        .ex_PIx(data_ex_PIx),
+        .ex_PPI(data_ex_PPI),
+        .ex_PME(data_ex_PME)
     );
+
 
 endmodule

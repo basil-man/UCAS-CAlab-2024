@@ -1,10 +1,10 @@
 `include "width.h"
 
 module MMU(
+    input wire MMU_mode,//0 for inst, 1 for data
     //va & pa
     input  wire [31:0] va,
     output wire [31:0] pa,
-    input  wire [ 9:0] asid,
 
     //tlb interface
     output wire [18:0] s_vppn,
@@ -22,7 +22,7 @@ module MMU(
     input  wire [31:0] csr_crmd_data,
     input  wire [31:0] csr_dmw0_data,
     input  wire [31:0] csr_dmw1_data,
-
+    input  wire [31:0] csr_asid_data,
     //exception  
     output wire        ex_TLBR,
     output wire        ex_PIx,
@@ -67,7 +67,7 @@ module MMU(
     assign tlb_map  =   ~dmw0_hit & ~dmw1_hit & map_mode;
 
     assign {s_vppn, s_va_bit12} = va[31:12];
-    assign s_asid  =   asid;
+    assign s_asid  =   csr_asid_data[9:0];
 
     assign tlb_pa   =  {32{s_ps == 6'd12}} & {s_ppn[19:0], va[11:0]} |
                        {32{s_ps == 6'd21}} & {s_ppn[19:9], va[20:0]};
@@ -82,6 +82,6 @@ module MMU(
     assign ex_TLBR = tlb_map & ~s_found;
     assign ex_PIx = tlb_map & s_v; // PIF | PIL | PIS according to mem_type
     assign ex_PPI = tlb_map & (csr_crmd_plv > s_plv);
-    assign ex_PME = tlb_map & ~s_d;
+    assign ex_PME = tlb_map & ~s_d & MMU_mode;
 
 endmodule

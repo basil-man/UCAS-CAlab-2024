@@ -203,11 +203,11 @@ module IDreg(
 
     wire inst_ld, inst_st;
     
-    wire [5:0] ds_except_collect;
+    wire [9:0] ds_except_collect;
     wire ds_ine_except;
     wire ds_syscall_except;
     wire ds_break_except;
-    reg ds_adef_except;
+    reg ds_adef_except, ds_tlbr_except, ds_pif_except, ds_ppi_except, ds_pme_except;
 
     wire br_stall;
     wire branch_type;
@@ -250,10 +250,10 @@ module IDreg(
     
     always @(posedge clk) begin
         if (~resetn) begin
-            {ds_adef_except, ds_inst, ds_pc} <= 65'b0;
+            {ds_adef_except, ds_tlbr_except, ds_pif_except, ds_ppi_except, ds_pme_except, ds_inst, ds_pc} <= 'b0;
         end
         if (fs_to_ds_valid & ds_allowin) begin
-            {ds_adef_except, ds_inst, ds_pc} <= fs_to_ds_bus;
+            {ds_adef_except, ds_tlbr_except, ds_pif_except, ds_ppi_except, ds_pme_except, ds_inst, ds_pc} <= fs_to_ds_bus;
         end
     end
     
@@ -506,17 +506,21 @@ module IDreg(
     assign csr_collect = {csr_re, csr_num, csr_we, csr_wmask, csr_wvalue};
     assign ds_except_collect =  {
                                 ds_adef_except,
+                                ds_tlbr_except, 
+                                ds_pif_except, 
+                                ds_ppi_except, 
+                                ds_pme_except,
                                 ds_ine_except,
                                 ds_syscall_except,
                                 ds_break_except,
                                 ds_int_except,
                                 inst_ertn
-                                } & {6{ds_valid}};
+                                } & {10{ds_valid}};
 
     assign ds_to_es_bus =   {
                             inst_rdcntvl_w, // 1 bit
                             inst_rdcntvh_w, // 1 bit
-                            ds_except_collect, // 6 bit
+                            ds_except_collect, // 10 bit
                             new_alu_op,
                             ds_res_from_mem,
                             ds_alu_src1,

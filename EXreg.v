@@ -44,7 +44,15 @@ module EXreg(
     input  wire               ws_csr_tlbrd,
 
     input  wire [`D2C_CSRC_WID] ds_to_es_csr_collect,
-    output reg  [`D2C_CSRC_WID] es_to_ms_csr_collect
+    output reg  [`D2C_CSRC_WID] es_to_ms_csr_collect,
+
+    //MMU
+    output wire [31:0] data_va,
+    input  wire [31:0] data_pa,
+    input  wire        ex_TLBR,//ex is exception rather than execute
+    input  wire        ex_PIx,
+    input  wire        ex_PPI,
+    input  wire        ex_PME
 );
     //debug signalse
     wire bus_we;
@@ -91,7 +99,7 @@ module EXreg(
     wire [31:0] st_wdata;
     
     reg csr_re;
-    reg [5:0] from_ds_except;
+    reg [9:0] from_ds_except;
     
     wire es_ale_except;
     reg [31:0] csr_rvalue;
@@ -124,10 +132,10 @@ module EXreg(
         if (~resetn) begin
             {tmp, from_ds_except, extend_es_alu_op, es_res_from_mem, es_alu_src1, es_alu_src2,
             es_mem_en, es_rf_we, es_rf_waddr, es_rkd_value, es_pc, csr_rvalue, csr_re,
-            es_rd,inst_tlbsrch,inst_tlbrd,inst_tlbwr,inst_tlbfill,inst_invtlb} <= 206'b0;
-            {inst_st_w,inst_st_h,inst_st_b} <= 3'b000;
-            es_mem_inst_bus <= 5'd0;
-            {inst_rdcntvl,inst_rdcntvh} <= 2'b00;
+            es_rd,inst_tlbsrch,inst_tlbrd,inst_tlbwr,inst_tlbfill,inst_invtlb} <= 'b0;
+            {inst_st_w,inst_st_h,inst_st_b} <= 'b0;
+            es_mem_inst_bus <= 'b0;
+            {inst_rdcntvl,inst_rdcntvh} <= 'b0;
             es_to_ms_csr_collect <= 'b0;
         end else if (ds_to_es_valid & es_allowin) begin
             {tmp, from_ds_except, extend_es_alu_op, es_res_from_mem, es_alu_src1, es_alu_src2,
@@ -247,7 +255,9 @@ module EXreg(
      assign es_ale_except = ((|es_alu_result[1:0]) & (inst_st_w | inst_ld_w)|
                          es_alu_result[0] & (inst_st_h | inst_ld_hu | inst_ld_h)) & es_valid;
 
-    assign es_except_collect = {es_ale_except, from_ds_except} & {7{es_valid}};
+    wire ex_PIL = ex_PIx & (inst_ld_w | inst_ld_h | inst_ld_hu | inst_ld_b | inst_ld_bu);
+    wire ex_PIS = ex_PIx & (inst_st_w | inst_st_h | inst_st_b);
+    assign es_except_collect = {es_ale_except, from_ds_except, ex_TLBR, ex_PIL, ex_PIS, ex_PPI, ex_PME} & {16{es_valid}};
 
     alu u_alu (
         .alu_op    (es_alu_op),
@@ -294,13 +304,15 @@ module EXreg(
     assign data_sram_req    = (es_res_from_mem || es_mem_en) & es_valid & ~flush_by_former_except & es_mem_req & ms_allowin;
     assign data_sram_wstrb  = mem_we & {4{es_valid & ~|ms_except & ~|es_except_collect & ~except_flush & ~flush_by_former_except}};
     assign data_sram_wr     = (|data_sram_wstrb) & es_valid & ~es_ex;
-    assign data_sram_addr   = es_alu_result;
+    assign data_sram_addr   = data_pa;
     assign data_sram_wdata  = st_wdata;
     assign data_sram_size   = ({2{inst_st_w|inst_ld_w}} & 2'b10) | ({2{inst_st_h | inst_ld_h | inst_ld_hu}} & 2'b01) | ({2{inst_st_b}} & 2'b00) ;
     assign bus_we           = es_rf_we & es_valid;
     assign bus_es_res_from_mem = es_res_from_mem & es_valid;
     assign es_mem_req       = (es_res_from_mem | (|data_sram_wstrb));
 
+    //MMU
+    assign data_va = es_alu_result;
 
     assign es_to_ms_bus =   {
                             csr_re,

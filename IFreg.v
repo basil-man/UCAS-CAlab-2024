@@ -26,7 +26,15 @@ module IFreg(
     input  wire [31:0]  ex_entry,
     input  wire [31:0]  ertn_entry,
 
-    input  wire [`A_ID_WID] axi_arid
+    input  wire [`A_ID_WID] axi_arid,
+
+    //MMU
+    output wire [31:0]  inst_va,
+    input  wire [31:0]  inst_pa,
+    input  wire         ex_TLBR,//ex is exception rather than execute
+    input  wire         ex_PIx,
+    input  wire         ex_PPI,
+    input  wire         ex_PME
 );
 
     reg         fs_valid;
@@ -64,6 +72,12 @@ module IFreg(
     reg [2:0] inst_cancel_num;
     wire inst_sram_req_send;
     // reg inst_sram_addr_ok_r;
+
+    // MMU execptions
+    wire tlbr_except=ex_TLBR;
+    wire pif_except=ex_PIx;
+    wire ppi_except=ex_PPI;
+    wire pme_except=ex_PME;
 
     assign inst_sram_size = 2'b10;
 
@@ -124,7 +138,7 @@ module IFreg(
     assign inst_sram_req     = fs_allowin & resetn & ~pf_cancel & ~br_stall;
     assign inst_sram_wr     = |inst_sram_wstrb;
     assign inst_sram_wstrb   = 4'b0;
-    assign inst_sram_addr   = nextpc;
+    assign inst_sram_addr   = inst_pa;
     assign inst_sram_wdata  = 32'b0;
 
     assign fs_cancel = wb_flush | br_taken ;
@@ -171,7 +185,7 @@ module IFreg(
     assign nextpc   =   wb_ex_r ? ex_entry_r: wb_ex ? ex_entry:
                         ertn_flush_r ? ertn_entry_r : ertn_flush ? ertn_entry:
                         br_taken_r ? br_target_r : br_taken ? br_target : seq_pc;
-    
+    assign inst_va = nextpc;
     always @(posedge clk) begin
         if (~resetn) begin
             fs_pc <= 32'h1bfffffc;
@@ -179,11 +193,14 @@ module IFreg(
             fs_pc <= nextpc;
         end
     end
-    
 
     assign fs_inst      = (fs_inst_buf_valid | inst_cancel | ~inst_sram_data_ok) ? fs_inst_buf : inst_sram_rdata;
     assign fs_to_ds_bus =   {
                             adef_except,
+                            tlbr_except,
+                            pif_except,
+                            ppi_except,
+                            pme_except,
                             fs_inst,
                             fs_pc
                             };

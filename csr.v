@@ -80,8 +80,7 @@ module csr(
     output wire [31:0]              csr_crmd_data,
     output wire [31:0]              csr_dmw0_data,
     output wire [31:0]              csr_dmw1_data,
-    output wire [31:0]              csr_asid_data,
-
+    output wire [31:0]              csr_asid_data
 );
     wire [ 7: 0] hw_int_in;
     wire         ipi_int_in;
@@ -541,6 +540,7 @@ module csr(
     assign csr_tid_data   = csr_tid_tid;
     assign csr_tcfg_data  = {csr_tcfg_initval, csr_tcfg_periodic, csr_tcfg_en};
     assign csr_ticlr_data = {31'b0, csr_ticlr_clr};
+    assign csr_asid_data  = csr_asid_rvalue;
     assign csr_rvalue = {32{csr_num == `CSR_CRMD  }} & csr_crmd_data
                       | {32{csr_num == `CSR_PRMD  }} & csr_prmd_data
                       | {32{csr_num == `CSR_ECFG  }} & csr_ecfg_data

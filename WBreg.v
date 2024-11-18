@@ -49,10 +49,11 @@ module WBreg(
     reg  [4 :0] ws_rf_waddr;
     reg         ws_rf_we;
 
-    reg  [6:0]  ws_except;
+    reg  [10:0]  ws_except;
     wire        ws_ertn_except;
     wire        ws_adef_except;
     wire        ws_ale_except;
+    wire        ws_tlbr_except, ws_pif_except, ws_ppi_except, ws_pme_except, ws_data_tlbr, ws_data_pil, ws_data_pis, ws_data_ppi, ws_data_pme;
     wire        ws_syscall_except;
     wire        ws_break_except;
     wire        ws_ine_except;
@@ -97,19 +98,28 @@ module WBreg(
             ws_csr_num <= ms_to_ws_csr_collect[`CSR_NUM];
         end
     end
-    assign {ws_ale_except, ws_adef_except, ws_ine_except, ws_syscall_except,
-            ws_break_except, ws_int_except, ws_ertn_except} = ws_except;
+    assign {ws_ale_except, ws_adef_except, ws_tlbr_except, ws_pif_except, ws_ppi_except, ws_pme_except, ws_ine_except, ws_syscall_except,
+            ws_break_except, ws_int_except, ws_ertn_except, ws_data_tlbr, ws_data_pil, ws_data_pis, ws_data_ppi, ws_data_pme} = ws_except;
 
 
     assign ertn_flush = ws_ertn_except & ws_valid;
-    assign wb_ex = (ws_ale_except | ws_adef_except | ws_ine_except | ws_syscall_except | ws_break_except | ws_int_except) & ws_valid;
+    assign wb_ex = (ws_ale_except | ws_adef_except | ws_tlbr_except | ws_pif_except | ws_ppi_except | ws_pme_except | ws_ine_except | ws_syscall_except | ws_break_except | ws_int_except) & ws_valid;
     //assign wb_ex = ws_syscall_except & ws_valid;
     assign wb_ecode =   ws_int_except ? `ECODE_INT:
                         ws_adef_except? `ECODE_ADE:
                         ws_ale_except? `ECODE_ALE: 
+                        ws_tlbr_except? `ECODE_TLBR:
+                        ws_pif_except? `ECODE_PIF:
+                        ws_ppi_except? `ECODE_PPI:
+                        ws_pme_except? `ECODE_PME:
                         ws_syscall_except? `ECODE_SYS:
                         ws_break_except? `ECODE_BRK:
                         ws_ine_except? `ECODE_INE:
+                        ws_data_tlbr? `ECODE_TLBR:
+                        ws_data_pil? `ECODE_PIL:
+                        ws_data_pis? `ECODE_PIS:
+                        ws_data_ppi? `ECODE_PPI:
+                        ws_data_pme? `ECODE_PME:
                         6'b0;
     //assign wb_ecode = ws_syscall_except ? `ECODE_SYS : 6'b0;
     assign wb_esubcode = 9'b0;
