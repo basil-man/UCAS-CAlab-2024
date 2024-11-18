@@ -176,6 +176,6 @@ module random_gen(
         end else begin
             num <= num + 1;// a LFSR may be better
         end
-    end
+    end 
 
 endmodule
