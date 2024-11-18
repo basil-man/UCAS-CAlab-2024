@@ -599,4 +599,65 @@ module mycpu_top(
         .r_d1       (r_d1),
         .r_v1       (r_v1)
     );
+
+    MMU inst_MMU(
+        //va & pa
+        .va(),
+        .pa(),
+        .asid(),
+
+        //tlb interface
+        .s_vppn(),
+        .s_va_bit12(),
+        .s_asid(),
+        .s_found(),
+        .s_ppn(),
+        .s_ps(),
+        .s_plv(),
+        .s_mat(),
+        .s_d(),
+        .s_v(),
+
+        //from csr
+        .csr_crmd_data(),
+        .csr_dmw0_data(),
+        .csr_dmw1_data(),
+
+        //exception  
+        .ex_TLBR(),
+        .ex_PIx(),
+        .ex_PPI(),
+        .ex_PME()
+    );
+
+    MMU data_MMU(
+        //va & pa
+        .va(),
+        .pa(),
+        .asid(),
+
+        //tlb interface
+        .s_vppn(),
+        .s_va_bit12(),
+        .s_asid(),
+        .s_found(),
+        .s_ppn(),
+        .s_ps(),
+        .s_plv(),
+        .s_mat(),
+        .s_d(),
+        .s_v(),
+
+        //from csr
+        .csr_crmd_data(),
+        .csr_dmw0_data(),
+        .csr_dmw1_data(),
+
+        //exception  
+        .ex_TLBR(),
+        .ex_PIx(),
+        .ex_PPI(),
+        .ex_PME()
+    );
+
 endmodule

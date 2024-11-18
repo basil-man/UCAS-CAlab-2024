@@ -74,12 +74,19 @@ module csr(
     output wire [`T_plv_WID]        w_plv1,
     output wire [`T_MAT_WID]        w_mat1,
     output wire                     w_d1,
-    output wire                     w_v1
+    output wire                     w_v1,
+
+    // to MMU
+    output wire [31:0]              csr_crmd_data,
+    output wire [31:0]              csr_dmw0_data,
+    output wire [31:0]              csr_dmw1_data,
+    output wire [31:0]              csr_asid_data,
+
 );
     wire [ 7: 0] hw_int_in;
     wire         ipi_int_in;
     // 当前模式信息
-    wire [31: 0] csr_crmd_data;
+    //wire [31: 0] csr_crmd_data;
     reg  [ 1: 0] csr_crmd_plv;      //CRMD的PLV域，当前特权等级
     reg          csr_crmd_ie;       //CRMD的全局中断使能信号
     reg          csr_crmd_da;       //CRMD的直接地址翻译使能
