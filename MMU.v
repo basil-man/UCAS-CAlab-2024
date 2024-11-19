@@ -67,7 +67,8 @@ module MMU(
     //tlb mapping
     assign tlb_map  =   ~dmw0_hit & ~dmw1_hit & map_mode;
 
-    assign {s_vppn, s_va_bit12} = va[31:12];
+    assign s_vppn = va[31:13];
+    assign s_va_bit12 = va[12];
     assign s_asid  =   MMU_mode ? input_asid : csr_asid_data[9:0];
 
     assign tlb_pa   =  {32{s_ps == 6'd12}} & {s_ppn[19:0], va[11:0]} |
@@ -81,7 +82,7 @@ module MMU(
     
     //exception
     assign ex_TLBR = tlb_map & ~s_found;
-    assign ex_PIx = tlb_map & s_v; // PIF | PIL | PIS according to mem_type
+    assign ex_PIx = tlb_map & ~s_v; // PIF | PIL | PIS according to mem_type
     assign ex_PPI = tlb_map & (csr_crmd_plv > s_plv);
     assign ex_PME = tlb_map & ~s_d & MMU_mode;
 

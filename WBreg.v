@@ -103,7 +103,8 @@ module WBreg(
 
 
     assign ertn_flush = ws_ertn_except & ws_valid;
-    assign wb_ex = (ws_ale_except | ws_adef_except | ws_tlbr_except | ws_pif_except | ws_ppi_except | ws_pme_except | ws_ine_except | ws_syscall_except | ws_break_except | ws_int_except) & ws_valid;
+    assign wb_ex = (ws_ale_except | ws_adef_except | ws_tlbr_except | ws_pif_except | ws_ppi_except | ws_pme_except | ws_ine_except |
+         ws_syscall_except | ws_break_except | ws_int_except | ws_data_tlbr | ws_data_pil | ws_data_pis | ws_data_ppi | ws_data_pme) & ws_valid;
     //assign wb_ex = ws_syscall_except & ws_valid;
     assign wb_ecode =   ws_int_except ? `ECODE_INT:
                         ws_adef_except? `ECODE_ADE:

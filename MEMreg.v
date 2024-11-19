@@ -76,9 +76,9 @@ module MEMreg(
     always @(posedge clk) begin
         if (~resetn) begin
             ms_pc <= 32'b0;
-            {ms_res_from_mem, ms_rf_we, ms_rf_waddr, ms_alu_result} <= 39'b0;
-            {inst_ld_w,inst_ld_h,inst_ld_hu,inst_ld_b,inst_ld_bu} <= 5'd0;
-            {ms_csr_re,ms_wait_data_ok_r, ms_except,s1_found,s1_index,inst_tlbsrch,inst_tlbrd,inst_tlbwr,inst_tlbfill,inst_invtlb} <= 19'b0;
+            {ms_res_from_mem, ms_rf_we, ms_rf_waddr, ms_alu_result} <= 'b0;
+            {inst_ld_w,inst_ld_h,inst_ld_hu,inst_ld_b,inst_ld_bu} <= 'd0;
+            {ms_csr_re,ms_wait_data_ok_r, ms_except,s1_found,s1_index,inst_tlbsrch,inst_tlbrd,inst_tlbwr,inst_tlbfill,inst_invtlb} <= 'b0;
             ms_to_ws_csr_collect <= 'b0;
             ms_csr_we <= 1'b0;
             ms_csr_num <= 14'b0;

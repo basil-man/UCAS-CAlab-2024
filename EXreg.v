@@ -258,7 +258,9 @@ module EXreg(
 
     wire ex_PIL = ex_PIx & (inst_ld_w | inst_ld_h | inst_ld_hu | inst_ld_b | inst_ld_bu);
     wire ex_PIS = ex_PIx & (inst_st_w | inst_st_h | inst_st_b);
-    assign es_except_collect = {es_ale_except, from_ds_except, ex_TLBR, ex_PIL, ex_PIS, ex_PPI, ex_PME} & {16{es_valid}};
+    assign es_except_collect = {es_ale_except, from_ds_except, ex_TLBR & (es_res_from_mem || es_mem_en), ex_PIL & (es_res_from_mem || es_mem_en),
+                                ex_PIS & (es_res_from_mem || es_mem_en), ex_PPI & (es_res_from_mem || es_mem_en), 
+                                ex_PME & (es_res_from_mem || es_mem_en)} & {16{es_valid}};
 
     alu u_alu (
         .alu_op    (es_alu_op),
@@ -302,7 +304,7 @@ module EXreg(
     assign EX_result = mul_insts ? mul_result : div_mod_insts ? div_mod_result : es_alu_result;
     wire [31:0] ex_to_ms_result =inst_rdcntvl ? cnt[31:0] : inst_rdcntvh ? cnt[63:32] : (csr_re ? csr_rvalue : EX_result);
 
-    assign data_sram_req    = (es_res_from_mem || es_mem_en) & es_valid & ~flush_by_former_except & es_mem_req & ms_allowin;
+    assign data_sram_req    = (es_res_from_mem || es_mem_en) & es_valid & ~flush_by_former_except & es_mem_req & ms_allowin & ~(es_ale_except|ex_PIL|ex_PIS|ex_TLBR);
     assign data_sram_wstrb  = mem_we & {4{es_valid & ~|ms_except & ~|es_except_collect & ~except_flush & ~flush_by_former_except}};
     assign data_sram_wr     = (|data_sram_wstrb) & es_valid & ~es_ex;
     assign data_sram_addr   = data_pa;
@@ -313,9 +315,9 @@ module EXreg(
     assign es_mem_req       = (es_res_from_mem | (|data_sram_wstrb));
 
     //MMU
-    assign data_va = inst_tlbsrch ? {csr_tlbehi_vppn, 13'b0} :
-                     (inst_invtlb & (ex_rj!=5'b0)) ? es_rkd_value : es_alu_result;
-    assign es_asid = (inst_invtlb & (ex_rj!=5'b0)) ? es_alu_src1[9:0] : csr_asid_asid;
+    assign data_va = data_sram_req ? (inst_tlbsrch ? {csr_tlbehi_vppn, 13'b0} :
+                     (inst_invtlb & (es_rj!=5'b0)) ? es_rkd_value : es_alu_result): 32'b0;
+    assign es_asid = (inst_invtlb & (es_rj!=5'b0)) ? es_alu_src1[9:0] : csr_asid_asid;
     assign es_to_ms_bus =   {
                             csr_re,
                             es_mem_req,

@@ -639,7 +639,7 @@ module mycpu_top(
 
     MMU inst_MMU(
         .MMU_mode(0),
-        .input_asid(),
+        .input_asid(es_asid),
         //va & pa
         .va(inst_va),
         .pa(inst_pa),
