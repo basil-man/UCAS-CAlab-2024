@@ -252,7 +252,7 @@ module EXreg(
 
     // add in exp12: exception part
     
-     assign es_ale_except = ((|es_alu_result[1:0]) & (inst_st_w | inst_ld_w)|
+    assign es_ale_except = ((|es_alu_result[1:0]) & (inst_st_w | inst_ld_w)|
                          es_alu_result[0] & (inst_st_h | inst_ld_hu | inst_ld_h)) & es_valid;
 
     wire ex_PIL = ex_PIx & (inst_ld_w | inst_ld_h | inst_ld_hu | inst_ld_b | inst_ld_bu);
@@ -312,7 +312,8 @@ module EXreg(
     assign es_mem_req       = (es_res_from_mem | (|data_sram_wstrb));
 
     //MMU
-    assign data_va = es_alu_result;
+    assign data_va = inst_tlbsrch ? {csr_tlbehi_vppn, 13'b0} :
+                     inst_invtlb ? es_rkd_value : es_alu_result;
 
     assign es_to_ms_bus =   {
                             csr_re,
