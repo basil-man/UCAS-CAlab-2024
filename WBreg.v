@@ -49,7 +49,7 @@ module WBreg(
     reg  [4 :0] ws_rf_waddr;
     reg         ws_rf_we;
 
-    reg  [10:0]  ws_except;
+    reg  [15:0]  ws_except;
     wire        ws_ertn_except;
     wire        ws_adef_except;
     wire        ws_ale_except;

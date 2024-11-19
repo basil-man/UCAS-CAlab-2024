@@ -71,3 +71,8 @@
 `define ECODE_TLBR      6'h3F
 `define ESUBCODE_ADEF   9'b00
 
+`define CSR_DMW_PLV0  0
+`define CSR_DMW_PLV3  3
+`define CSR_DMW_MAT   5:4
+`define CSR_DMW_PSEG  27:25
+`define CSR_DMW_VSEG  31:29

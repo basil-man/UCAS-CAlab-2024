@@ -1,13 +1,5 @@
 `include "width.h"
 `include "csr.vh"
-`define ECODE_INT       6'h00
-`define ECODE_ADE       6'h08   // ADEM: esubcode=1; ADEF: esubcode=0
-`define ECODE_ALE       6'h09   
-`define ECODE_SYS       6'h0B
-`define ECODE_BRK       6'h0C   
-`define ECODE_INE       6'h0D
-`define ECODE_TLBR      6'h3F
-`define ESUBCODE_ADEF   9'b00
 
 module csr(
     input  wire          clk       ,
@@ -175,6 +167,19 @@ module csr(
     // TLBRENTRY
     reg  [25:0] csr_tlbrentry_pa;
     wire [31:0] csr_tlbrentry_rvalue;
+
+    //DMW0
+    reg         csr_dmw0_plv0;
+    reg         csr_dmw0_plv3;
+    reg  [ 1:0] csr_dmw0_mat ;
+    reg  [ 2:0] csr_dmw0_pseg;
+    reg  [ 2:0] csr_dmw0_vseg;
+
+    reg         csr_dmw1_plv0;
+    reg         csr_dmw1_plv3;
+    reg  [ 1:0] csr_dmw1_mat ;
+    reg  [ 2:0] csr_dmw1_pseg;
+    reg  [ 2:0] csr_dmw1_vseg;
 
     assign has_int = (|(csr_estat_is[11:0] & csr_ecfg_lie[11:0])) & csr_crmd_ie;
     assign ex_entry = csr_eentry_data;
@@ -528,8 +533,55 @@ module csr(
     assign csr_asid_rvalue = {8'b0, csr_asid_asidbits, 6'b0, csr_asid};
     assign csr_tlbrentry_rvalue = {csr_tlbrentry_pa, 6'b0};
 
+    // DMW0-1
+    always @(posedge clk ) begin
+        if(reset) begin
+            csr_dmw0_plv0 <= 1'b0;
+            csr_dmw0_plv3 <= 1'b0;
+            csr_dmw0_mat  <= 2'b0;
+            csr_dmw0_pseg <= 3'b0;
+            csr_dmw0_vseg <= 3'b0;
+        end
+        else if(csr_we && csr_num == `CSR_DMW0)begin
+            csr_dmw0_plv0  <= csr_wmask[`CSR_DMW_PLV0] & csr_wvalue[`CSR_DMW_PLV0]
+                        | ~csr_wmask[`CSR_DMW_PLV0] & csr_dmw0_plv0; 
+            csr_dmw0_plv3  <= csr_wmask[`CSR_DMW_PLV3] & csr_wvalue[`CSR_DMW_PLV3]
+                        | ~csr_wmask[`CSR_DMW_PLV3] & csr_dmw0_plv3; 
+            csr_dmw0_mat   <= csr_wmask[`CSR_DMW_MAT] & csr_wvalue[`CSR_DMW_MAT]
+                        | ~csr_wmask[`CSR_DMW_MAT] & csr_dmw0_mat; 
+            csr_dmw0_pseg  <= csr_wmask[`CSR_DMW_PSEG] & csr_wvalue[`CSR_DMW_PSEG]
+                        | ~csr_wmask[`CSR_DMW_PSEG] & csr_dmw0_pseg;
+            csr_dmw0_vseg  <= csr_wmask[`CSR_DMW_VSEG] & csr_wvalue[`CSR_DMW_VSEG]
+                        | ~csr_wmask[`CSR_DMW_VSEG] & csr_dmw0_vseg;   
+        end
+    end
+
+    always @(posedge clk ) begin
+        if(reset) begin
+            csr_dmw1_plv0 <= 1'b0;
+            csr_dmw1_plv3 <= 1'b0;
+            csr_dmw1_mat  <= 2'b0;
+            csr_dmw1_pseg <= 3'b0;
+            csr_dmw1_vseg <= 3'b0;
+        end
+        else if(csr_we && csr_num == `CSR_DMW1)begin
+            csr_dmw1_plv0  <= csr_wmask[`CSR_DMW_PLV0] & csr_wvalue[`CSR_DMW_PLV0]
+                        | ~csr_wmask[`CSR_DMW_PLV0] & csr_dmw1_plv0; 
+            csr_dmw1_plv3  <= csr_wmask[`CSR_DMW_PLV3] & csr_wvalue[`CSR_DMW_PLV3]
+                        | ~csr_wmask[`CSR_DMW_PLV3] & csr_dmw1_plv3; 
+            csr_dmw1_mat   <= csr_wmask[`CSR_DMW_MAT] & csr_wvalue[`CSR_DMW_MAT]
+                        | ~csr_wmask[`CSR_DMW_MAT] & csr_dmw1_mat; 
+            csr_dmw1_pseg  <= csr_wmask[`CSR_DMW_PSEG] & csr_wvalue[`CSR_DMW_PSEG]
+                        | ~csr_wmask[`CSR_DMW_PSEG] & csr_dmw1_pseg;
+            csr_dmw1_vseg  <= csr_wmask[`CSR_DMW_VSEG] & csr_wvalue[`CSR_DMW_VSEG]
+                        | ~csr_wmask[`CSR_DMW_VSEG] & csr_dmw1_vseg;   
+        end
+    end
+
 
     // CSR 的读出逻辑
+    assign csr_dmw0_data = {csr_dmw0_vseg, 1'b0, csr_dmw0_pseg, 19'b0, csr_dmw0_mat, csr_dmw0_plv3, 2'b0, csr_dmw0_plv0};
+    assign csr_dmw1_data = {csr_dmw1_vseg, 1'b0, csr_dmw1_pseg, 19'b0, csr_dmw1_mat, csr_dmw1_plv3, 2'b0, csr_dmw1_plv0};
     assign csr_crmd_data  = {23'b0, csr_crmd_datm, csr_crmd_datf, csr_crmd_pg, 
                             csr_crmd_da, csr_crmd_ie, csr_crmd_plv};
     assign csr_prmd_data  = {29'b0, csr_prmd_pie, csr_prmd_pplv};
