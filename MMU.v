@@ -1,7 +1,8 @@
 `include "width.h"
 
 module MMU(
-    input wire MMU_mode,//0 for inst, 1 for data
+    input wire         MMU_mode,//0 for inst, 1 for data
+    input wire [9:0]   input_asid,
     //va & pa
     input  wire [31:0] va,
     output wire [31:0] pa,
@@ -67,7 +68,7 @@ module MMU(
     assign tlb_map  =   ~dmw0_hit & ~dmw1_hit & map_mode;
 
     assign {s_vppn, s_va_bit12} = va[31:12];
-    assign s_asid  =   csr_asid_data[9:0];
+    assign s_asid  =   MMU_mode ? input_asid : csr_asid_data[9:0];
 
     assign tlb_pa   =  {32{s_ps == 6'd12}} & {s_ppn[19:0], va[11:0]} |
                        {32{s_ps == 6'd21}} & {s_ppn[19:9], va[20:0]};

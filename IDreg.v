@@ -537,7 +537,8 @@ module IDreg(
                             inst_tlbrd,
                             inst_tlbwr,
                             inst_tlbfill,
-                            inst_invtlb //5 bit total
+                            inst_invtlb, //5 bit total
+                            rj
                             };
 
     assign mem_inst_bus =   {

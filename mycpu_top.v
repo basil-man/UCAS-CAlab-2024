@@ -223,6 +223,8 @@ module mycpu_top(
     wire [31:0]              data_va;
     wire [31:0]              data_pa;
 
+    wire [9:0]               es_asid;
+
     wire [31:0] csr_crmd_data;
     wire [31:0] csr_dmw0_data;
     wire [31:0] csr_dmw1_data;
@@ -416,6 +418,7 @@ module mycpu_top(
         .ds_to_es_csr_collect(csr_collect),
         .es_to_ms_csr_collect(es_to_ms_csr_collect),
 
+        .es_asid(es_asid),
         .data_va(data_va),
         .data_pa(data_pa),
 
@@ -636,6 +639,7 @@ module mycpu_top(
 
     MMU inst_MMU(
         .MMU_mode(0),
+        .input_asid(),
         //va & pa
         .va(inst_va),
         .pa(inst_pa),
@@ -667,6 +671,7 @@ module mycpu_top(
 
     MMU data_MMU(
         .MMU_mode(1),
+        .input_asid(es_asid),
         //va & pa
         .va(data_va),
         .pa(data_pa),
