@@ -53,8 +53,11 @@ module EXreg(
     input  wire        ex_TLBR,//ex is exception rather than execute
     input  wire        ex_PIx,
     input  wire        ex_PPI,
-    input  wire        ex_PME
+    input  wire        ex_PME,
+    output wire [18:0] s1_vppn,
+    output wire        s1_va_bit12
 );
+
     //debug signalse
     wire bus_we;
     wire bus_es_res_from_mem;
@@ -315,6 +318,7 @@ module EXreg(
     assign es_mem_req       = (es_res_from_mem | (|data_sram_wstrb));
 
     //MMU
+    assign {s1_vppn, s1_va_bit12} = data_va[31:12];
     assign data_va = inst_tlbsrch ? {csr_tlbehi_vppn, 13'b0} :
                      (inst_invtlb & (es_rj!=5'b0)) ? es_rkd_value : es_alu_result;
     assign es_asid = (inst_invtlb & (es_rj!=5'b0)) ? es_alu_src1[9:0] : csr_asid_asid;
@@ -334,7 +338,7 @@ module EXreg(
     assign es_rf_collect =  {
                             csr_re,
                             bus_es_res_from_mem,
-                            bus_we,
+                            bus_we,//ds_to_es_csr_collect[64] is csr_we
                             es_rf_waddr,
                             ex_to_ms_result
                             };

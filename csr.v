@@ -182,7 +182,7 @@ module csr(
     reg  [ 2:0] csr_dmw1_vseg;
 
     assign has_int = (|(csr_estat_is[11:0] & csr_ecfg_lie[11:0])) & csr_crmd_ie;
-    assign ex_entry = csr_eentry_data;
+    assign ex_entry = (wb_ecode==`ECODE_TLBR)? csr_tlbrentry_rvalue : csr_eentry_data;
     assign ertn_entry = csr_era_data;
 
     // CRMD的PLV、IE域
@@ -217,18 +217,6 @@ module csr(
             csr_crmd_datf <= 2'b00;
             csr_crmd_datm <= 2'b00;
         end
-        else if (wb_ex && wb_ecode == `ECODE_TLBR) begin
-            csr_crmd_da <= 1'b1;
-            csr_crmd_pg <= 1'b0;
-            csr_crmd_datf <= 2'b00;
-            csr_crmd_datm <= 2'b00;
-        end 
-        else if (ertn_flush && csr_estat_ecode == `ECODE_TLBR) begin
-            csr_crmd_da <= 1'b0;
-            csr_crmd_pg <= 1'b1;
-            csr_crmd_datf <= 2'b01;
-            csr_crmd_datm <= 2'b01;
-        end
         else if (csr_we && csr_num == `CSR_CRMD) begin
             csr_crmd_da <= csr_wmask[`CSR_CRMD_DA] & csr_wvalue[`CSR_CRMD_DA] |
                           ~csr_wmask[`CSR_CRMD_DA] & csr_crmd_da;
@@ -239,7 +227,16 @@ module csr(
             csr_crmd_datm <= csr_wmask[`CSR_CRMD_DATM] & csr_wvalue[`CSR_CRMD_DATM] |
                             ~csr_wmask[`CSR_CRMD_DATM] & csr_crmd_datm;
         end
-
+        else if (wb_ex && wb_ecode == `ECODE_TLBR) begin
+            csr_crmd_da <= 1'b1;
+            csr_crmd_pg <= 1'b0;
+        end 
+        else if (ertn_flush && csr_estat_ecode == `ECODE_TLBR) begin
+            csr_crmd_da <= 1'b0;
+            csr_crmd_pg <= 1'b1;
+            //csr_crmd_datf <= 2'b01;
+            //csr_crmd_datm <= 2'b01;
+        end
     end
 
     // PRMD的PPLV、PIE域
@@ -307,10 +304,13 @@ module csr(
     end
     // BADV的VAddr域
     //load store在执行级、访存级和写回级增加虚地址通路，采用增加一个vaddr域
-    assign wb_ex_addr_err = wb_ecode==`ECODE_ALE || wb_ecode==`ECODE_ADE; 
+    assign wb_ex_addr_err = wb_ecode==`ECODE_ADE || wb_ecode==`ECODE_ALE || wb_ecode==`ECODE_PIF
+                         || wb_ecode==`ECODE_PPI || wb_ecode==`ECODE_PIL || wb_ecode==`ECODE_PIS
+                         || wb_ecode==`ECODE_PME || wb_ecode==`ECODE_TLBR;
     always @(posedge clk) begin
         if (wb_ex && wb_ex_addr_err) begin
-            csr_badv_vaddr <= (wb_ecode==`ECODE_ADE && wb_esubcode==`ESUBCODE_ADEF) ? wb_pc:wb_vaddr;
+            csr_badv_vaddr <= ((wb_ecode == `ECODE_ADE & wb_esubcode == `ESUBCODE_ADEF) | 
+                               wb_ecode == `ECODE_PIF) ? wb_pc : wb_vaddr;
         end
     end
     // EENTRY
@@ -431,7 +431,11 @@ module csr(
                 csr_tlbehi_vppn <= r_vppn;
             else    
                 csr_tlbehi_vppn <= 19'b0;
-        end 
+        end
+        else if (wb_ecode == `ECODE_PIF || wb_ecode == `ECODE_PPI || wb_ecode == `ECODE_PIL || 
+                wb_ecode == `ECODE_PIS || wb_ecode == `ECODE_PME || wb_ecode == `ECODE_TLBR) begin
+            csr_tlbehi_vppn <= (wb_ecode == `ECODE_PIF) ? wb_pc[31:13] : wb_vaddr[31:13];
+        end
         else if (csr_we && csr_num == `CSR_TLBEHI) begin
             csr_tlbehi_vppn <= csr_wmask[`CSR_TLBEHI_VPPN] & csr_wvalue[`CSR_TLBEHI_VPPN] |
                               ~csr_wmask[`CSR_TLBEHI_VPPN] & csr_tlbehi_vppn;

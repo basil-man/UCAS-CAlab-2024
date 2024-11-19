@@ -34,7 +34,12 @@ module IFreg(
     input  wire         ex_TLBR,//ex is exception rather than execute
     input  wire         ex_PIx,
     input  wire         ex_PPI,
-    input  wire         ex_PME
+    input  wire         ex_PME,
+
+    input  wire         inst_tlb_map,
+    input  wire [31:0]  csr_crmd_data,
+    input  wire [ 1:0]  s0_plv,
+    input  wire         s0_v
 );
 
     reg         fs_valid;
@@ -75,8 +80,8 @@ module IFreg(
 
     // MMU execptions
     wire tlbr_except=ex_TLBR;
-    wire pif_except=ex_PIx;
-    wire ppi_except=ex_PPI;
+    wire pif_except=inst_tlb_map & ~s0_v;
+    wire ppi_except=inst_tlb_map & (csr_crmd_data[1:0] > s0_plv);
     wire pme_except=ex_PME;
 
     assign inst_sram_size = 2'b10;

@@ -39,7 +39,9 @@ module WBreg(
     output wire         tlbsrch_hit,
     output wire  [ 3:0] tlbsrch_hit_index,   
     output wire ws_csr_tlbrd,
-    input  wire [`D2C_CSRC_WID] ms_to_ws_csr_collect
+    input  wire [`D2C_CSRC_WID] ms_to_ws_csr_collect,
+    output reg [`D2C_CSRC_WID] ws_csr_collect,
+    input wire [31:0] csr_rvalue
 );
     
     wire        ws_ready_go;
@@ -59,7 +61,6 @@ module WBreg(
     wire        ws_ine_except;
     wire        ws_int_except;
 
-    reg [`D2C_CSRC_WID]  ws_csr_collect;
     reg [13:0] ws_csr_num;
     reg ws_csr_we;
     reg               s1_found;
@@ -101,7 +102,11 @@ module WBreg(
     assign {ws_ale_except, ws_adef_except, ws_tlbr_except, ws_pif_except, ws_ppi_except, ws_pme_except, ws_ine_except, ws_syscall_except,
             ws_break_except, ws_int_except, ws_ertn_except, ws_data_tlbr, ws_data_pil, ws_data_pis, ws_data_ppi, ws_data_pme} = ws_except;
 
-
+    wire      csr_re, csr_we;
+    wire [13:0] csr_num;
+    wire [31:0] csr_wmask;
+    wire [31:0] csr_wvalue;
+    assign {csr_re, csr_num, csr_we, csr_wmask, csr_wvalue} = ws_csr_collect;
     assign ertn_flush = ws_ertn_except & ws_valid;
     assign wb_ex = (ws_ale_except | ws_adef_except | ws_tlbr_except | ws_pif_except | ws_ppi_except | ws_pme_except | ws_ine_except |
          ws_syscall_except | ws_break_except | ws_int_except | ws_data_tlbr | ws_data_pil | ws_data_pis | ws_data_ppi | ws_data_pme) & ws_valid;
@@ -125,7 +130,7 @@ module WBreg(
     //assign wb_ecode = ws_syscall_except ? `ECODE_SYS : 6'b0;
     assign wb_esubcode = 9'b0;
     assign wb_pc = ws_pc;
-    assign ws_rf_collect = {ws_rf_we & ws_valid & ~wb_ex, ws_rf_waddr, ws_rf_wdata};
+    assign ws_rf_collect = {ws_rf_we & ws_valid & ~wb_ex, ws_rf_waddr, debug_wb_rf_wdata};
     
     //tlb related in exp 18
     assign ws_csr_tlbrd = ((ws_csr_num == `CSR_ASID | ws_csr_num == `CSR_TLBEHI) & ws_csr_we | inst_tlbrd) && ws_valid;
@@ -158,7 +163,7 @@ module WBreg(
     assign wb_flush = tlb_refetch | wb_ex | ertn_flush;
     
     assign debug_wb_pc          = ws_pc;
-    assign debug_wb_rf_wdata    = ws_rf_wdata;
+    assign debug_wb_rf_wdata    = csr_re ? csr_rvalue : ws_rf_wdata;
     assign debug_wb_rf_we       = {4{ws_rf_we & ws_valid & ~wb_ex }};
     assign debug_wb_rf_wnum     = ws_rf_waddr;
 endmodule

@@ -235,6 +235,7 @@ module mycpu_top(
 
     wire ms_csr_tlbrd,ws_csr_tlbrd;
     wire [`D2C_CSRC_WID] es_to_ms_csr_collect,ms_to_ws_csr_collect;
+    wire [`D2C_CSRC_WID] ws_csr_collect;
 
     AXI_bridge my_AXIbridge(
         .aclk(clk),
@@ -301,7 +302,7 @@ module mycpu_top(
         .bvalid(bvalid),
         .bready(bready)
     );
-
+    wire inst_tlb_map;
     IFreg my_ifReg(
         .clk(clk),
         .resetn(resetn),
@@ -335,7 +336,12 @@ module mycpu_top(
         .ex_TLBR(inst_ex_TLBR),
         .ex_PIx(inst_ex_PIx),
         .ex_PPI(inst_ex_PIx),
-        .ex_PME(inst_ex_PME)
+        .ex_PME(inst_ex_PME),
+
+        .inst_tlb_map(inst_tlb_map),
+        .csr_crmd_data(csr_crmd_data),
+        .s0_plv(s0_plv),
+        .s0_v(s0_v)
     );
 
     IDreg my_idReg(
@@ -368,7 +374,7 @@ module mycpu_top(
         .wb_ex(wb_ex)
 
     );
-    assign {csr_re, csr_num, csr_we, csr_wmask, csr_wvalue} = csr_collect;
+
 
     EXreg my_exReg(
         .clk(clk),
@@ -425,7 +431,9 @@ module mycpu_top(
         .ex_TLBR(data_ex_TLBR),
         .ex_PIx(data_ex_PIx),
         .ex_PPI(data_ex_PPI),
-        .ex_PME(data_ex_PME)
+        .ex_PME(data_ex_PME),
+        .s1_vppn(s1_vppn),
+        .s1_va_bit12(s1_va_bit12)
     );
 
     MEMreg my_memReg(
@@ -496,9 +504,13 @@ module mycpu_top(
         .tlbsrch_hit(tlbsrch_hit),
         .tlbsrch_hit_index(tlbsrch_hit_index),
         .ws_csr_tlbrd(ws_csr_tlbrd),
-        .ms_to_ws_csr_collect(ms_to_ws_csr_collect)
+        .ms_to_ws_csr_collect(ms_to_ws_csr_collect),
         
+        .ws_csr_collect(ws_csr_collect),
+        .csr_rvalue(csr_rvalue)
     );
+
+    assign {csr_re, csr_num, csr_we, csr_wmask, csr_wvalue} = ws_csr_collect;
 
     csr my_csr(
         .clk       (clk),
@@ -584,8 +596,8 @@ module mycpu_top(
         .s0_d       (s0_d),
         .s0_v       (s0_v),
 
-        .s1_vppn    (s1_vppn),
-        .s1_va_bit12(s1_va_bit12),
+        .s1_vppn    (data_va[31:13]),
+        .s1_va_bit12(data_va[12]),
         .s1_asid    (s1_asid),
         .s1_found   (s1_found),
         .s1_index   (s1_index),
@@ -666,7 +678,8 @@ module mycpu_top(
         .ex_TLBR(inst_ex_TLBR),
         .ex_PIx(inst_ex_PIx),
         .ex_PPI(inst_ex_PIx),
-        .ex_PME(inst_ex_PME)
+        .ex_PME(inst_ex_PME),
+        .tlb_map(inst_tlb_map)
     );
 
     MMU data_MMU(
@@ -677,8 +690,8 @@ module mycpu_top(
         .pa(data_pa),
 
         //tlb interface
-        .s_vppn(s1_vppn),
-        .s_va_bit12(s1_va_bit12),
+        .s_vppn(),
+        .s_va_bit12(),
         .s_asid(s1_asid),
         .s_found(s1_found),
         .s_ppn(s1_ppn),
@@ -698,7 +711,8 @@ module mycpu_top(
         .ex_TLBR(data_ex_TLBR),
         .ex_PIx(data_ex_PIx),
         .ex_PPI(data_ex_PPI),
-        .ex_PME(data_ex_PME)
+        .ex_PME(data_ex_PME),
+        .tlb_map()
     );
 
 
