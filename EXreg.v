@@ -315,8 +315,8 @@ module EXreg(
     assign es_mem_req       = (es_res_from_mem | (|data_sram_wstrb));
 
     //MMU
-    assign data_va = data_sram_req ? (inst_tlbsrch ? {csr_tlbehi_vppn, 13'b0} :
-                     (inst_invtlb & (es_rj!=5'b0)) ? es_rkd_value : es_alu_result): 32'b0;
+    assign data_va = inst_tlbsrch ? {csr_tlbehi_vppn, 13'b0} :
+                     (inst_invtlb & (es_rj!=5'b0)) ? es_rkd_value : es_alu_result;
     assign es_asid = (inst_invtlb & (es_rj!=5'b0)) ? es_alu_src1[9:0] : csr_asid_asid;
     assign es_to_ms_bus =   {
                             csr_re,
