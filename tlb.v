@@ -106,10 +106,12 @@ module tlb
         for (i = 0; i < TLBNUM; i = i + 1) begin
             assign match0[i] = (s0_vppn[18:9] == tlb_vppn[i][18:9])
                                 &&(tlb_ps4MB[i] || s0_vppn[8:0] == tlb_vppn[i][8:0])// 4KB页表项，vppn[8:0]要匹配
-                                &&((s0_asid == tlb_asid[i]) || tlb_g[i]);           // g=1（全局）时，asid可以不匹配
+                                &&((s0_asid == tlb_asid[i]) || tlb_g[i])
+                                &&(tlb_e[i]);           // g=1（全局）时，asid可以不匹配
             assign match1[i] = (s1_vppn[18:9] == tlb_vppn[i][18:9])
                                 &&(tlb_ps4MB[i] || s1_vppn[8:0] == tlb_vppn[i][8:0])
-                                &&((s1_asid == tlb_asid[i]) || tlb_g[i]);
+                                &&((s1_asid == tlb_asid[i]) || tlb_g[i])
+                                &&(tlb_e[i]);
         end    
     endgenerate
     

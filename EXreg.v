@@ -112,7 +112,7 @@ module EXreg(
     reg [1:0] tmp;
     wire ms_adef_except, ms_ine_except, ms_syscall_except, ms_break_except, ms_int_except, inst_ertn;
 
-    wire flush_by_former_except =(|es_except_collect) | (|ms_except) | except_flush;
+    wire flush_by_former_except =(|ms_except) | except_flush;
 
     wire es_ex;
     wire es_mem_req;
@@ -306,10 +306,9 @@ module EXreg(
     
     assign EX_result = mul_insts ? mul_result : div_mod_insts ? div_mod_result : es_alu_result;
     wire [31:0] ex_to_ms_result =inst_rdcntvl ? cnt[31:0] : inst_rdcntvh ? cnt[63:32] : (csr_re ? csr_rvalue : EX_result);
-
-    assign data_sram_req    = (es_res_from_mem || es_mem_en) & es_valid & ~flush_by_former_except & es_mem_req & ms_allowin & ~(es_ale_except|ex_PIL|ex_PIS|ex_TLBR);
-    assign data_sram_wstrb  = mem_we & {4{es_valid & ~|ms_except & ~|es_except_collect & ~except_flush & ~flush_by_former_except}};
-    assign data_sram_wr     = (|data_sram_wstrb) & es_valid & ~es_ex;
+    assign data_sram_req    = (es_res_from_mem || es_mem_en) & es_valid & ~flush_by_former_except & es_mem_req & ms_allowin & (~|es_except_collect);
+    assign data_sram_wstrb  = mem_we & {4{es_valid & ~|ms_except & (~|es_except_collect) & ~except_flush & ~flush_by_former_except}};
+    assign data_sram_wr     = (|data_sram_wstrb) & es_valid & (~|es_except_collect);
     assign data_sram_addr   = data_pa;
     assign data_sram_wdata  = st_wdata;
     assign data_sram_size   = ({2{inst_st_w|inst_ld_w}} & 2'b10) | ({2{inst_st_h | inst_ld_h | inst_ld_hu}} & 2'b01) | ({2{inst_st_b}} & 2'b00) ;
