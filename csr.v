@@ -640,7 +640,9 @@ module csr(
                       | {32{csr_num == `CSR_TLBELO0}} & csr_tlbelo0_rvalue
                       | {32{csr_num == `CSR_TLBELO1}} & csr_tlbelo1_rvalue
                       | {32{csr_num == `CSR_ASID  }} & csr_asid_rvalue
-                      | {32{csr_num == `CSR_TLBRENTRY}} & csr_tlbrentry_rvalue;
+                      | {32{csr_num == `CSR_TLBRENTRY}} & csr_tlbrentry_rvalue
+                      | {32{csr_num == `CSR_DMW0  }} & csr_dmw0_data
+                      | {32{csr_num == `CSR_DMW1  }} & csr_dmw1_data;
 
     assign w_e    = ~csr_tlbidx_ne;
     assign w_ps   =  csr_tlbidx_ps;
