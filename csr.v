@@ -644,7 +644,7 @@ module csr(
                       | {32{csr_num == `CSR_DMW0  }} & csr_dmw0_data
                       | {32{csr_num == `CSR_DMW1  }} & csr_dmw1_data;
 
-    assign w_e    = ~csr_tlbidx_ne;
+    assign w_e    = csr_estat_ecode == `ECODE_TLBR ? 1'b1 : ~csr_tlbidx_ne;
     assign w_ps   =  csr_tlbidx_ps;
     assign w_vppn =  csr_tlbehi_vppn;
     assign w_asid =  csr_asid;
