@@ -296,8 +296,7 @@ module EXreg(
     //TLB
     assign s1_va_highbits = {20{inst_tlbsrch}} & {csr_tlbehi_vppn, 1'b0} |
                             {20{inst_invtlb}} & {es_rkd_value[31:12]};
-    assign s1_asid = {10{inst_tlbsrch}} & csr_asid_asid |
-                      {10{inst_invtlb}} & es_alu_src1[9:0];
+    //assign s1_asid = inst_invtlb ? es_alu_src1[9:0] : csr_asid_asid;
     assign invtlb_op = es_rd;
     assign invtlb_valid = inst_invtlb & es_valid;
 
@@ -320,7 +319,7 @@ module EXreg(
     assign {s1_vppn, s1_va_bit12} = data_va[31:12];
     assign data_va = inst_tlbsrch ? {csr_tlbehi_vppn, 13'b0} :
                      (inst_invtlb & (es_rj!=5'b0)) ? es_rkd_value : es_alu_result;
-    assign es_asid = (inst_invtlb & (es_rj!=5'b0)) ? es_alu_src1[9:0] : csr_asid_asid;
+    assign es_asid = inst_invtlb ? es_alu_src1[9:0] : csr_asid_asid;
     assign es_to_ms_bus =   {
                             csr_re,
                             es_mem_req,

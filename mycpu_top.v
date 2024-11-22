@@ -651,7 +651,7 @@ module mycpu_top(
 
     MMU inst_MMU(
         .MMU_mode(0),
-        .input_asid(es_asid),
+        .input_asid(),
         //va & pa
         .va(inst_va),
         .pa(inst_pa),
