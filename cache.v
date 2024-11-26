@@ -29,6 +29,10 @@ module cache(
     input  wire         wr_rdy      // 写请求能否被接收的握手信号。高电平有效。此处要求wr_rdy要先于wr_req置起，wr_req看到wr_rdy后才可能置上1
 );
 
+    wire hit_write_conflict;
+    wire cache_hit;
+    wire hit_write;
+
     parameter IDLE    = 5'b00001;
     parameter LOOKUP  = 5'b00010;
     parameter MISS    = 5'b00100;
@@ -37,5 +41,85 @@ module cache(
     reg [4:0] current_state;
     reg [4:0] next_state;
 
+    parameter WR_IDLE  = 2'b01;
+    parameter WR_WRITE = 2'b10;
+    reg [1:0] wr_current_state;
+    reg [1:0] wr_next_state;
+
+    // main state machine
+    always @(posedge clk) begin
+        if (~resetn) begin
+            current_state <= IDLE;
+        end else begin
+            current_state <= next_state;
+        end
+    end
+
+    always @(*) begin
+        case (current_state)
+            IDLE:
+                if (valid & hit_write_conflict) begin
+                    next_state <= LOOKUP;
+                end else begin
+                    next_state <= IDLE;
+                end
+            LOOKUP:
+                if (cache_hit & (~valid | hit_write_conflict)) begin
+                    next_state <= IDLE;
+                end else if (cache_hit & valid & (~hit_write_conflict)) begin
+                    next_state <= LOOKUP;
+                end else begin
+                    next_state <= MISS;
+                end
+            MISS:
+                if (~wr_rdy) begin
+                    next_state <= MISS;
+                end else begin
+                    next_state <= REPLACE;
+                end
+            REPLACE:
+                if (~rd_rdy) begin
+                    next_state <= REPLACE;
+                end else begin
+                    next_state <= REFILL;
+                end
+            REFILL:
+                if (ret_valid & (ret_last == 'd1)) begin
+                    next_state <= REFILL;
+                end else begin
+                    next_state <= IDLE;
+                end
+            default:
+                next_state <= IDLE;
+        endcase
+    end
+
+    // write state machine
+    always @(posedge clk) begin
+        if (~resetn) begin
+            wr_current_state <= WR_IDLE;
+        end else begin
+            wr_current_state <= wr_next_state;
+        end
+    end
+
+    always @(*) begin
+        case (wr_current_state)
+            WR_IDLE:
+                if (hit_write) begin
+                    wr_next_state <= WR_WRITE;
+                end else begin
+                    wr_next_state <= WR_IDLE;
+                end
+            WR_WRITE:
+                if (hit_write) begin
+                    wr_next_state <= WR_WRITE;
+                end else begin
+                    wr_next_state <= WR_IDLE;
+                end
+            default:
+                wr_next_state <= WR_IDLE;
+        endcase
+    end
 
 endmodule
