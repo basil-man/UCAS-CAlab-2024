@@ -29,9 +29,40 @@ module cache(
     input  wire         wr_rdy      // 写请求能否被接收的握手信号。高电平有效。此处要求wr_rdy要先于wr_req置起，wr_req看到wr_rdy后才可能置上1
 );
 
-    wire hit_write_conflict;
-    wire cache_hit;
-    wire hit_write;
+    wire        hit_write_conflict;
+    wire        cache_hit;
+    wire        hit_write;
+    wire [31:0] hit_result;
+    wire [1:0]  hit_way;
+    // for request buffer
+    reg         op_reg;
+    reg  [ 7:0] index_reg;
+    reg  [19:0] tag_reg;
+    reg  [ 3:0] offset_reg;
+    reg  [ 3:0] wstrb_reg;
+    reg  [31:0] wdata_reg;
+
+    // for write buffer
+    reg         wrbuf_way;
+    reg  [ 7:0] wrbuf_index;
+    reg  [ 3:0] wrbuf_offset;
+    reg  [ 3:0] wrbuf_wstrb;
+    reg  [31:0] wrbuf_wdata;
+
+    wire        tagv_we [1:0];
+    wire [ 7:0] tagv_addr;
+    wire [20:0] tagv_wdata;
+    wire [20:0] tagv_rdata [1:0];
+
+    wire [ 3:0]  data_bank_we    [1:0][3:0];
+    wire [ 7:0]  data_bank_addr  [3:0];
+    wire [31:0]  data_bank_wdata [3:0];
+    wire [31:0]  data_bank_rdata [1:0][3:0];
+
+    reg [255:0] dirty_array [1:0];
+    reg [255:0] replace_way;
+
+    reg [1:0] ret_cnt;
 
     parameter IDLE    = 5'b00001;
     parameter LOOKUP  = 5'b00010;
@@ -121,5 +152,136 @@ module cache(
                 wr_next_state <= WR_IDLE;
         endcase
     end
+
+    // request buffer: op、index、tag、offset、wstrb、wdata
+    always @(posedge clk) begin
+        if (~resetn) begin
+            {op_reg, index_reg, tag_reg, offset_reg, wstrb_reg, wdata_reg} <= 'd0;
+        end else if (valid & addr_ok) begin
+            {op_reg, index_reg, tag_reg, offset_reg, wstrb_reg, wdata_reg} <= {op, index, tag, offset, wstrb, wdata};
+        end
+    end
+
+    // write buffer
+    always @(posedge clk) begin
+        if (~resetn) begin
+            {wrbuf_way, wrbuf_index, wrbuf_offset, wrbuf_wstrb, wrbuf_wdata} <= 'd0;
+        end else if(hit_write) begin
+            {wrbuf_way, wrbuf_index, wrbuf_offset, wrbuf_wstrb, wrbuf_wdata} <= {hit_way[1], index_reg, offset_reg, wstrb_reg, wdata_reg};
+        end
+    end
+
+    // miss buffer
+    always @(posedge clk) begin
+        if (~resetn) begin
+            ret_cnt <= 'd0;
+        end else if (ret_valid) begin
+            if (~ret_last) begin
+                ret_cnt <= ret_cnt + 'd1;
+            end else begin
+                ret_cnt <= 'd0;
+            end
+        end
+    end
+
+    // hit / match
+    assign hit_way[0] = tagv_rdata[0][0] & (tagv_rdata[0][20:1] == tag_reg);
+    assign hit_way[1] = tagv_rdata[1][0] & (tagv_rdata[1][20:1] == tag_reg);
+    assign cache_hit = |hit_way;
+    assign hit_write = (current_state == LOOKUP) & cache_hit & op_reg;
+    assign hit_write_conflict = (hit_write | wr_current_state == WR_WRITE) & valid & ~op & (index_reg == index) & (offset_reg[3:2] == offset[3:2]);
+    assign hit_result = {32{hit_way[0]}} & data_bank_rdata[0][offset_reg[3:2]] 
+                      | {32{hit_way[1]}} & data_bank_rdata[1][offset_reg[3:2]];
+
+    // tagv related
+    assign tagv_we[0] = ret_valid & (ret_cnt == 'd0) & (replace_way[index_reg] == 0);
+    assign tagv_we[1] = ret_valid & (ret_cnt == 'd0) & (replace_way[index_reg] == 1);
+    assign tagv_addr  = (current_state == IDLE || current_state == LOOKUP) ? index : index_reg;
+    assign tagv_wdata = {tag_reg, 1'b1};
+
+    // random replace
+    always @(posedge clk) begin
+        if (~resetn) begin
+            replace_way <= 'd0;
+        end else if (current_state == IDLE || current_state == LOOKUP) begin
+            if (hit_way[0] & valid) begin
+                replace_way[index_reg] <= 1'b1;
+            end else if (hit_way[1] & valid) begin
+                replace_way[index_reg] <= 1'b0;
+            end
+        end else if (current_state == REFILL && next_state == IDLE) begin
+            replace_way[index_reg] <= ~replace_way[index_reg];
+        end
+    end
+
+    // dirty array
+    always @(posedge clk) begin
+        if (~resetn) begin
+            dirty_array[0] <= 'd0;
+            dirty_array[1] <= 'd0;
+        end else if (wr_current_state == WR_WRITE) begin
+            dirty_array[wrbuf_way][wrbuf_index] <= 1'b1;
+        end else if (ret_valid & (ret_last == 'd1)) begin
+            dirty_array[wrbuf_way][wrbuf_index] <= op_reg;
+        end
+    end
+
+    // RAM port
+    genvar i, way;
+    generate
+        for (i = 0; i < 4; i = i + 1) begin
+            for (way = 0; way < 2; way = way + 1) begin
+                assign data_bank_we[way][i] = {4{(wr_current_state == WR_WRITE) & (wrbuf_way == way) & (wrbuf_index == i)}} & wrbuf_wstrb
+                                            | {4{ret_valid & (ret_cnt == i) & replace_way[index_reg] == way}} & 4'hf;
+            end
+            assign data_bank_addr[i]  = ((current_state == IDLE) || (current_state == LOOKUP)) ? index : index_reg;
+            assign data_bank_wdata[i] = (wr_current_state == WR_WRITE) ? wrbuf_wdata :
+                                        {
+                                        wstrb_reg[3] ? wdata_reg[31:24] : ret_data[31:24],
+                                        wstrb_reg[2] ? wdata_reg[23:16] : ret_data[23:16],
+                                        wstrb_reg[1] ? wdata_reg[15: 8] : ret_data[15: 8],
+                                        wstrb_reg[0] ? wdata_reg[ 7: 0] : ret_data[ 7: 0]
+                                        };
+        end
+    endgenerate
+
+    // RAM interface
+    generate
+        for (way = 0; way < 2; way = way + 1) begin: ram_generate // 例化2块
+            TAG_RAM tagv_ram (
+                .clka (clk),
+                .wea  (tagv_we[way]),
+                .addra(tagv_addr),
+                .dina (tagv_wdata),
+                .douta(tagv_rdata[way]) 
+            );
+            for(i = 0; i < 4; i = i + 1) begin: bank_ram_generate // 例化 2*4=8 块
+                DATA_Bank_RAM data_bank_ram(
+                    .clka (clk),
+                    .wea  (data_bank_we[way][i]),
+                    .addra(data_bank_addr[i]),
+                    .dina (data_bank_wdata[i]),
+                    .douta(data_bank_rdata[way][i])
+                );
+            end
+        end
+    endgenerate
+
+    // CPU interface
+    assign addr_ok = (current_state == IDLE) | ((current_state == LOOKUP) & valid & cache_hit & (op | (~op & ~hit_write_conflict)));
+    assign data_ok = ((current_state == LOOKUP) & (cache_hit | op)) | ((current_state == REFILL) & ret_valid & (ret_cnt == offset_reg[3:2]));
+    assign rdata   = ret_valid ? ret_data : hit_result; 
+
+    // AXI interface
+    assign rd_req = (current_state == REPLACE);
+    assign rd_addr = {tag_reg, index_reg, 4'b0};
+    assign rd_type = 3'b100;
+
+    assign wr_req = (current_state == MISS) & (next_state == REPLACE);
+    assign wr_addr = {tagv_rdata[replace_way[index_reg]][20:1], index_reg, 4'b0};
+    assign wr_type = 3'b100;
+    assign wr_wstrb = 4'hf;
+    assign wr_data = {  data_bank_rdata[replace_way[index_reg]][3], data_bank_rdata[replace_way[index_reg]][2],
+                        data_bank_rdata[replace_way[index_reg]][1], data_bank_rdata[replace_way[index_reg]][0]};
 
 endmodule
