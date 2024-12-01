@@ -1,4 +1,3 @@
-`include "width.h"
 module cache(
     input  wire         clk,
     input  wire         resetn,
@@ -77,6 +76,8 @@ module cache(
     reg [1:0] wr_current_state;
     reg [1:0] wr_next_state;
 
+    genvar i, way;
+
     // main state machine
     always @(posedge clk) begin
         if (~resetn) begin
@@ -89,7 +90,7 @@ module cache(
     always @(*) begin
         case (current_state)
             IDLE:
-                if (valid & hit_write_conflict) begin
+                if (valid & ~hit_write_conflict) begin
                     next_state <= LOOKUP;
                 end else begin
                     next_state <= IDLE;
@@ -99,7 +100,9 @@ module cache(
                     next_state <= IDLE;
                 end else if (cache_hit & valid & (~hit_write_conflict)) begin
                     next_state <= LOOKUP;
-                end else begin
+                end else if (~dirty_array[replace_way[index_reg]][index_reg] | ~tagv_rdata[replace_way[index_reg]][0]) begin 
+                    next_state = REPLACE;
+                end else if (~cache_hit) begin
                     next_state <= MISS;
                 end
             MISS:
@@ -166,7 +169,7 @@ module cache(
     always @(posedge clk) begin
         if (~resetn) begin
             {wrbuf_way, wrbuf_index, wrbuf_offset, wrbuf_wstrb, wrbuf_wdata} <= 'd0;
-        end else if(hit_write) begin
+        end else if (hit_write) begin
             {wrbuf_way, wrbuf_index, wrbuf_offset, wrbuf_wstrb, wrbuf_wdata} <= {hit_way[1], index_reg, offset_reg, wstrb_reg, wdata_reg};
         end
     end
@@ -177,9 +180,9 @@ module cache(
             ret_cnt <= 'd0;
         end else if (ret_valid) begin
             if (~ret_last) begin
-                ret_cnt <= ret_cnt + 'd1;
+                ret_cnt <= ret_cnt + 1'b1;
             end else begin
-                ret_cnt <= 'd0;
+                ret_cnt <= 2'b0;
             end
         end
     end
@@ -188,14 +191,15 @@ module cache(
     assign hit_way[0] = tagv_rdata[0][0] & (tagv_rdata[0][20:1] == tag_reg);
     assign hit_way[1] = tagv_rdata[1][0] & (tagv_rdata[1][20:1] == tag_reg);
     assign cache_hit = |hit_way;
+
     assign hit_write = (current_state == LOOKUP) & cache_hit & op_reg;
     assign hit_write_conflict = (hit_write | wr_current_state == WR_WRITE) & valid & ~op & (index_reg == index) & (offset_reg[3:2] == offset[3:2]);
     assign hit_result = {32{hit_way[0]}} & data_bank_rdata[0][offset_reg[3:2]] 
                       | {32{hit_way[1]}} & data_bank_rdata[1][offset_reg[3:2]];
 
     // tagv related
-    assign tagv_we[0] = ret_valid & (ret_cnt == 'd0) & (replace_way[index_reg] == 0);
-    assign tagv_we[1] = ret_valid & (ret_cnt == 'd0) & (replace_way[index_reg] == 1);
+    assign tagv_we[0] = ret_valid & ret_last[0] & (replace_way[index_reg] == 0);
+    assign tagv_we[1] = ret_valid & ret_last[0] & (replace_way[index_reg] == 1);
     assign tagv_addr  = (current_state == IDLE || current_state == LOOKUP) ? index : index_reg;
     assign tagv_wdata = {tag_reg, 1'b1};
 
@@ -227,15 +231,15 @@ module cache(
     end
 
     // RAM port
-    genvar i, way;
     generate
-        for (i = 0; i < 4; i = i + 1) begin
-            for (way = 0; way < 2; way = way + 1) begin
-                assign data_bank_we[way][i] = {4{(wr_current_state == WR_WRITE) & (wrbuf_way == way) & (wrbuf_index == i)}} & wrbuf_wstrb
+        for (i = 0; i < 4; i = i + 1) begin: data_bank
+            for (way = 0; way < 2; way = way + 1) begin: data_bank_we_value
+                assign data_bank_we[way][i] = {4{(wr_current_state == WR_WRITE) & (wrbuf_offset[3:2] == i) & (wrbuf_way == way)}} & wrbuf_wstrb
                                             | {4{ret_valid & (ret_cnt == i) & replace_way[index_reg] == way}} & 4'hf;
             end
             assign data_bank_addr[i]  = ((current_state == IDLE) || (current_state == LOOKUP)) ? index : index_reg;
             assign data_bank_wdata[i] = (wr_current_state == WR_WRITE) ? wrbuf_wdata :
+                                        (offset_reg[3:2] != i || ~op_reg)? ret_data :
                                         {
                                         wstrb_reg[3] ? wdata_reg[31:24] : ret_data[31:24],
                                         wstrb_reg[2] ? wdata_reg[23:16] : ret_data[23:16],
@@ -256,7 +260,7 @@ module cache(
                 .douta(tagv_rdata[way]) 
             );
             for(i = 0; i < 4; i = i + 1) begin: bank_ram_generate // 例化 2*4=8 块
-                DATA_Bank_RAM data_bank_ram(
+                DATA_BANK_RAM data_bank_ram(
                     .clka (clk),
                     .wea  (data_bank_we[way][i]),
                     .addra(data_bank_addr[i]),
@@ -268,8 +272,12 @@ module cache(
     endgenerate
 
     // CPU interface
-    assign addr_ok = (current_state == IDLE) | ((current_state == LOOKUP) & valid & cache_hit & (op | (~op & ~hit_write_conflict)));
-    assign data_ok = ((current_state == LOOKUP) & (cache_hit | op)) | ((current_state == REFILL) & ret_valid & (ret_cnt == offset_reg[3:2]));
+    assign addr_ok = (current_state == IDLE) |
+                     ((current_state == LOOKUP) & valid & cache_hit & (op | (~op & ~hit_write_conflict)));
+
+    assign data_ok = ((current_state == LOOKUP) & (cache_hit | op_reg)) |
+                     ((current_state == REFILL) & ~op_reg & ret_valid & (ret_cnt == offset_reg[3:2]));
+                     
     assign rdata   = ret_valid ? ret_data : hit_result; 
 
     // AXI interface
