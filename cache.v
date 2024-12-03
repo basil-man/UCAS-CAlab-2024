@@ -101,7 +101,7 @@ module cache(
                 end else if (cache_hit & valid & (~hit_write_conflict)) begin
                     next_state <= LOOKUP;
                 end else if (~dirty_array[replace_way[index_reg]][index_reg] | ~tagv_rdata[replace_way[index_reg]][0]) begin 
-                    next_state = REPLACE;
+                    next_state <= REPLACE;
                 end else if (~cache_hit) begin
                     next_state <= MISS;
                 end
