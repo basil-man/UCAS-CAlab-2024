@@ -119,9 +119,9 @@ module cache(
                 end
             REFILL:
                 if (ret_valid & (ret_last == 'd1)) begin
-                    next_state <= REFILL;
-                end else begin
                     next_state <= IDLE;
+                end else begin
+                    next_state <= REFILL;
                 end
             default:
                 next_state <= IDLE;
