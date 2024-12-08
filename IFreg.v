@@ -164,8 +164,8 @@ module IFreg(
     always @(posedge clk) begin
         if(~resetn)
             pf_cancel <= 1'b0;
-        else if(inst_sram_req_send & (fs_cancel | (br_stall | br_stall_r) & inst_sram_addr_ok) & ~axi_arid[0])
-            pf_cancel <= 1'b1;
+        // else if(inst_sram_req_send & (fs_cancel | (br_stall | br_stall_r) & inst_sram_addr_ok) & ~axi_arid[0])
+        //     pf_cancel <= 1'b1;
         else if(inst_sram_data_ok & ~inst_cancel)
             pf_cancel <= 1'b0;
     end
