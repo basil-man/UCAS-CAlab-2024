@@ -237,19 +237,27 @@ module mycpu_top(
     wire [`D2C_CSRC_WID] es_to_ms_csr_collect,ms_to_ws_csr_collect;
     wire [`D2C_CSRC_WID] ws_csr_collect;
 
+    //exp21 ichache
+
+    wire        icache_rd_req;
+    wire [ 2:0] icache_rd_type;
+    wire [31:0] icache_rd_addr;
+    wire        icache_rd_rdy;
+    wire        icache_ret_valid;
+    wire        icache_ret_last;
+    wire [31:0] icache_ret_data;
+
     AXI_bridge my_AXIbridge(
         .aclk(clk),
         .aresetn(resetn),
 
-        .inst_sram_req(inst_sram_req),
-        .inst_sram_wstrb(inst_sram_wstrb),
-        .inst_sram_addr(inst_sram_addr),
-        .inst_sram_wdata(inst_sram_wdata),
-        .inst_sram_wr(inst_sram_wr),
-        .inst_sram_size(inst_sram_size),
-        .inst_sram_rdata(inst_sram_rdata),
-        .inst_sram_addr_ok(inst_sram_addr_ok),
-        .inst_sram_data_ok(inst_sram_data_ok),
+        .icache_rd_req(icache_rd_req),
+        .icache_rd_type(icache_rd_type),
+        .icache_rd_addr(icache_rd_addr),
+        .icache_rd_rdy(icache_rd_rdy),
+        .icache_ret_valid(icache_ret_valid),
+        .icache_ret_last(icache_ret_last),
+        .icache_ret_data(icache_ret_data),
 
         .data_sram_req(data_sram_req),
         .data_sram_wstrb(data_sram_wstrb),
@@ -715,5 +723,28 @@ module mycpu_top(
         .tlb_map()
     );
 
+    cache icache(
+        .clk(aclk),
+        .resetn(aresetn),
 
+        .valid      (inst_sram_req),
+        .op         (1'b0),
+
+        .index      (inst_sram_addr[11:4]),
+        .tag        (inst_sram_addr[31:12]),
+        .offset     (inst_sram_addr[3:0]),
+        .wstrb      (inst_sram_wstrb),
+        .wdata      (inst_sram_wdata),
+        .addr_ok    (inst_sram_addr_ok),
+        .data_ok    (inst_sram_data_ok),
+        .rdata      (inst_sram_rdata),
+
+        .rd_req     (icache_rd_req),
+        .rd_type    (icache_rd_type),
+        .rd_addr    (icache_rd_addr),
+        .rd_rdy     (icache_rd_rdy),
+        .ret_valid  (icache_ret_valid),
+        .ret_last   ({1'b0,icache_ret_last}),
+        .ret_data   (icache_ret_data)
+    );
 endmodule

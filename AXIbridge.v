@@ -5,16 +5,24 @@ module AXI_bridge(
     input  wire        aclk,
     input  wire        aresetn,
 
-    // inst sram 
-    input  wire         inst_sram_req,      //请求信号，为 1 时有读写请求，为 0 时无读写请求。
-    input  wire [ 3:0]  inst_sram_wstrb,    //该次写请求的字节写使能。
-    input  wire [31:0]  inst_sram_addr,     //该次请求的地址
-    input  wire [31:0]  inst_sram_wdata,    //该次写请求的写数据
-    input  wire         inst_sram_wr,       //为 1 表示该次是写请求，为 0 表示该次是读请求。
-    input  wire [ 1:0]  inst_sram_size,     //该次请求传输的字节数，0: 1 byte；1: 2 bytes；2: 4 bytes。
-    output wire [31:0]  inst_sram_rdata,    //该次请求返回的读数据。
-    output wire         inst_sram_addr_ok,  //该次请求的地址传输 OK，读：地址被接收；写：地址和数据被接收
-    output wire         inst_sram_data_ok,  //该次请求的数据传输 OK，读：数据返回；写：数据写入完成。
+    // // inst sram 
+    // input  wire         inst_sram_req,      //请求信号，为 1 时有读写请求，为 0 时无读写请求。
+    // input  wire [ 3:0]  inst_sram_wstrb,    //该次写请求的字节写使能。
+    // input  wire [31:0]  inst_sram_addr,     //该次请求的地址
+    // input  wire [31:0]  inst_sram_wdata,    //该次写请求的写数据
+    // input  wire         inst_sram_wr,       //为 1 表示该次是写请求，为 0 表示该次是读请求。
+    // input  wire [ 1:0]  inst_sram_size,     //该次请求传输的字节数，0: 1 byte；1: 2 bytes；2: 4 bytes。
+    // output wire [31:0]  inst_sram_rdata,    //该次请求返回的读数据。
+    // output wire         inst_sram_addr_ok,  //该次请求的地址传输 OK，读：地址被接收；写：地址和数据被接收
+    // output wire         inst_sram_data_ok,  //该次请求的数据传输 OK，读：数据返回；写：数据写入完成。
+    //inst cache
+    input  wire        icache_rd_req,           // 读请求有效信号。高电平有效。
+    input  wire [ 2:0] icache_rd_type,          // 读请求类型。3’b000——字节，3’b001——半字，3’b010——字，3’b100——Cache行
+    input  wire [31:0] icache_rd_addr,          // 读请求起始地址
+    output wire        icache_rd_rdy,           // 读请求能否被接收的握手信号。高电平有效
+    output reg         icache_ret_valid,        // 返回数据有效信号后。高电平有效
+    output wire        icache_ret_last,         // 返回数据是一次读请求对应的最后一个返回数据
+    output wire [31:0] icache_ret_data,         // 读返回数据
     // data sram 
     input  wire        data_sram_req,
     input  wire [ 3:0] data_sram_wstrb,
@@ -30,7 +38,7 @@ module AXI_bridge(
     //读请求通道,（以 ar 开头）
     output reg  [`A_ID_WID]     arid,   //读请求的 ID 号,取指置为 0；取数置为 1
     output reg  [`DATA_WID]     araddr, //读请求的地址
-    output wire  [`A_LEN_WID]   arlen,  //读请求控制信号,请求传输的长度 (数据传输拍数),固定为 0
+    output reg  [`A_LEN_WID]    arlen,  //读请求控制信号,请求传输的长度 (数据传输拍数)
     output reg   [`A_SIZE_WID]  arsize, //读请求控制信号,请求传输的大小 (数据传输每拍的字节数)
     output wire  [`A_BURST_WID] arburst,//读请求控制信号,传输类型，固定为 0b01
     output wire  [`A_LOCK_WID]  arlock, //读请求控制信号,原子锁,固定为 0
@@ -144,7 +152,7 @@ module AXI_bridge(
             `IDLE:begin
                 if(~aresetn | ar_block)
                     ar_next_state = `IDLE;
-                else if(inst_sram_req & ~ inst_sram_wr | data_sram_req & ~data_sram_wr) 
+                else if(icache_rd_req | data_sram_req & ~data_sram_wr) 
                     ar_next_state = `START;
                 else 
                     ar_next_state = `IDLE;
@@ -193,7 +201,7 @@ module AXI_bridge(
                     r_next_state = `IDLE;
             end
             `START:begin
-                if(rready & rvalid)
+                if(rready & rvalid & rlast)
                     r_next_state = `FINISH;
                 else 
                     r_next_state = `START;
@@ -314,7 +322,6 @@ module AXI_bridge(
     ////////////////////////////读请求通道////////////////////////////
     
     //为固定值的信号赋值
-    assign arlen    = 'b0;
     assign arburst  = 2'b01;
     assign arlock   = 'b0;
     assign arcache  = 'b0;
@@ -325,16 +332,18 @@ module AXI_bridge(
 
     always @(posedge aclk)begin
         if(~aresetn)begin
-            {arid,araddr,arsize} <= 'b0;
+            {arid,araddr,arsize,arlen} <= 'b0;
         end else if(ar_state_idle)begin
             if(data_sram_req & ~data_sram_wr)begin
                 arid   <= 4'b1;
                 araddr <= data_sram_addr;
                 arsize <=(|data_sram_size) ? {data_sram_size,1'b0} : 3'b1;
-            end else if(inst_sram_req & ~inst_sram_wr)begin
+                arlen  <= 'b000;
+            end else if(icache_rd_req)begin
                 arid   <= 4'b0;
-                araddr <= inst_sram_addr;
-                arsize <={inst_sram_size,1'b0};
+                araddr <= icache_rd_addr;
+                arsize <=3'b010;
+                arlen  <={2{icache_rd_type[2]}};
             end
         end
     end
@@ -348,11 +357,11 @@ module AXI_bridge(
     always @(posedge aclk) begin
         if(~aresetn)
             r_cnt <= 2'b0;
-        else if(arvalid & arready & rvalid & rready)
+        else if(arvalid & arready & rvalid & rready & rlast)
             r_cnt <= r_cnt;
         else if(arvalid & arready)
             r_cnt <= r_cnt + 2'b1;
-        else if(rvalid & rready)
+        else if(rvalid & rready & rlast)
             r_cnt <= r_cnt - 2'b1;
     end
 
@@ -379,10 +388,8 @@ module AXI_bridge(
             if(data_sram_wr)begin
                 awaddr <= data_sram_addr;
                 awsize <= {1'b0,data_sram_size};
-            end else begin
-                awaddr <= inst_sram_addr;
-                awsize <= {1'b0,inst_sram_size};
-            end
+            end 
+            //inst cache do not need write
         end
     end
 
@@ -425,9 +432,20 @@ module AXI_bridge(
     assign is_data_r_buffer = rid_buffer[0];
     assign is_data_w_buffer = bid[0];
 
-    assign inst_sram_rdata = rdata_buffer[0];
-    assign inst_sram_addr_ok = ~is_data_r & arvalid & arready | ~is_data_w & awvalid & awready;
-    assign inst_sram_data_ok = ~is_data_r_buffer & r_state_finish | ~is_data_w_buffer & bvalid & bready;
+    // assign inst_sram_rdata = rdata_buffer[0];
+    // assign inst_sram_addr_ok = ~is_data_r & arvalid & arready | ~is_data_w & awvalid & awready;
+    // assign inst_sram_data_ok = ~is_data_r_buffer & r_state_finish | ~is_data_w_buffer & bvalid & bready;
+    assign icache_ret_data = rdata_buffer[0];
+    assign icache_rd_rdy = ar_state_idle;
+    assign icache_ret_last = r_state_finish & ~rid_buffer[0];
+    always @(posedge aclk) begin
+        if(~aresetn)
+            icache_ret_valid <= 1'b0;
+        else if(rvalid & rready & ~rid[0])
+            icache_ret_valid <= 1'b1;
+        else if(icache_ret_valid)
+            icache_ret_valid <= 1'b0;
+    end
 
     assign data_sram_rdata = rdata_buffer[1];
     assign data_sram_addr_ok = is_data_r & arvalid & arready | is_data_w & awvalid & awready; 
