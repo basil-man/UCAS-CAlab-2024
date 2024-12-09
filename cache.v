@@ -274,29 +274,9 @@ module cache(
     endgenerate
 
     // CPU interface
-    reg addr_ok_valid;
-    always @(posedge clk) begin
-        if (~resetn) begin
-            addr_ok_valid <= 1'b1;
-        end else if (addr_ok) begin
-            addr_ok_valid <= 1'b0;
-        end else if (current_state == IDLE) begin
-            addr_ok_valid <= 1'b1;
-        end
-    end
-    assign addr_ok = addr_ok_valid & ((current_state == IDLE) |
+    assign addr_ok = ((current_state == IDLE) |
                      ((current_state == LOOKUP) & valid & cache_hit & (op | (~op & ~hit_write_conflict))));
-    reg data_ok_valid;
-    always @(posedge clk) begin
-        if (~resetn) begin
-            data_ok_valid <= 1'b1;
-        end else if (data_ok) begin
-            data_ok_valid <= 1'b0;
-        end else if (current_state == IDLE) begin
-            data_ok_valid <= 1'b1;
-        end
-    end
-    assign data_ok = data_ok_valid & (((current_state == LOOKUP) & (cache_hit | op_reg)) |
+    assign data_ok = (((current_state == LOOKUP) & (cache_hit | op_reg)) |
                      ((current_state == REFILL) & ~op_reg & ret_valid & (ret_cnt == offset_reg[3:2])));
                      
     assign rdata   = ret_valid ? ret_data : hit_result; 
