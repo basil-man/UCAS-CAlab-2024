@@ -463,7 +463,7 @@ module IDreg(
     assign ds_rf_waddr = dest;
     wire space;
     assign {ws_rf_we, ws_rf_waddr, ws_rf_wdata}                  = ws_rf_collect;
-    assign {ms_res_from_mem,ms_csr_re,space, ms_rf_we, ms_rf_waddr, ms_rf_wdata} = ms_rf_collect;
+    assign {ms_res_from_mem,ms_csr_re, ms_rf_we, ms_rf_waddr, ms_rf_wdata} = ms_rf_collect;//1+1+1+1+5+32 = 41 ????
     assign {es_csr_re,es_res_from_mem, es_rf_we, es_rf_waddr, es_rf_wdata} = es_rf_collect;
     // assign ms_res_from_mem = ms_rf_collect[37];
     regfile u_regfile(

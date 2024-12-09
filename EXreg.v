@@ -334,7 +334,7 @@ module EXreg(
                             };
 
     assign es_rf_collect =  {
-                            csr_re,
+                            csr_re & es_valid,
                             bus_es_res_from_mem,
                             bus_we,//ds_to_es_csr_collect[64] is csr_we
                             es_rf_waddr,
