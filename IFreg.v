@@ -178,7 +178,7 @@ module IFreg(
             fs_inst_buf_valid <= 1'b0;
         end else if(fs_cancel)begin
             fs_inst_buf_valid <= 1'b0;
-        end else if(~fs_inst_buf_valid & inst_sram_data_ok & ~inst_cancel & ~pf_cancel)begin
+        end else if(~fs_inst_buf_valid & inst_sram_data_ok & ~inst_cancel & ~pf_cancel & fs_valid)begin
             fs_inst_buf <= fs_inst;
             fs_inst_buf_valid <= 1'b1;
         end
