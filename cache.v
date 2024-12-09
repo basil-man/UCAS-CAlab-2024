@@ -253,6 +253,7 @@ module cache(
     generate
         for (way = 0; way < 2; way = way + 1) begin: ram_generate // 例化2块
             TAG_RAM tagv_ram (
+                .ena(1'b1),
                 .clka (clk),
                 .wea  (tagv_we[way]),
                 .addra(tagv_addr),
@@ -261,6 +262,7 @@ module cache(
             );
             for(i = 0; i < 4; i = i + 1) begin: bank_ram_generate // 例化 2*4=8 块
                 DATA_BANK_RAM data_bank_ram(
+                    .ena(1'b1),
                     .clka (clk),
                     .wea  (data_bank_we[way][i]),
                     .addra(data_bank_addr[i]),
