@@ -115,7 +115,7 @@ module IFreg(
             ertn_entry_r <= ertn_entry;
             ertn_flush_r <= 1'b1;
         end    
-        else if(br_taken ) begin
+        else if(br_taken & ~(inst_sram_req & inst_sram_addr_ok) ) begin
             br_target_r <= br_target;
             br_taken_r <= 1'b1;
         end
