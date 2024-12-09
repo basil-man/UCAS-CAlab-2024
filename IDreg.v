@@ -241,10 +241,13 @@ module IDreg(
     assign br_stall       = ds_stall & branch_type;
 
     always @(posedge clk) begin
-        if (~resetn||except_flush||br_taken) begin
+        if (~resetn||except_flush) begin
             ds_valid <= 1'b0;
         end else if (ds_allowin) begin
-            ds_valid <= fs_to_ds_valid;
+            if(br_taken) 
+                ds_valid <= 1'b0;
+            else
+                ds_valid <= fs_to_ds_valid;
         end
     end
     

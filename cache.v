@@ -284,7 +284,7 @@ module cache(
             addr_ok_valid <= 1'b1;
         end
     end
-    assign addr_ok = addr_ok_valid & ((current_state == IDLE) |
+    assign addr_ok =  ((current_state == IDLE) |
                      ((current_state == LOOKUP) & valid & cache_hit & (op | (~op & ~hit_write_conflict))));
     reg data_ok_valid;
     always @(posedge clk) begin
@@ -296,7 +296,7 @@ module cache(
             data_ok_valid <= 1'b1;
         end
     end
-    assign data_ok = data_ok_valid & (((current_state == LOOKUP) & (cache_hit | op_reg)) |
+    assign data_ok = (((current_state == LOOKUP) & (cache_hit | op_reg)) |
                      ((current_state == REFILL) & ~op_reg & ret_valid & (ret_cnt == offset_reg[3:2])));
                      
     assign rdata   = ret_valid ? ret_data : hit_result; 
