@@ -19,7 +19,7 @@ module cache(
     input  wire         rd_rdy,     // 读请求能否被接收的握手信号。高电平有效
     input  wire         ret_valid,  // 返回数据有效信号后。高电平有效
     input  wire [  1:0] ret_last,   // 返回数据是一次读请求对应的最后一个返回数据
-    input  wire [ 32:0] ret_data,   // 读返回数据
+    input  wire [ 31:0] ret_data,   // 读返回数据
     output wire         wr_req,     // 写请求有效信号。高电平有效
     output wire [  3:0] wr_type,    // 写请求类型。3’b000——字节，3’b001——半字，3’b010——字，3’b100——Cache行
     output wire [ 31:0] wr_addr,    // 写请求起始地址
@@ -253,6 +253,7 @@ module cache(
     generate
         for (way = 0; way < 2; way = way + 1) begin: ram_generate // 例化2块
             TAG_RAM tagv_ram (
+                .ena(1'b1),
                 .clka (clk),
                 .wea  (tagv_we[way]),
                 .addra(tagv_addr),
@@ -261,6 +262,7 @@ module cache(
             );
             for(i = 0; i < 4; i = i + 1) begin: bank_ram_generate // 例化 2*4=8 块
                 DATA_BANK_RAM data_bank_ram(
+                    .ena(1'b1),
                     .clka (clk),
                     .wea  (data_bank_we[way][i]),
                     .addra(data_bank_addr[i]),
