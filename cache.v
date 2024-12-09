@@ -265,7 +265,7 @@ module cache(
                     .ena(1'b1),
                     .clka (clk),
                     .wea  (data_bank_we[way][i]),
-                    .addra(data_bank_addr[i]),
+                    .addra({'b0,data_bank_addr[i]}),
                     .dina (data_bank_wdata[i]),
                     .douta(data_bank_rdata[way][i])
                 );
