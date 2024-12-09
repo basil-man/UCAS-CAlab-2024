@@ -256,7 +256,7 @@ module cache(
                 .ena(1'b1),
                 .clka (clk),
                 .wea  (tagv_we[way]),
-                .addra(tagv_addr),
+                .addra({'b0,tagv_addr}),
                 .dina (tagv_wdata),
                 .douta(tagv_rdata[way]) 
             );
