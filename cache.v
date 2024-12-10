@@ -91,40 +91,40 @@ module cache(
         case (current_state)
             IDLE:
                 if (valid & ~hit_write_conflict) begin
-                    next_state <= LOOKUP;
+                    next_state = LOOKUP;
                 end else begin
-                    next_state <= IDLE;
+                    next_state = IDLE;
                 end
             LOOKUP:
                 if (cache_hit & (~valid | hit_write_conflict)) begin
-                    next_state <= IDLE;
+                    next_state = IDLE;
                 end else if (cache_hit & valid & (~hit_write_conflict)) begin
-                    next_state <= LOOKUP;
+                    next_state = LOOKUP;
                 end else if (~dirty_array[replace_way[index_reg]][index_reg] | ~tagv_rdata[replace_way[index_reg]][0]) begin 
-                    next_state <= REPLACE;
+                    next_state = REPLACE;
                 end else if (~cache_hit) begin
-                    next_state <= MISS;
+                    next_state = MISS;
                 end
             MISS:
                 if (~wr_rdy) begin
-                    next_state <= MISS;
+                    next_state = MISS;
                 end else begin
-                    next_state <= REPLACE;
+                    next_state = REPLACE;
                 end
             REPLACE:
                 if (~rd_rdy) begin
-                    next_state <= REPLACE;
+                    next_state = REPLACE;
                 end else begin
-                    next_state <= REFILL;
+                    next_state = REFILL;
                 end
             REFILL:
                 if (ret_valid & (ret_last == 'd1)) begin
-                    next_state <= IDLE;
+                    next_state = IDLE;
                 end else begin
-                    next_state <= REFILL;
+                    next_state = REFILL;
                 end
             default:
-                next_state <= IDLE;
+                next_state = IDLE;
         endcase
     end
 
@@ -141,18 +141,18 @@ module cache(
         case (wr_current_state)
             WR_IDLE:
                 if (hit_write) begin
-                    wr_next_state <= WR_WRITE;
+                    wr_next_state = WR_WRITE;
                 end else begin
-                    wr_next_state <= WR_IDLE;
+                    wr_next_state = WR_IDLE;
                 end
             WR_WRITE:
                 if (hit_write) begin
-                    wr_next_state <= WR_WRITE;
+                    wr_next_state = WR_WRITE;
                 end else begin
-                    wr_next_state <= WR_IDLE;
+                    wr_next_state = WR_IDLE;
                 end
             default:
-                wr_next_state <= WR_IDLE;
+                wr_next_state = WR_IDLE;
         endcase
     end
 
@@ -253,19 +253,19 @@ module cache(
     generate
         for (way = 0; way < 2; way = way + 1) begin: ram_generate // 例化2块
             TAG_RAM tagv_ram (
-                .ena(1'b1),
+                .ena(1),
                 .clka (clk),
                 .wea  (tagv_we[way]),
-                .addra({'b0,tagv_addr}),
+                .addra(tagv_addr),
                 .dina (tagv_wdata),
                 .douta(tagv_rdata[way]) 
             );
             for(i = 0; i < 4; i = i + 1) begin: bank_ram_generate // 例化 2*4=8 块
                 DATA_BANK_RAM data_bank_ram(
-                    .ena(1'b1),
+                    .ena(1),
                     .clka (clk),
                     .wea  (data_bank_we[way][i]),
-                    .addra({'b0,data_bank_addr[i]}),
+                    .addra(data_bank_addr[i]),
                     .dina (data_bank_wdata[i]),
                     .douta(data_bank_rdata[way][i])
                 );
