@@ -439,9 +439,9 @@ module mycpu_top(
         .ex_TLBR(data_ex_TLBR),
         .ex_PIx(data_ex_PIx),
         .ex_PPI(data_ex_PPI),
-        .ex_PME(data_ex_PME)
-        //.s1_vppn(s1_vppn),
-        //.s1_va_bit12(s1_va_bit12)
+        .ex_PME(data_ex_PME),
+        .s1_vppn(s1_vppn),
+        .s1_va_bit12(s1_va_bit12)
     );
 
     MEMreg my_memReg(
@@ -604,8 +604,8 @@ module mycpu_top(
         .s0_d       (s0_d),
         .s0_v       (s0_v),
 
-        .s1_vppn    (s1_vppn),
-        .s1_va_bit12(s1_va_bit12),
+        .s1_vppn    (data_va[31:13]),
+        .s1_va_bit12(data_va[12]),
         .s1_asid    (s1_asid),
         .s1_found   (s1_found),
         .s1_index   (s1_index),
