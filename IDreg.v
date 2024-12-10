@@ -236,7 +236,8 @@ module IDreg(
     assign ds_ready_go    = ~ds_stall;
     assign ds_allowin     = ~ds_valid | ds_ready_go & es_allowin;
     assign ds_stall       = (es_res_from_mem | es_csr_re) & (hazard_r1_exe & need_r1 | hazard_r2_exe & need_r2) |
-                            (ms_res_from_mem | ms_csr_re) & (hazard_r1_mem & need_r1 | hazard_r2_mem & need_r2);
+                            (ms_res_from_mem | ms_csr_re) & (hazard_r1_mem & need_r1 | hazard_r2_mem & need_r2) |
+                            inst_tlbsrch & (es_csr_re|ms_csr_re);
     assign ds_to_es_valid = ds_valid & ds_ready_go;
     assign br_stall       = ds_stall & branch_type;
 
@@ -483,8 +484,8 @@ module IDreg(
     assign hazard_r2_mem = (|rf_raddr2) & (rf_raddr2 == ms_rf_waddr) & ms_rf_we;
     assign hazard_r1_exe = (|rf_raddr1) & (rf_raddr1 == es_rf_waddr) & es_rf_we;
     assign hazard_r2_exe = (|rf_raddr2) & (rf_raddr2 == es_rf_waddr) & es_rf_we;
-    assign need_r1       = ~ds_src1_is_pc & (|ds_alu_op | inst_bne | inst_beq | inst_blt | inst_bge | inst_bltu | inst_bgeu);
-    assign need_r2       = ~ds_src2_is_imm & (|ds_alu_op | inst_bne | inst_beq | inst_blt | inst_bge | inst_bltu | inst_bgeu);
+    assign need_r1       = ~ds_src1_is_pc & (|ds_alu_op | inst_bne | inst_beq | inst_blt | inst_bge | inst_bltu | inst_bgeu | inst_csrxchg);
+    assign need_r2       = ~ds_src2_is_imm & (|ds_alu_op | inst_bne | inst_beq | inst_blt | inst_bge | inst_bltu | inst_bgeu | inst_csrwr | inst_csrxchg);
      
     assign rj_value =   hazard_r1_exe ? es_rf_wdata :
                         hazard_r1_mem ? ms_rf_wdata :
