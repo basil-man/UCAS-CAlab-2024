@@ -63,7 +63,7 @@ module MEMreg(
     assign ms_wait_data_ok  = ms_wait_data_ok_r & ms_valid & ~wb_ex;
     assign ms_ready_go      = ~ms_wait_data_ok | ms_wait_data_ok & data_sram_data_ok | (|ms_except);
     assign ms_allowin       = ~ms_valid | ms_ready_go & ws_allowin;     
-    assign ms_to_ws_valid   = ms_valid & ms_ready_go;
+    assign ms_to_ws_valid   = ms_valid & ms_ready_go & ~except_flush;
 
     always @(posedge clk) begin
         if (~resetn||except_flush) begin
@@ -120,7 +120,7 @@ module MEMreg(
                         {32{ ms_alu_result[1:0] == 2'b11}} & {{24{shift_rdata[31] & is_sign_extend}}, shift_rdata[31:24]};
     assign ms_mem_result = inst_ld_w ? word_rdata : ((inst_ld_h | inst_ld_hu) ? half_rdata : (inst_ld_b|inst_ld_bu) ? byte_rdata : 32'b0);
     assign ms_rf_wdata      = ms_res_from_mem ? ms_mem_result : ms_alu_result;
-    assign ms_rf_collect    = {ms_res_from_mem & ms_valid & ~ ms_to_ws_valid ,ms_csr_re,ms_rf_we & ms_valid, ms_rf_waddr, ms_rf_wdata}; // 1+1+1+5+32=40
+    assign ms_rf_collect    = {ms_res_from_mem & ms_valid & ~ ms_to_ws_valid ,ms_csr_re & ms_valid,ms_rf_we & ms_valid, ms_rf_waddr, ms_rf_wdata}; // 1+1+1+5+32=40
     assign vaddr=ms_alu_result;
 
     assign ms_to_ws_bus =   {

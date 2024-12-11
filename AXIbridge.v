@@ -152,7 +152,7 @@ module AXI_bridge(
             `IDLE:begin
                 if(~aresetn | ar_block)
                     ar_next_state = `IDLE;
-                else if(icache_rd_req | data_sram_req & ~data_sram_wr & ~(|r_cnt)) 
+                else if(icache_rd_req | (data_sram_req & ~data_sram_wr & ~(|r_cnt))) 
                     ar_next_state = `START;
                 else 
                     ar_next_state = `IDLE;
@@ -436,7 +436,7 @@ module AXI_bridge(
     // assign inst_sram_addr_ok = ~is_data_r & arvalid & arready | ~is_data_w & awvalid & awready;
     // assign inst_sram_data_ok = ~is_data_r_buffer & r_state_finish | ~is_data_w_buffer & bvalid & bready;
     assign icache_ret_data = rdata_buffer[0];
-    assign icache_rd_rdy = ar_state_idle & ~(data_sram_req & ~data_sram_wr);
+    assign icache_rd_rdy = ar_state_idle & ~(data_sram_req & ~data_sram_wr) & ~ar_block;
     assign icache_ret_last = r_state_finish & ~rid_buffer[0];
     always @(posedge aclk) begin
         if(~aresetn)
