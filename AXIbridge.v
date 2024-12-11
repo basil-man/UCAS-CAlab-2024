@@ -15,6 +15,7 @@ module AXI_bridge(
     // output wire [31:0]  inst_sram_rdata,    //该次请求返回的读数据。
     // output wire         inst_sram_addr_ok,  //该次请求的地址传输 OK，读：地址被接收；写：地址和数据被接收
     // output wire         inst_sram_data_ok,  //该次请求的数据传输 OK，读：数据返回；写：数据写入完成。
+    
     //inst cache
     input  wire        icache_rd_req,           // 读请求有效信号。高电平有效。
     input  wire [ 2:0] icache_rd_type,          // 读请求类型。3’b000——字节，3’b001——半字，3’b010——字，3’b100——Cache行
@@ -23,16 +24,31 @@ module AXI_bridge(
     output reg         icache_ret_valid,        // 返回数据有效信号后。高电平有效
     output wire        icache_ret_last,         // 返回数据是一次读请求对应的最后一个返回数据
     output wire [31:0] icache_ret_data,         // 读返回数据
-    // data sram 
-    input  wire        data_sram_req,
-    input  wire [ 3:0] data_sram_wstrb,
-    input  wire [31:0] data_sram_addr,
-    input  wire [31:0] data_sram_wdata,
-    input  wire        data_sram_wr,
-    input  wire [ 1:0] data_sram_size,
-    output wire        data_sram_addr_ok,
-    output wire [31:0] data_sram_rdata,
-    output wire        data_sram_data_ok,
+    // // data sram 
+    // input  wire        data_sram_req,
+    // input  wire [ 3:0] data_sram_wstrb,
+    // input  wire [31:0] data_sram_addr,
+    // input  wire [31:0] data_sram_wdata,
+    // input  wire        data_sram_wr,
+    // input  wire [ 1:0] data_sram_size,
+    // output wire        data_sram_addr_ok,
+    // output wire [31:0] data_sram_rdata,
+    // output wire        data_sram_data_ok,
+
+    //data cache
+    input  wire        dcache_rd_req,           // 读请求有效信号。高电平有效。
+    input  wire [ 2:0] dcache_rd_type,          // 读请求类型。3’b000——字节，3’b001——半字，3’b010——字，3’b100——Cache行
+    input  wire [31:0] dcache_rd_addr,          // 读请求起始地址
+    output wire        dcache_rd_rdy,           // 读请求能否被接收的握手信号。高电平有效
+    output reg         dcache_ret_valid,        // 返回数据有效信号后。高电平有效
+    output wire        dcache_ret_last,         // 返回数据是一次读请求对应的最后一个返回数据
+    output wire [31:0] dcache_ret_data,         // 读返回数据
+    input  wire        dcache_wr_req,
+    input  wire [ 2:0] dcache_wr_type,
+    input  wire [31:0] dcache_wr_addr,
+    input  wire [ 3:0] dcache_wr_wstrb,
+    input  wire [127:0]dcache_wr_data,
+    output wire        dcache_wr_rdy,
 
     //AXI
     //读请求通道,（以 ar 开头）
@@ -133,6 +149,10 @@ module AXI_bridge(
 
     reg debug_catch_defualt;
 
+    //dcache interface
+    wire dcache_req = dcache_rd_req | dcache_wr_req;
+    wire dcache_wr = |dcache_wr_wstrb;
+
     //////////////////////////////////////////////////////////////////////////
     //读请求通道状态机
     //////////////////////////////////////////////////////////////////////////
@@ -152,7 +172,7 @@ module AXI_bridge(
             `IDLE:begin
                 if(~aresetn | ar_block)
                     ar_next_state = `IDLE;
-                else if(icache_rd_req | (data_sram_req & ~data_sram_wr & ~(|r_cnt))) 
+                else if(icache_rd_req | (dcache_req & ~dcache_wr & ~(|r_cnt))) 
                     ar_next_state = `START;
                 else 
                     ar_next_state = `IDLE;
@@ -236,7 +256,7 @@ module AXI_bridge(
             `W_IDLE:begin
                 if(~aresetn)
                     w_next_state = `W_IDLE;
-                else if(data_sram_req & data_sram_wr)
+                else if(dcache_req & dcache_wr)
                     w_next_state = `W_START;
                 else 
                     w_next_state = `W_IDLE;
@@ -334,16 +354,16 @@ module AXI_bridge(
         if(~aresetn)begin
             {arid,araddr,arsize,arlen} <= 'b0;
         end else if(ar_state_idle)begin
-            if(data_sram_req & ~data_sram_wr)begin
+            if(dcache_req & ~dcache_wr)begin
                 arid   <= 4'b1;
-                araddr <= data_sram_addr;
-                arsize <=(|data_sram_size) ? {data_sram_size,1'b0} : 3'b1;
-                arlen  <= 'b000;
+                araddr <= dcache_rd_addr;
+                arsize <= 3'b010;
+                arlen  <= {2{icache_rd_type[2]}};
             end else if(icache_rd_req)begin
                 arid   <= 4'b0;
                 araddr <= icache_rd_addr;
-                arsize <=3'b010;
-                arlen  <={2{icache_rd_type[2]}};
+                arsize <= 3'b010;
+                arlen  <= {2{icache_rd_type[2]}};
             end
         end
     end
@@ -385,9 +405,9 @@ module AXI_bridge(
         if(~aresetn)begin
             {awaddr,awsize} <= 'b0;
         end else if(w_state_idle)begin
-            if(data_sram_wr)begin
-                awaddr <= data_sram_addr;
-                awsize <= {1'b0,data_sram_size};
+            if(dcache_wr)begin
+                awaddr <= dcache_wr_addr;
+                awsize <= dcache_wr_type;
             end 
             //inst cache do not need write
         end
@@ -397,8 +417,8 @@ module AXI_bridge(
         if(~aresetn)begin
             {wdata,wstrb}   <= 'b0;
         end else if (w_state_idle)begin
-            wstrb <= data_sram_wstrb;
-            wdata <= data_sram_wdata;
+            wstrb <= dcache_wr_wstrb;
+            wdata <= dcache_wr_data;
         end
     end
 
@@ -436,7 +456,7 @@ module AXI_bridge(
     // assign inst_sram_addr_ok = ~is_data_r & arvalid & arready | ~is_data_w & awvalid & awready;
     // assign inst_sram_data_ok = ~is_data_r_buffer & r_state_finish | ~is_data_w_buffer & bvalid & bready;
     assign icache_ret_data = rdata_buffer[0];
-    assign icache_rd_rdy = ar_state_idle & ~(data_sram_req & ~data_sram_wr) & ~ar_block;
+    assign icache_rd_rdy = ar_state_idle & ~(dcache_req & ~dcache_wr) & ~ar_block;
     assign icache_ret_last = r_state_finish & ~rid_buffer[0];
     always @(posedge aclk) begin
         if(~aresetn)
@@ -447,8 +467,15 @@ module AXI_bridge(
             icache_ret_valid <= 1'b0;
     end
 
-    assign data_sram_rdata = rdata_buffer[1];
-    assign data_sram_addr_ok = is_data_r & arvalid & arready | is_data_w & awvalid & awready; 
-    assign data_sram_data_ok = is_data_r_buffer & r_state_finish | is_data_w_buffer & bvalid & bready;
+    // assign data_sram_rdata = rdata_buffer[1];
+    // assign data_sram_addr_ok = is_data_r & arvalid & arready | is_data_w & awvalid & awready; 
+    // assign data_sram_data_ok = is_data_r_buffer & r_state_finish | is_data_w_buffer & bvalid & bready;
+        //data cache
+
+    assign dcache_ret_data = rdata_buffer[1];
+    assign dcache_rd_rdy = r_state_idle & dcache_req & ~dcache_wr;
+    assign dcache_ret_last = r_state_finish & ~rid_buffer[1];
+    assign dcache_wr_rdy = w_state_idle & dcache_wr;
+
 
 endmodule

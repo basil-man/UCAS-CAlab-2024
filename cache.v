@@ -20,6 +20,7 @@ module cache(
     input  wire         ret_valid,  // 返回数据有效信号后。高电平有效
     input  wire [  1:0] ret_last,   // 返回数据是一次读请求对应的最后一个返回数据
     input  wire [ 31:0] ret_data,   // 读返回数据
+    
     output wire         wr_req,     // 写请求有效信号。高电平有效
     output wire [  2:0] wr_type,    // 写请求类型。3’b000——字节，3’b001——半字，3’b010——字，3’b100——Cache行
     output wire [ 31:0] wr_addr,    // 写请求起始地址
