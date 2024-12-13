@@ -26,7 +26,10 @@ module cache(
     output wire [ 31:0] wr_addr,    // 写请求起始地址
     output wire [  3:0] wr_wstrb,   // 写操作的字节掩码。仅在写请求类型为3’b000、3’b001、3’b010情况下才有意义
     output wire [127:0] wr_data,    // 写数据
-    input  wire         wr_rdy      // 写请求能否被接收的握手信号。高电平有效。此处要求wr_rdy要先于wr_req置起，wr_req看到wr_rdy后才可能置上1
+    input  wire         wr_rdy,     // 写请求能否被接收的握手信号。高电平有效。此处要求wr_rdy要先于wr_req置起，wr_req看到wr_rdy后才可能置上1
+
+    //exp22
+    input  wire         cacheable   //是否可缓存,0——强序非缓存，1——一致可缓存
 );
 
     wire        hit_write_conflict;

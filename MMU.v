@@ -6,6 +6,7 @@ module MMU(
     //va & pa
     input  wire [31:0] va,
     output wire [31:0] pa,
+    output wire        cacheable,
 
     //tlb interface
     output wire [18:0] s_vppn,
@@ -24,6 +25,7 @@ module MMU(
     input  wire [31:0] csr_dmw0_data,
     input  wire [31:0] csr_dmw1_data,
     input  wire [31:0] csr_asid_data,
+    
     //exception  
     output wire        ex_TLBR,
     output wire        ex_PIx,
@@ -77,6 +79,10 @@ module MMU(
                   : dmw0_hit    ? dmw_pa0
                   : dmw1_hit    ? dmw_pa1
                   : tlb_pa; 
+
+    //cacheable
+    assign cacheable = direct_mode ? 1'b1 //!!!need be modified
+                        :s_mat[0];
     
     //exception
     assign ex_TLBR = tlb_map & (~s_found);

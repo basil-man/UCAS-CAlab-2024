@@ -55,7 +55,8 @@ module EXreg(
     input  wire        ex_PPI,
     input  wire        ex_PME,
     output wire [18:0] s1_vppn,
-    output wire        s1_va_bit12
+    output wire        s1_va_bit12,
+    input  wire        cacheable
 );
 
     //debug signalse

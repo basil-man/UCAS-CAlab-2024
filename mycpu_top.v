@@ -222,6 +222,7 @@ module mycpu_top(
     wire [31:0]              inst_pa;
     wire [31:0]              data_va;
     wire [31:0]              data_pa;
+    wire                     data_cacheable;   
 
     wire [9:0]               es_asid;
 
@@ -463,7 +464,8 @@ module mycpu_top(
         .ex_PPI(data_ex_PPI),
         .ex_PME(data_ex_PME),
         .s1_vppn(s1_vppn),
-        .s1_va_bit12(s1_va_bit12)
+        .s1_va_bit12(s1_va_bit12),
+        .cacheable(data_cacheable)
     );
 
     MEMreg my_memReg(
@@ -718,6 +720,7 @@ module mycpu_top(
         //va & pa
         .va(data_va),
         .pa(data_pa),
+        .cacheable(data_cacheable),
 
         //tlb interface
         .s_vppn(),
@@ -767,7 +770,9 @@ module mycpu_top(
         .rd_rdy     (icache_rd_rdy),
         .ret_valid  (icache_ret_valid),
         .ret_last   ({1'b0,icache_ret_last}),
-        .ret_data   (icache_ret_data)
+        .ret_data   (icache_ret_data),
+
+        .cacheable  (1'b1)
     );
 
 
@@ -800,7 +805,9 @@ module mycpu_top(
         .wr_addr    (dcache_wr_addr),
         .wr_data    (dcache_wr_data),
         .wr_wstrb    (dcache_wr_strb),
-        .wr_rdy     (dcache_wr_rdy)
+        .wr_rdy     (dcache_wr_rdy),
+
+        .cacheable  (data_cacheable)
 
     );
 endmodule
