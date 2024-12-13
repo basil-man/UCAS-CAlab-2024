@@ -33,3 +33,13 @@
 phk: test new branch
 
 rhl: cnm sb phk wo shi ni die
+
+zc:
+
+TODO:
+
+1. MMU中cacheable信号的正确获取
+
+2. cache中对非缓存类型的处理
+
+3. continue debug
