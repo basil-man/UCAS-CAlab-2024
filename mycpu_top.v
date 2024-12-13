@@ -247,6 +247,23 @@ module mycpu_top(
     wire        icache_ret_last;
     wire [31:0] icache_ret_data;
 
+    //exp22 dcache
+
+    wire        dcache_rd_req;
+    wire [ 2:0] dcache_rd_type;
+    wire [31:0] dcache_rd_addr;
+    wire        dcache_rd_rdy;
+    wire        dcache_ret_valid;
+    wire        dcache_ret_last;
+    wire [31:0] dcache_ret_data;
+
+    wire        dcache_wr_req;
+    wire [ 2:0] dcache_wr_type;
+    wire [31:0] dcache_wr_addr;
+    wire [ 3:0] dcache_wr_strb;
+    wire[127:0] dcache_wr_data;
+    wire        dcache_wr_rdy;
+
     AXI_bridge my_AXIbridge(
         .aclk(clk),
         .aresetn(resetn),
@@ -259,15 +276,20 @@ module mycpu_top(
         .icache_ret_last(icache_ret_last),
         .icache_ret_data(icache_ret_data),
 
-        .data_sram_req(data_sram_req),
-        .data_sram_wstrb(data_sram_wstrb),
-        .data_sram_addr(data_sram_addr),
-        .data_sram_wdata(data_sram_wdata),
-        .data_sram_wr(data_sram_wr),
-        .data_sram_size(data_sram_size),
-        .data_sram_addr_ok(data_sram_addr_ok),
-        .data_sram_rdata(data_sram_rdata),
-        .data_sram_data_ok(data_sram_data_ok),
+        .dcache_rd_req      (dcache_rd_req      ),
+        .dcache_rd_type     (dcache_rd_type     ),
+        .dcache_rd_addr     (dcache_rd_addr     ),
+        .dcache_rd_rdy      (dcache_rd_rdy      ),
+        .dcache_ret_valid   (dcache_ret_valid   ),
+        .dcache_ret_last    (dcache_ret_last    ),
+        .dcache_ret_data    (dcache_ret_data    ),
+
+        .dcache_wr_req      (dcache_wr_req      ),
+        .dcache_wr_type     (dcache_wr_type     ),
+        .dcache_wr_addr     (dcache_wr_addr     ),
+        .dcache_wr_wstrb    (dcache_wr_wstrb    ),
+        .dcache_wr_data     (dcache_wr_data     ),
+        .dcache_wr_rdy      (dcache_wr_rdy      ),
 
         .arid(arid),
         .araddr(araddr),
@@ -746,5 +768,39 @@ module mycpu_top(
         .ret_valid  (icache_ret_valid),
         .ret_last   ({1'b0,icache_ret_last}),
         .ret_data   (icache_ret_data)
+    );
+
+
+    cache dcache(
+        .clk(aclk),
+        .resetn(aresetn),
+
+        .valid      (data_sram_req),
+        .op         (data_sram_wr),
+
+        .index      (data_sram_addr[11:4]),
+        .tag        (data_sram_addr[31:12]),
+        .offset     (data_sram_addr[3:0]),
+        .wstrb      (data_sram_wstrb),
+        .wdata      (data_sram_wdata),
+        .addr_ok    (data_sram_addr_ok),
+        .data_ok    (data_sram_data_ok),
+        .rdata      (data_sram_rdata),
+
+        .rd_req     (dcache_rd_req),
+        .rd_type    (dcache_rd_type),
+        .rd_addr    (dcache_rd_addr),
+        .rd_rdy     (dcache_rd_rdy),
+        .ret_valid  (dcache_ret_valid),
+        .ret_last   ({1'b0,dcache_ret_last}),
+        .ret_data   (dcache_ret_data),
+
+        .wr_req     (dcache_wr_req),
+        .wr_type    (dcache_wr_type),
+        .wr_addr    (dcache_wr_addr),
+        .wr_data    (dcache_wr_data),
+        .wr_wstrb    (dcache_wr_strb),
+        .wr_rdy     (dcache_wr_rdy)
+
     );
 endmodule
