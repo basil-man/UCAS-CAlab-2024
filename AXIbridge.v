@@ -158,7 +158,7 @@ module AXI_bridge(
             `IDLE:begin
                 if(~aresetn | ar_block)
                     ar_next_state = `IDLE;
-                else if((icache_rd_req | dcache_rd_req) & ~(|r_cnt)) 
+                else if((icache_rd_req | dcache_rd_req) ) 
                     ar_next_state = `START;
                 else 
                     ar_next_state = `IDLE;
