@@ -788,7 +788,7 @@ module mycpu_top(
         .rd_addr    (dcache_rd_addr),
         .rd_rdy     (dcache_rd_rdy),
         .ret_valid  (dcache_ret_valid),
-        .ret_last   (dcache_ret_last),
+        .ret_last   ({1'b0,dcache_ret_last}),
         .ret_data   (dcache_ret_data),
         .wr_req     (dcache_wr_req),
         .wr_type    (dcache_wr_type),

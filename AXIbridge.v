@@ -172,7 +172,7 @@ module AXI_bridge(
             `IDLE:begin
                 if(~aresetn | ar_block)
                     ar_next_state = `IDLE;
-                else if(icache_rd_req | (dcache_req & ~dcache_wr & ~(|r_cnt))) 
+                else if(icache_rd_req | (dcache_rd_req & ~(|r_cnt))) 
                     ar_next_state = `START;
                 else 
                     ar_next_state = `IDLE;
@@ -256,7 +256,7 @@ module AXI_bridge(
             `W_IDLE:begin
                 if(~aresetn)
                     w_next_state = `W_IDLE;
-                else if(dcache_req & dcache_wr)
+                else if(dcache_wr_req)
                     w_next_state = `W_START;
                 else 
                     w_next_state = `W_IDLE;
@@ -354,7 +354,7 @@ module AXI_bridge(
         if(~aresetn)begin
             {arid,araddr,arsize,arlen} <= 'b0;
         end else if(ar_state_idle)begin
-            if(dcache_req & ~dcache_wr)begin
+            if(dcache_rd_req)begin
                 arid   <= 4'b1;
                 araddr <= dcache_rd_addr;
                 arsize <= 3'b010;
@@ -456,7 +456,7 @@ module AXI_bridge(
     // assign inst_sram_addr_ok = ~is_data_r & arvalid & arready | ~is_data_w & awvalid & awready;
     // assign inst_sram_data_ok = ~is_data_r_buffer & r_state_finish | ~is_data_w_buffer & bvalid & bready;
     assign icache_ret_data = rdata_buffer[0];
-    assign icache_rd_rdy = ar_state_idle & ~(dcache_req & ~dcache_wr) & ~ar_block;
+    assign icache_rd_rdy = ar_state_idle & ~(dcache_rd_req) & ~ar_block;
     assign icache_ret_last = r_state_finish & ~rid_buffer[0];
     always @(posedge aclk) begin
         if(~aresetn)
@@ -473,9 +473,17 @@ module AXI_bridge(
         //data cache
 
     assign dcache_ret_data = rdata_buffer[1];
-    assign dcache_rd_rdy = r_state_idle & dcache_req & ~dcache_wr;
-    assign dcache_ret_last = r_state_finish & ~rid_buffer[1];
+    assign dcache_rd_rdy = ar_state_idle & dcache_rd_req & ~|r_cnt;
+    assign dcache_ret_last = r_state_finish & rid_buffer[0];
     assign dcache_wr_rdy = w_state_idle & dcache_wr;
+    always @(posedge aclk) begin
+        if(~aresetn)
+            dcache_ret_valid <= 1'b0;
+        else if(rvalid & rready & rid[0])
+            dcache_ret_valid <= 1'b1;
+        else if(dcache_ret_valid)
+            dcache_ret_valid <= 1'b0;
+    end
 
 
 endmodule
