@@ -14,7 +14,7 @@ module cache(
     output wire [ 31:0] rdata,      // 读Cache的结果
     // AXI interface
     output wire         rd_req,     // 读请求有效信号。高电平有效。
-    output wire [  3:0] rd_type,    // 读请求类型。3’b000——字节，3’b001——半字，3’b010——字，3’b100——Cache行
+    output wire [  2:0] rd_type,    // 读请求类型。3’b000——字节，3’b001——半字，3’b010——字，3’b100——Cache行
     output wire [ 31:0] rd_addr,    // 读请求起始地址
     input  wire         rd_rdy,     // 读请求能否被接收的握手信号。高电平有效
     input  wire         ret_valid,  // 返回数据有效信号后。高电平有效
@@ -22,7 +22,7 @@ module cache(
     input  wire [ 31:0] ret_data,   // 读返回数据
 
     output wire         wr_req,     // 写请求有效信号。高电平有效
-    output wire [  3:0] wr_type,    // 写请求类型。3’b000——字节，3’b001——半字，3’b010——字，3’b100——Cache行
+    output wire [  2:0] wr_type,    // 写请求类型。3’b000——字节，3’b001——半字，3’b010——字，3’b100——Cache行
     output wire [ 31:0] wr_addr,    // 写请求起始地址
     output wire [  3:0] wr_wstrb,   // 写操作的字节掩码。仅在写请求类型为3’b000、3’b001、3’b010情况下才有意义
     output wire [127:0] wr_data,    // 写数据

@@ -804,7 +804,7 @@ module mycpu_top(
         .wr_type    (dcache_wr_type),
         .wr_addr    (dcache_wr_addr),
         .wr_data    (dcache_wr_data),
-        .wr_wstrb    (dcache_wr_strb),
+        .wr_wstrb   (dcache_wr_strb),
         .wr_rdy     (dcache_wr_rdy),
 
         .cacheable  (data_cacheable)
