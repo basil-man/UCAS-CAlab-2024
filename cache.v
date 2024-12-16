@@ -85,6 +85,8 @@ module cache(
     reg [1:0] wr_current_state;
     reg [1:0] wr_next_state;
 
+    wire [31:0] debug_addr_reg  = {tag_reg, index_reg, offset_reg}; 
+
     genvar i, way;
 
     // main state machine
@@ -180,7 +182,12 @@ module cache(
         if (~resetn) begin
             {wrbuf_way, wrbuf_index, wrbuf_offset, wrbuf_wstrb, wrbuf_wdata} <= 'd0;
         end else if (hit_write) begin
-            {wrbuf_way, wrbuf_index, wrbuf_offset, wrbuf_wstrb, wrbuf_wdata} <= {hit_way[1], index_reg, offset_reg, wstrb_reg, wdata_reg};
+            {wrbuf_way, wrbuf_index, wrbuf_offset, wrbuf_wstrb} <= {hit_way[1], index_reg, offset_reg, wstrb_reg};
+            wrbuf_wdata <= {wstrb_reg[3] ? wdata_reg[31:24] : hit_result[31:24],
+                            wstrb_reg[2] ? wdata_reg[23:16] : hit_result[23:16],
+                            wstrb_reg[1] ? wdata_reg[15: 8] : hit_result[15: 8],
+                            wstrb_reg[0] ? wdata_reg[ 7: 0] : hit_result[ 7: 0]
+                            };//just for debug,the real strb control logic is in data_bank_we
         end
     end
 
@@ -251,22 +258,23 @@ module cache(
         end
     end
 
+    wire [31:0] final_wdata = {wstrb_reg[3] ? wdata_reg[31:24] : ret_data[31:24],
+                              wstrb_reg[2] ? wdata_reg[23:16] : ret_data[23:16],
+                              wstrb_reg[1] ? wdata_reg[15: 8] : ret_data[15: 8],
+                              wstrb_reg[0] ? wdata_reg[ 7: 0] : ret_data[ 7: 0]
+                              };
+
     // RAM port
     generate
         for (i = 0; i < 4; i = i + 1) begin: data_bank
             for (way = 0; way < 2; way = way + 1) begin: data_bank_we_value
-                assign data_bank_we[way][i] = {4{(wr_current_state == WR_WRITE) & (wrbuf_offset[3:2] == i) & (wrbuf_way == way)}} & wrbuf_wstrb
+                assign data_bank_we[way][i] = {4{(wr_current_state == WR_WRITE) & (wrbuf_offset[3:2] == i) & (wrbuf_way == way)}}// & wrbuf_wstrb //hit
                                             | {4{ret_valid & (ret_cnt == i) & replace_way[index_reg] == way}} & {4{cacheable_reg}};
             end
             assign data_bank_addr[i]  = ((current_state == IDLE) || (current_state == LOOKUP)) ? index : index_reg;
             assign data_bank_wdata[i] = (wr_current_state == WR_WRITE) ? wrbuf_wdata :
                                         (offset_reg[3:2] != i || ~op_reg)? ret_data :
-                                        {
-                                        wstrb_reg[3] ? wdata_reg[31:24] : ret_data[31:24],
-                                        wstrb_reg[2] ? wdata_reg[23:16] : ret_data[23:16],
-                                        wstrb_reg[1] ? wdata_reg[15: 8] : ret_data[15: 8],
-                                        wstrb_reg[0] ? wdata_reg[ 7: 0] : ret_data[ 7: 0]
-                                        };
+                                        final_wdata;
         end
     endgenerate
 
