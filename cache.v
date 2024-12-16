@@ -128,7 +128,7 @@ module cache(
                     next_state <= REFILL;
                 end
             REFILL:
-                if (ret_valid & (ret_last == 'd1) | ~(cacheable_reg | ~op_reg) ) begin //非缓存写并不需要等待读完成
+                if (ret_valid & (ret_last[0] == 1'd1) | ~(cacheable_reg | ~op_reg) ) begin //非缓存写并不需要等待读完成
                     next_state <= IDLE;
                 end else begin
                     next_state <= REFILL;
@@ -246,7 +246,7 @@ module cache(
             dirty_array[1] <= 'd0;
         end else if (wr_current_state == WR_WRITE) begin
             dirty_array[wrbuf_way][wrbuf_index] <= 1'b1;
-        end else if (ret_valid & (ret_last == 'd1)) begin
+        end else if (ret_valid & (ret_last[0] == 1'd1)) begin
             dirty_array[wrbuf_way][wrbuf_index] <= op_reg;
         end
     end
