@@ -296,8 +296,8 @@ module cache(
 
     assign addr_ok =  ((current_state == IDLE) |
                      ((current_state == LOOKUP) & valid & cache_hit & (op | (~op & ~hit_write_conflict)) & cacheable));
-    assign data_ok = (((current_state == LOOKUP) & (cache_hit | op_reg)) |
-                     ((current_state == REFILL) & ~op_reg & ret_valid & (ret_cnt == offset_reg[3:2])));
+    assign data_ok = ((((current_state == LOOKUP) & (cache_hit | op_reg)) |
+                     ((current_state == REFILL) & ~op_reg & ret_valid & (ret_cnt == offset_reg[3:2]))) & (~hit_write)) | (wr_current_state == WR_WRITE && wr_next_state == WR_IDLE);
                      
     assign rdata   = ret_valid ? ret_data : hit_result; 
 
