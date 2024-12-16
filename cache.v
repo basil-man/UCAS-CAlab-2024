@@ -258,19 +258,17 @@ module cache(
     generate
         for (way = 0; way < 2; way = way + 1) begin: ram_generate // 例化2块
             TAG_RAM tagv_ram (
-                .ena(1'b1),
                 .clka (clk),
                 .wea  (tagv_we[way]),
-                .addra({'b0,tagv_addr}),
+                .addra(tagv_addr),
                 .dina (tagv_wdata),
                 .douta(tagv_rdata[way]) 
             );
             for(i = 0; i < 4; i = i + 1) begin: bank_ram_generate // 例化 2*4=8 块
                 DATA_BANK_RAM data_bank_ram(
-                    .ena(1'b1),
                     .clka (clk),
                     .wea  (data_bank_we[way][i]),
-                    .addra({'b0,data_bank_addr[i]}),
+                    .addra(data_bank_addr[i]),
                     .dina (data_bank_wdata[i]),
                     .douta(data_bank_rdata[way][i])
                 );
@@ -301,8 +299,8 @@ module cache(
             data_ok_valid <= 1'b1;
         end
     end
-    assign data_ok = (((current_state == LOOKUP) & (cache_hit | op_reg)) |
-                     ((current_state == REFILL) & ~op_reg & ret_valid & (ret_cnt == offset_reg[3:2])));
+    assign data_ok = ((((current_state == LOOKUP) & (cache_hit | op_reg)) |
+                     ((current_state == REFILL) & ~op_reg & ret_valid & (ret_cnt == offset_reg[3:2]))) & (~hit_write)) | (wr_current_state == WR_WRITE && wr_next_state == WR_IDLE);
                      
     assign rdata   = ret_valid ? ret_data : hit_result; 
 
