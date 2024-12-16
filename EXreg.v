@@ -56,7 +56,7 @@ module EXreg(
     input  wire        ex_PME,
     output wire [18:0] s1_vppn,
     output wire        s1_va_bit12,
-    input  wire        cacheable
+    input  wire        cacheable //may be useless?
 );
 
     //debug signalse
@@ -69,7 +69,7 @@ module EXreg(
     wire mul_insts     = inst_mul_w | inst_mulh_w | inst_mulh_wu; //mul insts
     
     //mul & div results
-    wire [31:0]mul_result;
+    wire [31:0] mul_result;
     wire [31:0] div_result;
     wire [31:0] mod_result;
     wire [63:0] unsigned_prod, signed_prod;

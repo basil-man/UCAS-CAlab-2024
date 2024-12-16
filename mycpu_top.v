@@ -135,15 +135,15 @@ module mycpu_top(
     wire [31:0]  inst_sram_rdata;
     wire         inst_sram_addr_ok;
     wire         inst_sram_data_ok;
-    wire        data_sram_req;
-    wire [ 3:0] data_sram_wstrb;
-    wire [31:0] data_sram_addr;
-    wire [31:0] data_sram_wdata;
-    wire        data_sram_wr;
-    wire [ 1:0] data_sram_size;
-    wire        data_sram_addr_ok;
-    wire [31:0] data_sram_rdata;
-    wire        data_sram_data_ok;
+    wire         data_sram_req;
+    wire [ 3:0]  data_sram_wstrb;
+    wire [31:0]  data_sram_addr;
+    wire [31:0]  data_sram_wdata;
+    wire         data_sram_wr;
+    wire [ 1:0]  data_sram_size;
+    wire         data_sram_addr_ok;
+    wire [31:0]  data_sram_rdata;
+    wire         data_sram_data_ok;
 
     wire [`T_VPPN_WID]  s0_vppn;
     wire                s0_va_bit12;
@@ -253,6 +253,7 @@ module mycpu_top(
     wire        dcache_rd_req;
     wire [ 2:0] dcache_rd_type;
     wire [31:0] dcache_rd_addr;
+    wire        dcache_rd_cacheable;
     wire        dcache_rd_rdy;
     wire        dcache_ret_valid;
     wire        dcache_ret_last;
@@ -261,6 +262,7 @@ module mycpu_top(
     wire        dcache_wr_req;
     wire [ 2:0] dcache_wr_type;
     wire [31:0] dcache_wr_addr;
+    wire        dcache_wr_cacheable;
     wire [ 3:0] dcache_wr_strb;
     wire[127:0] dcache_wr_data;
     wire        dcache_wr_rdy;
@@ -772,7 +774,7 @@ module mycpu_top(
         .ret_last   ({1'b0,icache_ret_last}),
         .ret_data   (icache_ret_data),
 
-        .cacheable  (1'b1)
+        .cacheable  (1'b0) //temporary set to 0 to test uncacheable situation
     );
 
 
@@ -795,6 +797,7 @@ module mycpu_top(
         .rd_req     (dcache_rd_req),
         .rd_type    (dcache_rd_type),
         .rd_addr    (dcache_rd_addr),
+        // .rd_cacheable(dcache_rd_cacheable),
         .rd_rdy     (dcache_rd_rdy),
         .ret_valid  (dcache_ret_valid),
         .ret_last   ({1'b0,dcache_ret_last}),
@@ -805,6 +808,7 @@ module mycpu_top(
         .wr_addr    (dcache_wr_addr),
         .wr_data    (dcache_wr_data),
         .wr_wstrb   (dcache_wr_strb),
+        .wr_cacheable(dcache_wr_cacheable),
         .wr_rdy     (dcache_wr_rdy),
 
         .cacheable  (data_cacheable)

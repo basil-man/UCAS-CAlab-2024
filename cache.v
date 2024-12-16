@@ -16,6 +16,7 @@ module cache(
     output wire         rd_req,     // 读请求有效信号。高电平有效。
     output wire [  2:0] rd_type,    // 读请求类型。3’b000——字节，3’b001——半字，3’b010——字，3’b100——Cache行
     output wire [ 31:0] rd_addr,    // 读请求起始地址
+    // output wire         rd_cacheable,//是否可缓存,0——强序非缓存，1——一致可缓存;(maybe not used??)
     input  wire         rd_rdy,     // 读请求能否被接收的握手信号。高电平有效
     input  wire         ret_valid,  // 返回数据有效信号后。高电平有效
     input  wire [  1:0] ret_last,   // 返回数据是一次读请求对应的最后一个返回数据
@@ -26,6 +27,7 @@ module cache(
     output wire [ 31:0] wr_addr,    // 写请求起始地址
     output wire [  3:0] wr_wstrb,   // 写操作的字节掩码。仅在写请求类型为3’b000、3’b001、3’b010情况下才有意义
     output wire [127:0] wr_data,    // 写数据
+    output wire         wr_cacheable,//是否可缓存,0——强序非缓存，1——一致可缓存
     input  wire         wr_rdy,     // 写请求能否被接收的握手信号。高电平有效。此处要求wr_rdy要先于wr_req置起，wr_req看到wr_rdy后才可能置上1
 
     //exp22
@@ -66,6 +68,9 @@ module cache(
     reg [255:0] replace_way;
 
     reg [1:0] ret_cnt;
+    reg       ret_last_r;
+
+    reg cacheable_reg;
 
     parameter IDLE    = 5'b00001;
     parameter LOOKUP  = 5'b00010;
@@ -117,13 +122,13 @@ module cache(
                 end
                 
             REPLACE:
-                if (~rd_rdy) begin
+                if (~rd_rdy & (cacheable_reg | ~op_reg)) begin //非缓存写并不需要读
                     next_state <= REPLACE;
                 end else begin
                     next_state <= REFILL;
                 end
             REFILL:
-                if (ret_valid & (ret_last == 'd1)) begin
+                if (ret_valid & (ret_last == 'd1) | ~(cacheable_reg | ~op_reg) ) begin //非缓存写并不需要等待读完成
                     next_state <= IDLE;
                 end else begin
                     next_state <= REFILL;
@@ -164,9 +169,9 @@ module cache(
     // request buffer: op、index、tag、offset、wstrb、wdata
     always @(posedge clk) begin
         if (~resetn) begin
-            {op_reg, index_reg, tag_reg, offset_reg, wstrb_reg, wdata_reg} <= 'd0;
+            {op_reg, index_reg, tag_reg, offset_reg, wstrb_reg, wdata_reg,cacheable_reg} <= 'd0;
         end else if (valid & addr_ok) begin
-            {op_reg, index_reg, tag_reg, offset_reg, wstrb_reg, wdata_reg} <= {op, index, tag, offset, wstrb, wdata};
+            {op_reg, index_reg, tag_reg, offset_reg, wstrb_reg, wdata_reg,cacheable_reg} <= {op, index, tag, offset, wstrb, wdata,cacheable};
         end
     end
 
@@ -180,6 +185,15 @@ module cache(
     end
 
     // miss buffer
+
+    // always @(posedge clk) begin
+    //     if(~resetn) begin
+    //         ret_last_r <= 'd0;
+    //     end else begin
+    //         ret_last_r <= ret_last;
+    //     end
+    // end
+
     always @(posedge clk) begin
         if (~resetn) begin
             ret_cnt <= 'd0;
@@ -193,22 +207,22 @@ module cache(
     end
 
     // hit / match
-    assign hit_way[0] = tagv_rdata[0][0] & (tagv_rdata[0][20:1] == tag_reg);
-    assign hit_way[1] = tagv_rdata[1][0] & (tagv_rdata[1][20:1] == tag_reg);
-    assign cache_hit = |hit_way;
+    assign hit_way[0] = tagv_rdata[0][0] & (tagv_rdata[0][20:1] == tag_reg)& cacheable_reg;
+    assign hit_way[1] = tagv_rdata[1][0] & (tagv_rdata[1][20:1] == tag_reg)& cacheable_reg;
+    assign cache_hit = (|hit_way) ; //cache_hit always = 0 when cacheable = 0
 
-    assign hit_write = (current_state == LOOKUP) & cache_hit & op_reg;
+    assign hit_write = (current_state == LOOKUP) & cache_hit & op_reg & cacheable_reg;//hit_write always = 0 when cacheable = 0
     assign hit_write_conflict = (hit_write | wr_current_state == WR_WRITE) & valid & ~op & (index_reg == index) & (offset_reg[3:2] == offset[3:2]);
     assign hit_result = {32{hit_way[0]}} & data_bank_rdata[0][offset_reg[3:2]] 
                       | {32{hit_way[1]}} & data_bank_rdata[1][offset_reg[3:2]];
 
     // tagv related
-    assign tagv_we[0] = ret_valid & ret_last[0] & (replace_way[index_reg] == 0);
-    assign tagv_we[1] = ret_valid & ret_last[0] & (replace_way[index_reg] == 1);
+    assign tagv_we[0] = ret_valid & ret_last[0] & (replace_way[index_reg] == 0)& cacheable_reg;
+    assign tagv_we[1] = ret_valid & ret_last[0] & (replace_way[index_reg] == 1)& cacheable_reg;
     assign tagv_addr  = (current_state == IDLE || current_state == LOOKUP) ? index : index_reg;
     assign tagv_wdata = {tag_reg, 1'b1};
 
-    // random replace
+    // random(??) replace
     always @(posedge clk) begin
         if (~resetn) begin
             replace_way <= 'd0;
@@ -240,7 +254,7 @@ module cache(
         for (i = 0; i < 4; i = i + 1) begin: data_bank
             for (way = 0; way < 2; way = way + 1) begin: data_bank_we_value
                 assign data_bank_we[way][i] = {4{(wr_current_state == WR_WRITE) & (wrbuf_offset[3:2] == i) & (wrbuf_way == way)}} & wrbuf_wstrb
-                                            | {4{ret_valid & (ret_cnt == i) & replace_way[index_reg] == way}} & 4'hf;
+                                            | {4{ret_valid & (ret_cnt == i) & replace_way[index_reg] == way}} & {4{cacheable_reg}};
             end
             assign data_bank_addr[i]  = ((current_state == IDLE) || (current_state == LOOKUP)) ? index : index_reg;
             assign data_bank_wdata[i] = (wr_current_state == WR_WRITE) ? wrbuf_wdata :
@@ -277,35 +291,16 @@ module cache(
     endgenerate
 
     // CPU interface
-    reg addr_ok_valid;
-    always @(posedge clk) begin
-        if (~resetn) begin
-            addr_ok_valid <= 1'b1;
-        end else if (addr_ok) begin
-            addr_ok_valid <= 1'b0;
-        end else if (current_state == IDLE) begin
-            addr_ok_valid <= 1'b1;
-        end
-    end
+
     assign addr_ok =  ((current_state == IDLE) |
-                     ((current_state == LOOKUP) & valid & cache_hit & (op | (~op & ~hit_write_conflict))));
-    reg data_ok_valid;
-    always @(posedge clk) begin
-        if (~resetn) begin
-            data_ok_valid <= 1'b1;
-        end else if (data_ok) begin
-            data_ok_valid <= 1'b0;
-        end else if (current_state == IDLE) begin
-            data_ok_valid <= 1'b1;
-        end
-    end
-    assign data_ok = ((((current_state == LOOKUP) & (cache_hit | op_reg)) |
-                     ((current_state == REFILL) & ~op_reg & ret_valid & (ret_cnt == offset_reg[3:2]))) & (~hit_write)) | (wr_current_state == WR_WRITE && wr_next_state == WR_IDLE);
+                     ((current_state == LOOKUP) & valid & cache_hit & (op | (~op & ~hit_write_conflict)) & cacheable));
+    assign data_ok = (((current_state == LOOKUP) & (cache_hit | op_reg)) |
+                     ((current_state == REFILL) & ~op_reg & ret_valid & (ret_cnt == offset_reg[3:2])));
                      
     assign rdata   = ret_valid ? ret_data : hit_result; 
 
     // AXI interface
-    assign rd_req = (current_state == REPLACE);
+    assign rd_req = (current_state == REPLACE) & (cacheable_reg | ~op_reg); //非缓存写不会产生读请求
     assign rd_addr = {tag_reg, index_reg, 4'b0};
     assign rd_type = 3'b100;
 

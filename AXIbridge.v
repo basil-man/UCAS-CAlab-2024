@@ -38,6 +38,7 @@ module AXI_bridge(
     input   wire [31:0] dcache_wr_addr,
     input   wire [ 3:0] dcache_wr_wstrb,
 	input	wire [31:0]	dcache_wr_data,
+    input   wire        dcache_wr_cacheable,
 	output	wire 		dcache_wr_rdy,
 
     //AXI
@@ -138,6 +139,9 @@ module AXI_bridge(
     wire is_data_r,is_data_w,is_data_r_buffer,is_data_w_buffer;
 
     reg debug_catch_defualt;
+    
+    //exp22
+    reg uncacheable_block;
 
     //////////////////////////////////////////////////////////////////////////
     //读请求通道状态机
@@ -156,7 +160,7 @@ module AXI_bridge(
     always @(*)begin
         case(ar_state)
             `IDLE:begin
-                if(~aresetn | ar_block)
+                if(~aresetn | ar_block | uncacheable_block)
                     ar_next_state = `IDLE;
                 else if((icache_rd_req | dcache_rd_req) ) 
                     ar_next_state = `START;
@@ -242,7 +246,7 @@ module AXI_bridge(
             `W_IDLE:begin
                 if(~aresetn)
                     w_next_state = `W_IDLE;
-                else if(dcache_wr_req)
+                else if(dcache_wr_req & ~dcache_wr_cacheable)
                     w_next_state = `W_START;
                 else 
                     w_next_state = `W_IDLE;
@@ -414,6 +418,16 @@ module AXI_bridge(
 
     //写响应通道信号逻辑
     assign bready = w_state_finish;
+
+    always @(posedge aclk)begin
+        if(~aresetn)begin
+            uncacheable_block <= 1'b0;
+        end else if(w_state_idle & ~dcache_wr_cacheable) begin
+            uncacheable_block <= 1'b1;
+        end else if(bready & bvalid)begin
+            uncacheable_block <= 1'b0;
+        end
+    end
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //rdata buffer
