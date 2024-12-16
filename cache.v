@@ -193,12 +193,14 @@ module cache(
     //         ret_last_r <= ret_last;
     //     end
     // end
-
+    // reg debug_catch_ret_valid;
     always @(posedge clk) begin
         if (~resetn) begin
             ret_cnt <= 'd0;
+            // debug_catch_ret_valid <= 'd0;
         end else if (ret_valid) begin
-            if (~ret_last) begin
+            // debug_catch_ret_valid <= ~debug_catch_ret_valid;
+            if (~ret_last[0]) begin
                 ret_cnt <= ret_cnt + 1'b1;
             end else begin
                 ret_cnt <= 2'b0;
@@ -211,7 +213,7 @@ module cache(
     assign hit_way[1] = tagv_rdata[1][0] & (tagv_rdata[1][20:1] == tag_reg)& cacheable_reg;
     assign cache_hit = (|hit_way) ; //cache_hit always = 0 when cacheable = 0
 
-    assign hit_write = (current_state == LOOKUP) & cache_hit & op_reg & cacheable_reg;//hit_write always = 0 when cacheable = 0
+    assign hit_write = (current_state == LOOKUP) & cache_hit & op_reg;//hit_write always = 0 when cacheable = 0
     assign hit_write_conflict = (hit_write | wr_current_state == WR_WRITE) & valid & ~op & (index_reg == index) & (offset_reg[3:2] == offset[3:2]);
     assign hit_result = {32{hit_way[0]}} & data_bank_rdata[0][offset_reg[3:2]] 
                       | {32{hit_way[1]}} & data_bank_rdata[1][offset_reg[3:2]];
