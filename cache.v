@@ -303,7 +303,8 @@ module cache(
 
     // CPU interface
     assign addr_ok =  ((current_state == IDLE) |
-                     ((current_state == LOOKUP) & valid & cache_hit & (op | (~op & ~hit_write_conflict)) & cacheable));
+                     ((current_state == LOOKUP) & valid & cache_hit & (op | (~op & ~hit_write_conflict)) & cacheable))
+                     & ~hit_write_conflict;
     assign data_ok = ((current_state == LOOKUP) & (cache_hit | op_reg)) |
                      ((current_state == REFILL) & ~op_reg & ret_valid & (ret_cnt == offset_reg[3:2]));
                      
