@@ -435,7 +435,7 @@ module AXI_bridge(
     always @(posedge aclk)begin
         if(~aresetn)begin
             uncacheable_block <= 1'b0;
-        end else if(w_state_idle & ~dcache_wr_cacheable) begin
+        end else if(w_state_idle & ~dcache_wr_cacheable & dcache_wr_req) begin
             uncacheable_block <= 1'b1;
         end else if(bready & bvalid)begin
             uncacheable_block <= 1'b0;
@@ -469,7 +469,7 @@ module AXI_bridge(
     // assign inst_sram_addr_ok = ~is_data_r & arvalid & arready | ~is_data_w & awvalid & awready;
     // assign inst_sram_data_ok = ~is_data_r_buffer & r_state_finish | ~is_data_w_buffer & bvalid & bready;
     assign icache_ret_data = rdata_buffer[0];
-    assign icache_rd_rdy = ar_state_idle & ~dcache_rd_req & ~ar_block;
+    assign icache_rd_rdy = ar_state_idle & ~dcache_rd_req & ~ar_block & ~uncacheable_block;
     assign icache_ret_last = r_state_finish & ~rid_buffer[0];
     always @(posedge aclk) begin
         if(~aresetn)
@@ -484,7 +484,7 @@ module AXI_bridge(
     // assign data_sram_addr_ok = is_data_r & arvalid & arready | is_data_w & awvalid & awready; 
     // assign data_sram_data_ok = is_data_r_buffer & r_state_finish | is_data_w_buffer & bvalid & bready;
     assign dcache_ret_data = rdata_buffer[1];
-    assign dcache_rd_rdy = ar_state_idle & ~ar_block;
+    assign dcache_rd_rdy = ar_state_idle & ~ar_block & ~uncacheable_block;
     assign dcache_ret_last = r_state_finish & rid_buffer[0];
     always @(posedge aclk) begin
         if(~aresetn)

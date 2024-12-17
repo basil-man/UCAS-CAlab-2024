@@ -16,7 +16,7 @@ module cache(
     output wire         rd_req,     // 读请求有效信号。高电平有效。
     output wire [  2:0] rd_type,    // 读请求类型。3’b000——字节，3’b001——半字，3’b010——字，3’b100——Cache行
     output wire [ 31:0] rd_addr,    // 读请求起始地址
-    // output wire         rd_cacheable,//是否可缓存,0——强序非缓存，1——一致可缓存;(maybe not used??)
+    output wire         rd_cacheable,//是否可缓存,0——强序非缓存，1——一致可缓存;(maybe not used??)
     input  wire         rd_rdy,     // 读请求能否被接收的握手信号。高电平有效
     input  wire         ret_valid,  // 返回数据有效信号后。高电平有效
     input  wire [  1:0] ret_last,   // 返回数据是一次读请求对应的最后一个返回数据
@@ -305,15 +305,17 @@ module cache(
     assign addr_ok =  ((current_state == IDLE) |
                      ((current_state == LOOKUP) & valid & cache_hit & (op | (~op & ~hit_write_conflict)) & cacheable))
                      & ~hit_write_conflict;
-    assign data_ok = ((current_state == LOOKUP) & (cache_hit | op_reg)) |
-                     ((current_state == REFILL) & ~op_reg & ret_valid & (ret_cnt == offset_reg[3:2]));
+    assign data_ok = ((current_state == LOOKUP) & (cache_hit | op_reg)) |//write or read hit 
+                     ((current_state == REFILL) & ~op_reg & ret_valid & 
+                        ((ret_cnt == offset_reg[3:2]) & rd_cacheable | ~rd_cacheable)) ; //read miss
                      
     assign rdata   = ret_valid ? ret_data : hit_result; 
 
     // AXI interface
     assign rd_req = (current_state == REPLACE) & (cacheable_reg | ~op_reg); //非缓存写不会产生读请求
-    assign rd_addr = {tag_reg, index_reg, 4'b0};
-    assign rd_type = 3'b100;
+    assign rd_addr = rd_cacheable?{tag_reg, index_reg, 4'b0}:debug_addr_reg;
+    assign rd_type = rd_cacheable?3'b100:3'b010;
+    assign rd_cacheable = cacheable_reg & ~op_reg;
 
     assign wr_req = (current_state == MISS) & (next_state == REPLACE) ;
     wire [31:0] cacheable_wr_addr = {tagv_rdata[replace_way[index_reg]][20:1], index_reg, 4'b0};
