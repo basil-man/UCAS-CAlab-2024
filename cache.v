@@ -269,7 +269,7 @@ module cache(
     generate
         for (i = 0; i < 4; i = i + 1) begin: data_bank
             for (way = 0; way < 2; way = way + 1) begin: data_bank_we_value
-                assign data_bank_we[way][i] = {4{(wr_current_state == WR_WRITE) & (wrbuf_offset[3:2] == i) & (wrbuf_way == way)}}// & wrbuf_wstrb //hit
+                assign data_bank_we[way][i] = {4{(wr_current_state == WR_WRITE) & (wrbuf_offset[3:2] == i) & (wrbuf_way == way)}} & wrbuf_wstrb //hit
                                             | {4{ret_valid & (ret_cnt == i) & replace_way[index_reg] == way}} & {4{cacheable_reg}};
             end
             assign data_bank_addr[i]  = ((wr_current_state == WR_WRITE) & (wrbuf_offset[3:2] == i)) ? wrbuf_index : ((current_state == IDLE) || (current_state == LOOKUP)) ? index : index_reg;
