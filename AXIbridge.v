@@ -495,6 +495,6 @@ module AXI_bridge(
             dcache_ret_valid <= 1'b0;
     end
 
-    assign dcache_wr_rdy = b_state_idle;
+    assign dcache_wr_rdy = w_state_idle;
 
 endmodule
