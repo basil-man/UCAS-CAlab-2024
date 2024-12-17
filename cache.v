@@ -214,7 +214,8 @@ module cache(
     assign cache_hit = (|hit_way) ; //cache_hit always = 0 when cacheable = 0
 
     assign hit_write = (current_state == LOOKUP) & cache_hit & op_reg;//hit_write always = 0 when cacheable = 0
-    assign hit_write_conflict = (hit_write | wr_current_state == WR_WRITE) & valid & ~op & (index_reg == index) & (offset_reg[3:2] == offset[3:2]);
+    assign hit_write_conflict = (wr_current_state == WR_WRITE & valid & (~op) & (offset[3:2]==offset_reg[3:2]) )
+                                |(current_state == LOOKUP & (op_reg) & valid & ~op & {tag,index,offset[3:2]} == {tag_reg,index_reg,offset[3:2]});
     assign hit_result = {32{hit_way[0]}} & data_bank_rdata[0][offset_reg[3:2]] 
                       | {32{hit_way[1]}} & data_bank_rdata[1][offset_reg[3:2]];
 
@@ -293,11 +294,10 @@ module cache(
     endgenerate
 
     // CPU interface
-
     assign addr_ok =  ((current_state == IDLE) |
                      ((current_state == LOOKUP) & valid & cache_hit & (op | (~op & ~hit_write_conflict)) & cacheable));
-    assign data_ok = ((((current_state == LOOKUP) & (cache_hit | op_reg)) |
-                     ((current_state == REFILL) & ~op_reg & ret_valid & (ret_cnt == offset_reg[3:2]))) & (~hit_write)) | (wr_current_state == WR_WRITE && wr_next_state == WR_IDLE);
+    assign data_ok = ((current_state == LOOKUP) & (cache_hit | op_reg)) |
+                     ((current_state == REFILL) & ~op_reg & ret_valid & (ret_cnt == offset_reg[3:2]));
                      
     assign rdata   = ret_valid ? ret_data : hit_result; 
 

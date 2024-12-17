@@ -774,7 +774,7 @@ module mycpu_top(
         .ret_last   ({1'b0,icache_ret_last}),
         .ret_data   (icache_ret_data),
 
-        .cacheable  (1'b0) //temporary set to 0 to test uncacheable situation
+        .cacheable  (1'b1) //temporary set to 0 to test uncacheable situation
     );
 
 
