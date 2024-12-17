@@ -272,7 +272,7 @@ module cache(
                 assign data_bank_we[way][i] = {4{(wr_current_state == WR_WRITE) & (wrbuf_offset[3:2] == i) & (wrbuf_way == way)}}// & wrbuf_wstrb //hit
                                             | {4{ret_valid & (ret_cnt == i) & replace_way[index_reg] == way}} & {4{cacheable_reg}};
             end
-            assign data_bank_addr[i]  = ((wr_current_state == WR_WRITE) & (wrbuf_offset[3:2] == i) & (wrbuf_way == way)) ? wrbuf_index : ((current_state == IDLE) || (current_state == LOOKUP)) ? index : index_reg;
+            assign data_bank_addr[i]  = ((wr_current_state == WR_WRITE) & (wrbuf_offset[3:2] == i)) ? wrbuf_index : ((current_state == IDLE) || (current_state == LOOKUP)) ? index : index_reg;
             assign data_bank_wdata[i] = (wr_current_state == WR_WRITE) ? wrbuf_wdata :
                                         (offset_reg[3:2] != i || ~op_reg)? ret_data :
                                         final_wdata;
