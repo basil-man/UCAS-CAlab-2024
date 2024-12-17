@@ -36,6 +36,7 @@ module MMU(
     wire        csr_crmd_da;
     wire        csr_crmd_pg;
     wire [1:0]  csr_crmd_plv;
+    wire [1:0]  csr_crmd_datm;
 
     wire        dmw0_hit;
     wire        dmw1_hit;
@@ -52,6 +53,7 @@ module MMU(
     assign csr_crmd_da   = csr_crmd_data[3];
     assign csr_crmd_pg   = csr_crmd_data[4];
     assign csr_crmd_plv  = csr_crmd_data[1:0];
+    assign csr_crmd_datm = csr_crmd_data[8:7];
 
     //translate mode
     assign direct_mode   = csr_crmd_da & ~csr_crmd_pg;
@@ -81,8 +83,7 @@ module MMU(
                   : tlb_pa; 
 
     //cacheable
-    assign cacheable = direct_mode ? 1'b1 //!!!need be modified
-                        :s_mat[0];
+    assign cacheable = direct_mode ? csr_crmd_datm[0] : dmw0_hit ? csr_dmw0_data[4] : dmw1_hit ? csr_dmw1_data[4] : s_mat[0];
     
     //exception
     assign ex_TLBR = tlb_map & (~s_found);
