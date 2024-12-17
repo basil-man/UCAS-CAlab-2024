@@ -111,7 +111,7 @@ module cache(
                     next_state <= IDLE;
                 end else if (cache_hit & valid & (~hit_write_conflict)) begin
                     next_state <= LOOKUP;
-                end else if (~dirty_array[replace_way[index_reg]][index_reg] | ~tagv_rdata[replace_way[index_reg]][0]) begin 
+                end else if ((~dirty_array[replace_way[index_reg]][index_reg] | ~tagv_rdata[replace_way[index_reg]][0]) & cacheable_reg) begin 
                     next_state <= REPLACE;
                 end else if (~cache_hit) begin
                     next_state <= MISS;
@@ -315,11 +315,16 @@ module cache(
     assign rd_addr = {tag_reg, index_reg, 4'b0};
     assign rd_type = 3'b100;
 
-    assign wr_req = (current_state == MISS) & (next_state == REPLACE);
-    assign wr_addr = {tagv_rdata[replace_way[index_reg]][20:1], index_reg, 4'b0};
-    assign wr_type = 3'b100;
-    assign wr_wstrb = 4'hf;
-    assign wr_data = {  data_bank_rdata[replace_way[index_reg]][3], data_bank_rdata[replace_way[index_reg]][2],
-                        data_bank_rdata[replace_way[index_reg]][1], data_bank_rdata[replace_way[index_reg]][0]};
+    assign wr_req = (current_state == MISS) & (next_state == REPLACE) ;
+    wire [31:0] cacheable_wr_addr = {tagv_rdata[replace_way[index_reg]][20:1], index_reg, 4'b0};
+    assign wr_addr = wr_cacheable ?cacheable_wr_addr : debug_addr_reg;
+    assign wr_type = wr_cacheable ? 3'b100
+                    : 3'b010;
+    assign wr_wstrb = wr_cacheable ?4'hf
+                    : wstrb_reg;
+    assign wr_data = wr_cacheable ?{  data_bank_rdata[replace_way[index_reg]][3], data_bank_rdata[replace_way[index_reg]][2],
+                        data_bank_rdata[replace_way[index_reg]][1], data_bank_rdata[replace_way[index_reg]][0]}
+                        : {4{wdata_reg}};
+    assign wr_cacheable = cacheable_reg & op_reg;
 
 endmodule
