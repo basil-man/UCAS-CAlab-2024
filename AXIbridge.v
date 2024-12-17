@@ -37,7 +37,7 @@ module AXI_bridge(
     input   wire [ 2:0] dcache_wr_type,
     input   wire [31:0] dcache_wr_addr,
     input   wire [ 3:0] dcache_wr_wstrb,
-	input	wire [31:0]	dcache_wr_data,
+	input	wire [127:0]	dcache_wr_data,
     input   wire        dcache_wr_cacheable,
 	output	wire 		dcache_wr_rdy,
 
@@ -73,7 +73,7 @@ module AXI_bridge(
     input  wire                 awready,//写请求地址握手信号，slave 端准备好接收地址传输
     //写数据通道,（以 w 开头）
     output wire [`A_ID_WID]     wid,    //写请求的 ID 号，固定为 1 
-    output reg  [`DATA_WID]     wdata,  //写请求的写数据
+    output wire [`DATA_WID]     wdata,  //写请求的写数据
     output reg  [`A_STRB_WID]   wstrb,  //写请求控制信号，字节选通位
     output wire                 wlast,  //写请求控制信号，本次写请求的最后一拍数据的指示信号,固定为 1
     output wire                 wvalid, //写请求数据握手信号，写请求数据有效
@@ -141,7 +141,10 @@ module AXI_bridge(
     reg debug_catch_defualt;
     
     //exp22
+    reg cacheable_reg;
     reg uncacheable_block;
+    reg [1:0] wdata_cnt;
+    reg [127:0] wdata_reg;
 
     //////////////////////////////////////////////////////////////////////////
     //读请求通道状态机
@@ -246,23 +249,23 @@ module AXI_bridge(
             `W_IDLE:begin
                 if(~aresetn)
                     w_next_state = `W_IDLE;
-                else if(dcache_wr_req & ~dcache_wr_cacheable)
+                else if(dcache_wr_req)
                     w_next_state = `W_START;
                 else 
                     w_next_state = `W_IDLE;
             end
             `W_START:begin
-                if(awready & awvalid & wready & wvalid)
+                if(awready & awvalid & wready & wvalid & wlast)
                     w_next_state = `W_FINISH;
                 else if(awready & awvalid)
                     w_next_state = `W_ADDR;
-                else if(wready & wvalid)
+                else if(wready & wvalid& wlast)
                     w_next_state = `W_DATA;
                 else 
                     w_next_state = `W_START;
             end
             `W_ADDR:begin
-                if(wready & wvalid)
+                if(wready & wvalid & wlast)
                     w_next_state = `W_FINISH;
                 else 
                     w_next_state = `W_ADDR;
@@ -384,7 +387,7 @@ module AXI_bridge(
     assign awcache = 'b0;
     assign awprot  = 'b0;
     assign wid     = 'b1;
-    assign wlast   = 'b1;
+    assign wlast   = ~cacheable_reg ? 1'b1:(wdata_cnt == 2'b11);
 
     //写请求&写数据通道信号逻辑
     assign awvalid = w_state_start | w_state_data;
@@ -398,6 +401,7 @@ module AXI_bridge(
                 awaddr <= dcache_wr_addr;
                 awsize <= 3'b010; // may be wrong??
                 awlen  <= {2{dcache_wr_type[2]}};
+                cacheable_reg <= dcache_wr_cacheable;
             end 
             //inst cache do not need write
         end
@@ -405,10 +409,19 @@ module AXI_bridge(
 
     always @(posedge aclk) begin
         if(~aresetn)begin
-            {wdata,wstrb}   <= 'b0;
+            {wdata_reg,wstrb}   <= 'b0;
         end else if (w_state_idle)begin
             wstrb <= dcache_wr_wstrb;
-            wdata <= dcache_wr_data;
+            wdata_reg <= dcache_wr_data;
+        end
+    end
+    assign wdata = wdata_reg[32*wdata_cnt +: 32];
+
+    always@(posedge aclk)begin
+        if(~aresetn)begin
+            wdata_cnt <= 2'b0;
+        end else if((w_state_addr|w_state_start )& wready)begin
+            wdata_cnt <= wdata_cnt + 2'b1;
         end
     end
 

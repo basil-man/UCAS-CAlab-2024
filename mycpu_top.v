@@ -292,6 +292,7 @@ module mycpu_top(
         .dcache_wr_addr     (dcache_wr_addr     ),
         .dcache_wr_wstrb    (dcache_wr_strb    ),
         .dcache_wr_data     (dcache_wr_data     ),
+        .dcache_wr_cacheable  (1'b1),//temporarily set to 1 to debug
         .dcache_wr_rdy      (dcache_wr_rdy      ),
 
         .arid(arid),
