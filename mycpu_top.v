@@ -267,6 +267,10 @@ module mycpu_top(
     wire[127:0] dcache_wr_data;
     wire        dcache_wr_rdy;
 
+    wire [4:0]   dcache_cacop_code;
+    wire         dcache_cacop_req;
+    wire [31:0]  dcache_cacop_addr;
+
     AXI_bridge my_AXIbridge(
         .aclk(clk),
         .aresetn(resetn),
@@ -468,7 +472,11 @@ module mycpu_top(
         .ex_PME(data_ex_PME),
         .s1_vppn(s1_vppn),
         .s1_va_bit12(s1_va_bit12),
-        .cacheable(data_cacheable)
+        .cacheable(data_cacheable),
+
+        .cacop_req(dcache_cacop_req),
+        .cacop_addr(dcache_cacop_addr),
+        .cacop_code(dcache_cacop_code)
     );
 
     MEMreg my_memReg(
@@ -812,7 +820,11 @@ module mycpu_top(
         .wr_cacheable(dcache_wr_cacheable),
         .wr_rdy     (dcache_wr_rdy),
 
-        .cacheable  (data_cacheable)
+        .cacheable  (data_cacheable),
+
+        .cacop_code(dcache_cacop_code),
+        .cacop_req(dcache_cacop_req),
+        .cacop_addr(dcache_cacop_addr)
 
     );
 endmodule

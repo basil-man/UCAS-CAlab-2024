@@ -56,7 +56,12 @@ module EXreg(
     input  wire        ex_PME,
     output wire [18:0] s1_vppn,
     output wire        s1_va_bit12,
-    input  wire        cacheable //may be useless?
+    input  wire        cacheable, //may be useless?
+
+    //cacop
+    output wire cacop_req,
+    output wire [31:0] cacop_addr,
+    output reg [4:0]  cacop_code
 );
 
     //debug signalse
@@ -121,8 +126,12 @@ module EXreg(
     reg [4:0] es_rd;
     reg inst_tlbsrch,inst_tlbrd,inst_tlbwr,inst_tlbfill,inst_invtlb;
     reg [4:0] es_rj;
+    reg inst_cacop;
+    wire cacop_icache;
+    wire cacop_dcache;
+
     assign es_ex          = (|es_except_collect) & es_valid;
-    assign es_ready_go = (data_sram_req & data_sram_addr_ok) | (mulit_cycle_insts & reg_div_mod_done)| (inst_tlbsrch & ~(ms_csr_tlbrd | ws_csr_tlbrd)) | ~(data_sram_req | mulit_cycle_insts | inst_tlbsrch) ;
+    assign es_ready_go = ((data_sram_req | cacop_req) & data_sram_addr_ok) | (mulit_cycle_insts & reg_div_mod_done)| (inst_tlbsrch & ~(ms_csr_tlbrd | ws_csr_tlbrd)) | ~((data_sram_req | cacop_req) | mulit_cycle_insts | inst_tlbsrch) ;
     assign es_allowin     = ~es_valid | es_ready_go & ms_allowin;
     assign es_to_ms_valid = es_valid & es_ready_go;
     
@@ -137,7 +146,7 @@ module EXreg(
         if (~resetn) begin
             {tmp, from_ds_except, extend_es_alu_op, es_res_from_mem, es_alu_src1, es_alu_src2,
             es_mem_en, es_rf_we, es_rf_waddr, es_rkd_value, es_pc, csr_rvalue, csr_re,
-            es_rd,inst_tlbsrch,inst_tlbrd,inst_tlbwr,inst_tlbfill,inst_invtlb} <= 'b0;
+            es_rd,inst_tlbsrch,inst_tlbrd,inst_tlbwr,inst_tlbfill,inst_invtlb,cacop_code,inst_cacop} <= 'b0;
             {inst_st_w,inst_st_h,inst_st_b} <= 'b0;
             es_mem_inst_bus <= 'b0;
             {inst_rdcntvl,inst_rdcntvh} <= 'b0;
@@ -145,7 +154,7 @@ module EXreg(
         end else if (ds_to_es_valid & es_allowin) begin
             {tmp, from_ds_except, extend_es_alu_op, es_res_from_mem, es_alu_src1, es_alu_src2,
             es_mem_en, es_rf_we, es_rf_waddr, es_rkd_value, es_pc, csr_rvalue, csr_re,
-            es_rd,inst_tlbsrch,inst_tlbrd,inst_tlbwr,inst_tlbfill,inst_invtlb,es_rj } <= ds_to_es_bus;
+            es_rd,inst_tlbsrch,inst_tlbrd,inst_tlbwr,inst_tlbfill,inst_invtlb,es_rj,cacop_code,inst_cacop } <= ds_to_es_bus;
             {inst_st_w,inst_st_h,inst_st_b} <= ds_mem_inst_bus[2:0];
             es_mem_inst_bus <= ds_mem_inst_bus[7:3];
             {inst_rdcntvl,inst_rdcntvh} <= collect_inst_rd_cnt;
@@ -342,5 +351,12 @@ module EXreg(
                             ex_to_ms_result
                             };
     assign {ms_adef_except, ms_ine_except, ms_syscall_except, ms_break_except, ms_int_except, inst_ertn} = ms_except;
+
+    //cacop
+    assign cacop_req    = inst_cacop & es_valid & ~flush_by_former_except & ms_allowin & (~|es_except_collect) & cacop_dcache;
+    assign cacop_icache = cacop_code[2:0]==3'd0;
+    assign cacop_dcache = cacop_code[2:0]==3'd1;
+    assign cacop_addr   = es_alu_result;
+    
     
 endmodule

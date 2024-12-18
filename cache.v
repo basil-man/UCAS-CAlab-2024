@@ -31,7 +31,12 @@ module cache(
     input  wire         wr_rdy,     // 写请求能否被接收的握手信号。高电平有效。此处要求wr_rdy要先于wr_req置起，wr_req看到wr_rdy后才可能置上1
 
     //exp22
-    input  wire         cacheable   //是否可缓存,0——强序非缓存，1——一致可缓存
+    input  wire         cacheable,   //是否可缓存,0——强序非缓存，1——一致可缓存
+    
+    //exp23
+    input  wire [4:0]   cacop_code,  //cacop code
+    input  wire         cacop_req,
+    input  wire [31:0]  cacop_addr
 );
 
     wire        hit_write_conflict;
@@ -46,6 +51,9 @@ module cache(
     reg  [ 3:0] offset_reg;
     reg  [ 3:0] wstrb_reg;
     reg  [31:0] wdata_reg;
+    reg  [4:0]  cacop_code_reg;
+    reg         cacop_req_reg;
+    reg  [31:0] cacop_addr_reg;
 
     // for write buffer
     reg         wrbuf_way;
@@ -64,6 +72,10 @@ module cache(
     wire [31:0]  data_bank_wdata [3:0];
     wire [31:0]  data_bank_rdata [1:0][3:0];
 
+    wire cacop_store_tag       ;
+    wire cacop_index_invalidate;
+    wire cacop_hit_invalidate  ;
+
     reg [255:0] dirty_array [1:0];
     reg [255:0] replace_way;
 
@@ -71,6 +83,8 @@ module cache(
     reg       ret_last_r;
 
     reg cacheable_reg;
+
+    reg cacop_status;//0: idle, 1: cacop processing
 
     parameter IDLE    = 5'b00001;
     parameter LOOKUP  = 5'b00010;
@@ -101,13 +115,15 @@ module cache(
     always @(*) begin
         case (current_state)
             IDLE:
-                if (valid & ~hit_write_conflict) begin
+                if (valid & ~hit_write_conflict | cacop_req) begin
                     next_state <= LOOKUP;
                 end else begin
                     next_state <= IDLE;
                 end
             LOOKUP:
-                if (cache_hit & (~valid | hit_write_conflict)) begin
+                if(cacop_req_reg && ~cacop_store_tag) begin
+                    next_state <= MISS;
+                end else if (cache_hit & (~valid | hit_write_conflict) || cacop_req_reg && cacop_store_tag) begin
                     next_state <= IDLE;
                 end else if (cache_hit & valid & (~hit_write_conflict)) begin
                     next_state <= LOOKUP;
@@ -124,7 +140,9 @@ module cache(
                 end
                 
             REPLACE:
-                if (~rd_rdy & (cacheable_reg | ~op_reg)) begin //非缓存写并不需要读
+                if(cacop_req_reg && ~cacop_store_tag) begin
+                    next_state <= IDLE;
+                end else if (~rd_rdy & (cacheable_reg | ~op_reg)) begin //非缓存写并不需要读
                     next_state <= REPLACE;
                 end else begin
                     next_state <= REFILL;
@@ -171,9 +189,9 @@ module cache(
     // request buffer: op、index、tag、offset、wstrb、wdata
     always @(posedge clk) begin
         if (~resetn) begin
-            {op_reg, index_reg, tag_reg, offset_reg, wstrb_reg, wdata_reg,cacheable_reg} <= 'd0;
-        end else if (valid & addr_ok) begin
-            {op_reg, index_reg, tag_reg, offset_reg, wstrb_reg, wdata_reg,cacheable_reg} <= {op, index, tag, offset, wstrb, wdata,cacheable};
+            {op_reg, index_reg, tag_reg, offset_reg, wstrb_reg, wdata_reg,cacheable_reg,cacop_req_reg,cacop_code_reg,cacop_addr_reg} <= 'd0;
+        end else if ((valid || cacop_req) & addr_ok) begin
+            {op_reg, index_reg, tag_reg, offset_reg, wstrb_reg, wdata_reg,cacheable_reg,cacop_req_reg,cacop_code_reg,cacop_addr_reg} <= {op, index, tag, offset, wstrb, wdata,cacheable,cacop_req,cacop_code,cacop_addr};
         end
     end
 
@@ -218,7 +236,7 @@ module cache(
     // hit / match
     assign hit_way[0] = tagv_rdata[0][0] & (tagv_rdata[0][20:1] == tag_reg)& cacheable_reg;
     assign hit_way[1] = tagv_rdata[1][0] & (tagv_rdata[1][20:1] == tag_reg)& cacheable_reg;
-    assign cache_hit = (|hit_way) ; //cache_hit always = 0 when cacheable = 0
+    assign cache_hit = (|hit_way) & ~cacop_req_reg; //cache_hit always = 0 when cacheable = 0
 
     assign hit_write = (current_state == LOOKUP) & cache_hit & op_reg;//hit_write always = 0 when cacheable = 0
     assign hit_write_conflict = (wr_current_state == WR_WRITE & valid & (~op) & (offset[3:2]==offset_reg[3:2]) )
@@ -227,10 +245,17 @@ module cache(
                       | {32{hit_way[1]}} & data_bank_rdata[1][offset_reg[3:2]];
 
     // tagv related
-    assign tagv_we[0] = ret_valid & ret_last[0] & (replace_way[index_reg] == 0)& cacheable_reg;
-    assign tagv_we[1] = ret_valid & ret_last[0] & (replace_way[index_reg] == 1)& cacheable_reg;
-    assign tagv_addr  = (current_state == IDLE || current_state == LOOKUP) ? index : index_reg;
-    assign tagv_wdata = {tag_reg, 1'b1};
+    wire cacop_tagv_flush = (current_state == LOOKUP & cacop_req_reg & cacop_store_tag);
+    wire cacop_index_invalidate_flush = (cacop_req_reg & cacop_index_invalidate);
+    assign tagv_we[0] = (cacop_tagv_flush | cacop_index_invalidate_flush & current_state == MISS & next_state ==REPLACE) ? cacop_addr_reg[0]==0 : 
+                        ret_valid & ret_last[0] & (replace_way[index_reg] == 0)& cacheable_reg;
+    assign tagv_we[1] = (cacop_tagv_flush | cacop_index_invalidate_flush & current_state == MISS & next_state ==REPLACE) ? cacop_addr_reg[0]==1 : 
+                        ret_valid & ret_last[0] & (replace_way[index_reg] == 1)& cacheable_reg;
+    assign tagv_addr  = (cacop_tagv_flush | cacop_index_invalidate_flush) ? cacop_addr_reg[11:4] : 
+                        (current_state == IDLE || current_state == LOOKUP) ? index : index_reg;
+    assign tagv_wdata = cacop_index_invalidate_flush ? {tagv_rdata[cacop_addr_reg[0]][20:1], 1'b0} :
+                        cacop_tagv_flush ? 21'b0 : 
+                        {tag_reg, 1'b1};
 
     // random(??) replace
     always @(posedge clk) begin
@@ -317,16 +342,24 @@ module cache(
     assign rd_type = rd_cacheable?3'b100:3'b010;
     assign rd_cacheable = cacheable_reg & ~op_reg;
 
-    assign wr_req = (current_state == MISS) & (next_state == REPLACE) ;
+    assign wr_req = (current_state == MISS) & (next_state == REPLACE);
     wire [31:0] cacheable_wr_addr = {tagv_rdata[replace_way[index_reg]][20:1], index_reg, 4'b0};
-    assign wr_addr = wr_cacheable ?cacheable_wr_addr : debug_addr_reg;
-    assign wr_type = wr_cacheable ? 3'b100
+    wire [31:0] cacop_wr_addr = {tagv_rdata[cacop_addr_reg[0]][20:1], cacop_addr_reg[11:4], 4'b0};
+    assign wr_addr = (cacop_req_reg & cacop_index_invalidate) ? cacop_wr_addr : wr_cacheable ? cacheable_wr_addr : debug_addr_reg;
+    assign wr_type = (wr_cacheable | cacop_req_reg) ? 3'b100
                     : 3'b010;
-    assign wr_wstrb = wr_cacheable ?4'hf
+    assign wr_wstrb = (wr_cacheable | cacop_req_reg) ? 4'hf
                     : wstrb_reg;
-    assign wr_data = wr_cacheable ?{  data_bank_rdata[replace_way[index_reg]][3], data_bank_rdata[replace_way[index_reg]][2],
-                        data_bank_rdata[replace_way[index_reg]][1], data_bank_rdata[replace_way[index_reg]][0]}
+    assign wr_data =    (cacop_req_reg & cacop_index_invalidate) ? {data_bank_rdata[cacop_addr_reg[0]][3], data_bank_rdata[cacop_addr_reg[0]][2], 
+                                        data_bank_rdata[cacop_addr_reg[0]][1], data_bank_rdata[cacop_addr_reg[0]][0]} :
+                        wr_cacheable? {data_bank_rdata[replace_way[index_reg]][3], data_bank_rdata[replace_way[index_reg]][2],
+                                        data_bank_rdata[replace_way[index_reg]][1], data_bank_rdata[replace_way[index_reg]][0]}
                         : {4{wdata_reg}};
     assign wr_cacheable = cacheable_reg & op_reg;
+
+    //cacop
+    assign cacop_store_tag        = cacop_code_reg[4:3]==3'd0;
+    assign cacop_index_invalidate = cacop_code_reg[4:3]==3'd1;
+    assign cacop_hit_invalidate   = cacop_code_reg[4:3]==3'd2;
 
 endmodule

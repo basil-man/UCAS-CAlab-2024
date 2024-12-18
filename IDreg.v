@@ -367,7 +367,7 @@ module IDreg(
 
     //cacop inst
     assign inst_cacop = op_31_26_d[6'h01] & op_25_22_d[4'h8];
-    wire cacop_code = ds_inst[4: 0];
+    wire [4:0] cacop_code = ds_inst[4: 0];
 
     //oral code
     assign inst_add_w   = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h1] & op_19_15_d[5'h00];
@@ -392,7 +392,7 @@ module IDreg(
     assign inst_lu12i_w = op_31_26_d[6'h05] & ~ds_inst[25];
     
     assign ds_alu_op[0] =  inst_add_w | inst_addi_w | inst_ld | inst_st
-                           | inst_jirl | inst_bl | inst_pcaddu12i;
+                           | inst_jirl | inst_bl | inst_pcaddu12i | inst_cacop; 
     assign ds_alu_op[1]  = inst_sub_w;
     assign ds_alu_op[2]  = inst_slt | inst_slti;
     assign ds_alu_op[3]  = inst_sltu | inst_sltui;
@@ -408,7 +408,7 @@ module IDreg(
     assign new_alu_op = {inst_mul_w, inst_mulh_w, inst_mulh_wu, inst_div_w, inst_mod_w, inst_div_wu, inst_mod_wu, ds_alu_op};
     
     assign need_ui5  = inst_slli_w | inst_srli_w | inst_srai_w;
-    assign need_si12 = inst_addi_w | inst_ld | inst_st | inst_slti | inst_sltui;
+    assign need_si12 = inst_addi_w | inst_ld | inst_st | inst_slti | inst_sltui | inst_cacop;
     assign need_ui12 = inst_andi | inst_ori | inst_xori;
     assign need_si16 = inst_jirl | inst_beq | inst_bne;
     assign need_si20 = inst_lu12i_w | inst_pcaddu12i ;
@@ -448,7 +448,8 @@ module IDreg(
                                 inst_andi   |
                                 inst_ori    |
                                 inst_xori   |
-                                inst_pcaddu12i;
+                                inst_pcaddu12i|
+                                inst_cacop;
      
     assign ds_alu_src1 = ds_src1_is_pc  ? ds_pc[31:0] : rj_value;
     assign ds_alu_src2 = ds_src2_is_imm ? imm : rkd_value;
@@ -548,7 +549,9 @@ module IDreg(
                             inst_tlbwr,
                             inst_tlbfill,
                             inst_invtlb, //5 bit total
-                            rj
+                            rj,
+                            cacop_code,
+                            inst_cacop
                             };
 
     assign mem_inst_bus =   {
