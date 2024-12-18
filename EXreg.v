@@ -210,10 +210,10 @@ module EXreg(
             unsigned_dividend_tvalid <= 1'b0;
             unsigned_divisor_tvalid  <= 1'b0;
             end else if (div_mod_insts&&~valid_cnt) begin
-            signed_dividend_tvalid   <= inst_div_w || inst_mod_w;
-            signed_divisor_tvalid    <= inst_div_w || inst_mod_w;
-            unsigned_dividend_tvalid <= inst_div_wu || inst_mod_wu;
-            unsigned_divisor_tvalid  <= inst_div_wu || inst_mod_wu;
+            signed_dividend_tvalid   <= (inst_div_w || inst_mod_w)&es_valid;
+            signed_divisor_tvalid    <= (inst_div_w || inst_mod_w)&es_valid;
+            unsigned_dividend_tvalid <= (inst_div_wu || inst_mod_wu)&es_valid;
+            unsigned_divisor_tvalid  <= (inst_div_wu || inst_mod_wu)&es_valid;
         end
     end
     
