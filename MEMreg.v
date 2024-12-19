@@ -60,7 +60,12 @@ module MEMreg(
     reg [13:0] ms_csr_num;
     reg ms_csr_we;
 
-    assign ms_wait_data_ok  = ms_wait_data_ok_r & ms_valid & ~wb_ex;
+    //exp23
+    reg cacop_icache;
+    reg cacop_dcache;
+    reg [31:0] cacop_addr;
+    reg [4:0] cacop_code;
+    assign ms_wait_data_ok  = ms_wait_data_ok_r & ms_valid & ~wb_ex | cacop_dcache;
     assign ms_ready_go      = ~ms_wait_data_ok | ms_wait_data_ok & data_sram_data_ok | (|ms_except);
     assign ms_allowin       = ~ms_valid | ms_ready_go & ws_allowin;     
     assign ms_to_ws_valid   = ms_valid & ms_ready_go & ~except_flush;
@@ -78,7 +83,7 @@ module MEMreg(
             ms_pc <= 32'b0;
             {ms_res_from_mem, ms_rf_we, ms_rf_waddr, ms_alu_result} <= 'b0;
             {inst_ld_w,inst_ld_h,inst_ld_hu,inst_ld_b,inst_ld_bu} <= 'd0;
-            {ms_csr_re,ms_wait_data_ok_r, ms_except,s1_found,s1_index,inst_tlbsrch,inst_tlbrd,inst_tlbwr,inst_tlbfill,inst_invtlb} <= 'b0;
+            {ms_csr_re,ms_wait_data_ok_r, ms_except,s1_found,s1_index,inst_tlbsrch,inst_tlbrd,inst_tlbwr,inst_tlbfill,inst_invtlb,cacop_icache,cacop_addr,cacop_code,cacop_dcache} <= 'b0;
             ms_to_ws_csr_collect <= 'b0;
             ms_csr_we <= 1'b0;
             ms_csr_num <= 14'b0;
@@ -87,7 +92,7 @@ module MEMreg(
             ms_pc <= es_pc;
             {ms_res_from_mem, ms_rf_we, ms_rf_waddr, ms_alu_result} <= es_rf_collect;
             {inst_ld_w,inst_ld_h,inst_ld_hu,inst_ld_b,inst_ld_bu} <= mem_inst_bus;
-            {ms_csr_re,ms_wait_data_ok_r, ms_except,s1_found,s1_index,inst_tlbsrch,inst_tlbrd,inst_tlbwr,inst_tlbfill,inst_invtlb} <= es_to_ms_bus;
+            {ms_csr_re,ms_wait_data_ok_r, ms_except,s1_found,s1_index,inst_tlbsrch,inst_tlbrd,inst_tlbwr,inst_tlbfill,inst_invtlb,cacop_icache,cacop_addr,cacop_code,cacop_dcache} <= es_to_ms_bus;
             ms_to_ws_csr_collect <= es_to_ms_csr_collect;
             ms_csr_we <= es_to_ms_csr_collect[`CSR_WE];
             ms_csr_num <= es_to_ms_csr_collect[`CSR_NUM];
@@ -131,7 +136,10 @@ module MEMreg(
                             inst_tlbrd,
                             inst_tlbwr,
                             inst_tlbfill,
-                            inst_invtlb
+                            inst_invtlb,
+                            cacop_icache,
+                            cacop_addr,
+                            cacop_code
                             };
     assign ms_except_collect = ms_except & {16{ms_valid}};
 

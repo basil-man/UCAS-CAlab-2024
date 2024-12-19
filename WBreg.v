@@ -41,9 +41,14 @@ module WBreg(
     output wire ws_csr_tlbrd,
     input  wire [`D2C_CSRC_WID] ms_to_ws_csr_collect,
     output reg [`D2C_CSRC_WID] ws_csr_collect,
-    input wire [31:0] csr_rvalue
+    input wire [31:0] csr_rvalue,
+
+    output reg [31:0] cacop_addr,
+    output wire cacop_req,
+    output reg [4:0] cacop_code,
+    input wire cacop_data_ok
 );
-    
+
     wire        ws_ready_go;
     reg         ws_valid;
     reg  [31:0] ws_pc;
@@ -68,8 +73,20 @@ module WBreg(
     reg inst_tlbsrch,inst_tlbrd,inst_tlbwr,inst_tlbfill,inst_invtlb;
     wire [`T_IDX_WID]  random_idx;
     wire tlb_refetch;
+    reg cacop_icache;
+    reg cacop_data_ok_r;
+    assign cacop_req=cacop_icache&&~cacop_data_ok_r;
+    always @(posedge clk) begin
+        if (~resetn) begin
+            cacop_data_ok_r <= 1'b0;
+        end else if (ms_to_ws_valid & ws_allowin) begin
+            cacop_data_ok_r <= 1'b0;
+        end else if(cacop_data_ok&&cacop_icache) begin
+            cacop_data_ok_r <= 1'b1;
+        end
+    end
 
-    assign ws_ready_go      = 1'b1;
+    assign ws_ready_go      = cacop_icache ? cacop_data_ok_r : 1'b1;
     assign ws_allowin       = ~ws_valid | ws_ready_go ;     
     always @(posedge clk) begin
         if (~resetn||ertn_flush||wb_ex) begin
@@ -83,7 +100,7 @@ module WBreg(
         if (~resetn) begin
             ws_pc <= 32'b0;
             {ws_rf_we, ws_rf_waddr, ws_rf_wdata} <= 38'b0;
-            {ws_except,s1_found,s1_index,inst_tlbsrch,inst_tlbrd,inst_tlbwr,inst_tlbfill,inst_invtlb} <= 'b0;
+            {ws_except,s1_found,s1_index,inst_tlbsrch,inst_tlbrd,inst_tlbwr,inst_tlbfill,inst_invtlb,cacop_icache,cacop_addr,cacop_code} <= 'b0;
             wb_vaddr <= 32'b0;
             ws_csr_collect <= 'b0;
             ws_csr_we <= 1'b0;
@@ -92,7 +109,7 @@ module WBreg(
         if (ms_to_ws_valid & ws_allowin) begin
             ws_pc <= ms_pc;
             {ws_rf_we, ws_rf_waddr, ws_rf_wdata} <= ms_rf_collect;
-            {ws_except,s1_found,s1_index,inst_tlbsrch,inst_tlbrd,inst_tlbwr,inst_tlbfill,inst_invtlb} <= ms_to_ws_bus;
+            {ws_except,s1_found,s1_index,inst_tlbsrch,inst_tlbrd,inst_tlbwr,inst_tlbfill,inst_invtlb,cacop_icache,cacop_addr,cacop_code} <= ms_to_ws_bus;
             wb_vaddr <= vaddr;
             ws_csr_collect <= ms_to_ws_csr_collect;
             ws_csr_we <=  ms_to_ws_csr_collect[`CSR_WE];
@@ -156,7 +173,7 @@ module WBreg(
     //refetch
     assign tlb_refetch = (inst_tlbsrch | inst_tlbrd | inst_tlbwr | inst_tlbfill | inst_invtlb |
                         (ws_csr_num == `CSR_ASID | ws_csr_num == `CSR_TLBEHI) & ws_csr_we
-                        ) && ws_valid;
+                        ) && ws_valid ||(cacop_icache && ~cacop_data_ok_r);
 
 
 

@@ -228,7 +228,7 @@ module IDreg(
                             inst_rdcntvl_w | inst_sll_w | inst_slli_w | inst_slt | inst_slti | inst_sltu | inst_sltui |
                             inst_sra_w | inst_srai_w | inst_srl_w | inst_srli_w | inst_st | inst_st_b | inst_st_h | inst_st_w |
                             inst_sub_w | inst_syscall | inst_xor | inst_xori |
-                            inst_type_tlb
+                            inst_type_tlb | inst_cacop
                             ); 
 
     assign branch_type = inst_b | inst_bl | inst_beq | inst_bne | inst_blt | inst_bge | inst_bltu | inst_bgeu | inst_jirl;
@@ -461,7 +461,7 @@ module IDreg(
     assign gr_we =  ~inst_st    & ~inst_beq &
                     ~inst_bne   & ~inst_b   &
                     ~inst_bge   & ~inst_bgeu&
-                    ~inst_blt   & ~inst_bltu& ~inst_syscall & ~inst_type_tlb;
+                    ~inst_blt   & ~inst_bltu& ~inst_syscall & ~inst_type_tlb & ~inst_cacop;
     assign ds_mem_en = inst_st & ds_valid;
     assign dest      = dst_is_r1 ? 5'd1 : dst_is_rj ? rj : rd;
      

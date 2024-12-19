@@ -271,6 +271,11 @@ module mycpu_top(
     wire         dcache_cacop_req;
     wire [31:0]  dcache_cacop_addr;
 
+    wire [4:0]   icache_cacop_code;
+    wire         icache_cacop_req;
+    wire [31:0]  icache_cacop_addr;
+    wire         cacop_data_ok;
+
     AXI_bridge my_AXIbridge(
         .aclk(clk),
         .aresetn(resetn),
@@ -550,8 +555,14 @@ module mycpu_top(
         .ms_to_ws_csr_collect(ms_to_ws_csr_collect),
         
         .ws_csr_collect(ws_csr_collect),
-        .csr_rvalue(csr_rvalue)
+        .csr_rvalue(csr_rvalue),
+
+        .cacop_addr(icache_cacop_addr),
+        .cacop_req(icache_cacop_req),
+        .cacop_code(icache_cacop_code),
+        .cacop_data_ok(cacop_data_ok)
     );
+
 
     assign {csr_re, csr_num, csr_we, csr_wmask, csr_wvalue} = ws_csr_collect;
 
@@ -783,7 +794,13 @@ module mycpu_top(
         .ret_last   ({1'b0,icache_ret_last}),
         .ret_data   (icache_ret_data),
 
-        .cacheable  (1'b1) //temporary set to 0 to test uncacheable situation
+        .cacheable  (1'b1), //temporary set to 0 to test uncacheable situation
+
+        .cacop_code(icache_cacop_code),
+        .cacop_req(icache_cacop_req),
+        .cacop_addr(icache_cacop_addr),
+        .cacop_data_ok(cacop_data_ok),
+        .cache_type(0)
     );
 
 
@@ -824,7 +841,7 @@ module mycpu_top(
 
         .cacop_code(dcache_cacop_code),
         .cacop_req(dcache_cacop_req),
-        .cacop_addr(dcache_cacop_addr)
-
+        .cacop_addr(dcache_cacop_addr),
+        .cache_type(1)
     );
 endmodule

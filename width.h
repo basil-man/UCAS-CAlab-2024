@@ -17,8 +17,8 @@
 //bus width between stages
 `define F2D_WID 68:0
 `define D2E_WID 220:0
-`define E2M_WID 27:0
-`define M2W_WID 25:0
+`define E2M_WID 66:0
+`define M2W_WID 63:0
 
 //mem inst (ld/st) bus width
 `define D2E_MINST_WID 7:0

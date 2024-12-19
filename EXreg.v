@@ -327,7 +327,7 @@ module EXreg(
 
     //MMU
     assign {s1_vppn, s1_va_bit12} = data_va[31:12];
-    assign data_va = inst_tlbsrch ? {csr_tlbehi_vppn, 13'b0} :
+    assign data_va = inst_cacop ? cacop_addr : inst_tlbsrch ? {csr_tlbehi_vppn, 13'b0} :
                      (inst_invtlb & (es_rj!=5'b0)) ? es_rkd_value : es_alu_result;
     assign es_asid = inst_invtlb ? es_alu_src1[9:0] : csr_asid_asid;
     assign es_to_ms_bus =   {
@@ -340,7 +340,11 @@ module EXreg(
                             inst_tlbrd,
                             inst_tlbwr,
                             inst_tlbfill,
-                            inst_invtlb//total 5 bits
+                            inst_invtlb,//total 5 bits
+                            cacop_icache,
+                            cacop_addr,
+                            cacop_code,
+                            cacop_dcache
                             };
 
     assign es_rf_collect =  {
@@ -354,8 +358,8 @@ module EXreg(
 
     //cacop
     assign cacop_req    = inst_cacop & es_valid & ~flush_by_former_except & ms_allowin & (~|es_except_collect) & cacop_dcache;
-    assign cacop_icache = cacop_code[2:0]==3'd0;
-    assign cacop_dcache = cacop_code[2:0]==3'd1;
+    assign cacop_icache = cacop_code[2:0]==3'd0 & inst_cacop;
+    assign cacop_dcache = cacop_code[2:0]==3'd1 & inst_cacop;
     assign cacop_addr   = es_alu_result;
     
     
