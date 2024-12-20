@@ -847,35 +847,4 @@ module mycpu_top(
         .cacop_addr(dcache_cacop_addr),
         .cache_type(1)
     );
-
-    cache dcache(
-        .clk(aclk),
-        .resetn(aresetn),
-
-        .valid      (data_sram_req),
-        .op         (data_sram_wr),
-
-        .index      (data_sram_addr[11:4]),
-        .tag        (data_sram_addr[31:12]),
-        .offset     (data_sram_addr[3:0]),
-        .wstrb      (data_sram_wstrb),
-        .wdata      (data_sram_wdata),
-        .addr_ok    (data_sram_addr_ok),
-        .data_ok    (data_sram_data_ok),
-        .rdata      (data_sram_rdata),
-
-        .rd_req     (dcache_rd_req),
-        .rd_type    (dcache_rd_type),
-        .rd_addr    (dcache_rd_addr),
-        .rd_rdy     (dcache_rd_rdy),
-        .ret_valid  (dcache_ret_valid),
-        .ret_last   ({1'b0,dcache_ret_last}),
-        .ret_data   (dcache_ret_data),
-        .wr_req     (dcache_wr_req),
-        .wr_type    (dcache_wr_type),
-        .wr_addr    (dcache_wr_addr),
-        .wr_wstrb   (dcache_wr_wstrb),
-        .wr_data    (dcache_wr_data),
-        .wr_rdy     (dcache_wr_rdy)
-    );
 endmodule
