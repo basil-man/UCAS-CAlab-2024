@@ -1,5 +1,11 @@
-# calab-group-repository
+# UCAS CAlab 2024
 group repository of ca-lab
+
+Group members:
+
+- [x] rhl
+- [x] zc
+- [x] phk
 
 codes in branches
 ```sh
