@@ -135,15 +135,15 @@ module mycpu_top(
     wire [31:0]  inst_sram_rdata;
     wire         inst_sram_addr_ok;
     wire         inst_sram_data_ok;
-    wire        data_sram_req;
-    wire [ 3:0] data_sram_wstrb;
-    wire [31:0] data_sram_addr;
-    wire [31:0] data_sram_wdata;
-    wire        data_sram_wr;
-    wire [ 1:0] data_sram_size;
-    wire        data_sram_addr_ok;
-    wire [31:0] data_sram_rdata;
-    wire        data_sram_data_ok;
+    wire         data_sram_req;
+    wire [ 3:0]  data_sram_wstrb;
+    wire [31:0]  data_sram_addr;
+    wire [31:0]  data_sram_wdata;
+    wire         data_sram_wr;
+    wire [ 1:0]  data_sram_size;
+    wire         data_sram_addr_ok;
+    wire [31:0]  data_sram_rdata;
+    wire         data_sram_data_ok;
 
     wire [`T_VPPN_WID]  s0_vppn;
     wire                s0_va_bit12;
@@ -222,6 +222,7 @@ module mycpu_top(
     wire [31:0]              inst_pa;
     wire [31:0]              data_va;
     wire [31:0]              data_pa;
+    wire                     data_cacheable;   
 
     wire [9:0]               es_asid;
 
@@ -246,10 +247,12 @@ module mycpu_top(
     wire        icache_ret_last;
     wire [31:0] icache_ret_data;
 
-    //exp22 dchache
+    //exp22 dcache
+
     wire        dcache_rd_req;
     wire [ 2:0] dcache_rd_type;
     wire [31:0] dcache_rd_addr;
+    wire        dcache_rd_cacheable;
     wire        dcache_rd_rdy;
     wire        dcache_ret_valid;
     wire        dcache_ret_last;
@@ -258,9 +261,19 @@ module mycpu_top(
     wire        dcache_wr_req;
     wire [ 2:0] dcache_wr_type;
     wire [31:0] dcache_wr_addr;
-    wire [ 3:0] dcache_wr_wstrb;
-    wire [127:0]dcache_wr_data;
+    wire        dcache_wr_cacheable;
+    wire [ 3:0] dcache_wr_strb;
+    wire[127:0] dcache_wr_data;
     wire        dcache_wr_rdy;
+
+    wire [4:0]   dcache_cacop_code;
+    wire         dcache_cacop_req;
+    wire [31:0]  dcache_cacop_addr;
+
+    wire [4:0]   icache_cacop_code;
+    wire         icache_cacop_req;
+    wire [31:0]  icache_cacop_addr;
+    wire         cacop_data_ok;
 
     AXI_bridge my_AXIbridge(
         .aclk(clk),
@@ -274,19 +287,21 @@ module mycpu_top(
         .icache_ret_last(icache_ret_last),
         .icache_ret_data(icache_ret_data),
 
-        .dcache_rd_req     (dcache_rd_req),
-        .dcache_rd_type    (dcache_rd_type),
-        .dcache_rd_addr    (dcache_rd_addr),
-        .dcache_rd_rdy     (dcache_rd_rdy),
-        .dcache_ret_valid  (dcache_ret_valid),
-        .dcache_ret_last   (dcache_ret_last),
-        .dcache_ret_data   (dcache_ret_data),
-        .dcache_wr_req     (dcache_wr_req),
-        .dcache_wr_type    (dcache_wr_type),
-        .dcache_wr_addr    (dcache_wr_addr),
-        .dcache_wr_wstrb   (dcache_wr_wstrb),
-        .dcache_wr_data    (dcache_wr_data),
-        .dcache_wr_rdy     (dcache_wr_rdy),
+        .dcache_rd_req      (dcache_rd_req      ),
+        .dcache_rd_type     (dcache_rd_type     ),
+        .dcache_rd_addr     (dcache_rd_addr     ),
+        .dcache_rd_rdy      (dcache_rd_rdy      ),
+        .dcache_ret_valid   (dcache_ret_valid   ),
+        .dcache_ret_last    (dcache_ret_last    ),
+        .dcache_ret_data    (dcache_ret_data    ),
+
+        .dcache_wr_req      (dcache_wr_req      ),
+        .dcache_wr_type     (dcache_wr_type     ),
+        .dcache_wr_addr     (dcache_wr_addr     ),
+        .dcache_wr_wstrb    (dcache_wr_strb    ),
+        .dcache_wr_data     (dcache_wr_data     ),
+        .dcache_wr_cacheable  (dcache_wr_cacheable),
+        .dcache_wr_rdy      (dcache_wr_rdy      ),
 
         .arid(arid),
         .araddr(araddr),
@@ -460,7 +475,12 @@ module mycpu_top(
         .ex_PPI(data_ex_PPI),
         .ex_PME(data_ex_PME),
         .s1_vppn(s1_vppn),
-        .s1_va_bit12(s1_va_bit12)
+        .s1_va_bit12(s1_va_bit12),
+        .cacheable(data_cacheable),
+
+        .cacop_req(dcache_cacop_req),
+        .cacop_addr(dcache_cacop_addr),
+        .cacop_code(dcache_cacop_code)
     );
 
     MEMreg my_memReg(
@@ -495,7 +515,7 @@ module mycpu_top(
         .es_to_ms_csr_collect(es_to_ms_csr_collect),
         .ms_to_ws_csr_collect(ms_to_ws_csr_collect)
     );
-
+    wire br_taken;
     WBreg my_wbReg(
         .clk(clk),
         .resetn(resetn),
@@ -534,8 +554,15 @@ module mycpu_top(
         .ms_to_ws_csr_collect(ms_to_ws_csr_collect),
         
         .ws_csr_collect(ws_csr_collect),
-        .csr_rvalue(csr_rvalue)
+        .csr_rvalue(csr_rvalue),
+
+        .cacop_addr(icache_cacop_addr),
+        .cacop_req(icache_cacop_req),
+        .cacop_code(icache_cacop_code),
+        .cacop_data_ok(cacop_data_ok),
+        .br_taken(br_taken)
     );
+
 
     assign {csr_re, csr_num, csr_we, csr_wmask, csr_wvalue} = ws_csr_collect;
 
@@ -605,7 +632,9 @@ module mycpu_top(
         .csr_crmd_data(csr_crmd_data),
         .csr_dmw0_data(csr_dmw0_data),
         .csr_dmw1_data(csr_dmw1_data),
-        .csr_asid_data(csr_asid_data)
+        .csr_asid_data(csr_asid_data),
+
+        .br_taken(br_taken)
     );
 
     tlb my_tlb(
@@ -675,13 +704,14 @@ module mycpu_top(
         .r_d1       (r_d1),
         .r_v1       (r_v1)
     );
-
+    wire inst_cacheable;
     MMU inst_MMU(
         .MMU_mode(0),
         .input_asid(),
         //va & pa
         .va(inst_va),
         .pa(inst_pa),
+        .cacheable(inst_cacheable),
 
         //tlb interface
         .s_vppn(s0_vppn),
@@ -715,6 +745,7 @@ module mycpu_top(
         //va & pa
         .va(data_va),
         .pa(data_pa),
+        .cacheable(data_cacheable),
 
         //tlb interface
         .s_vppn(),
@@ -764,7 +795,57 @@ module mycpu_top(
         .rd_rdy     (icache_rd_rdy),
         .ret_valid  (icache_ret_valid),
         .ret_last   ({1'b0,icache_ret_last}),
-        .ret_data   (icache_ret_data)
+        .ret_data   (icache_ret_data),
+
+        .cacheable  (1), //temporary set to 0 to test uncacheable situation
+
+        .cacop_code(icache_cacop_code),
+        .cacop_req(icache_cacop_req),
+        .cacop_addr(icache_cacop_addr),
+        .cacop_data_ok(cacop_data_ok),
+        .cache_type(0)
+    );
+
+
+    cache dcache(
+        .clk(aclk),
+        .resetn(aresetn),
+
+        .valid      (data_sram_req),
+        .op         (data_sram_wr),
+
+        .index      (data_sram_addr[11:4]),
+        .tag        (data_sram_addr[31:12]),
+        .offset     (data_sram_addr[3:0]),
+        .wstrb      (data_sram_wstrb),
+        .wdata      (data_sram_wdata),
+        .addr_ok    (data_sram_addr_ok),
+        .data_ok    (data_sram_data_ok),
+        .rdata      (data_sram_rdata),
+
+        .rd_req     (dcache_rd_req),
+        .rd_type    (dcache_rd_type),
+        .rd_addr    (dcache_rd_addr),
+        // .rd_cacheable(dcache_rd_cacheable),
+        .rd_rdy     (dcache_rd_rdy),
+        .ret_valid  (dcache_ret_valid),
+        .ret_last   ({1'b0,dcache_ret_last}),
+        .ret_data   (dcache_ret_data),
+
+        .wr_req     (dcache_wr_req),
+        .wr_type    (dcache_wr_type),
+        .wr_addr    (dcache_wr_addr),
+        .wr_data    (dcache_wr_data),
+        .wr_wstrb   (dcache_wr_strb),
+        .wr_cacheable(dcache_wr_cacheable),
+        .wr_rdy     (dcache_wr_rdy),
+
+        .cacheable  (data_cacheable),
+
+        .cacop_code(dcache_cacop_code),
+        .cacop_req(dcache_cacop_req),
+        .cacop_addr(dcache_cacop_addr),
+        .cache_type(1)
     );
 
     cache dcache(

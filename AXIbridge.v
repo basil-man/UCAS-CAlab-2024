@@ -5,17 +5,6 @@ module AXI_bridge(
     input  wire        aclk,
     input  wire        aresetn,
 
-    // // inst sram 
-    // input  wire         inst_sram_req,      //请求信号，为 1 时有读写请求，为 0 时无读写请求。
-    // input  wire [ 3:0]  inst_sram_wstrb,    //该次写请求的字节写使能。
-    // input  wire [31:0]  inst_sram_addr,     //该次请求的地址
-    // input  wire [31:0]  inst_sram_wdata,    //该次写请求的写数据
-    // input  wire         inst_sram_wr,       //为 1 表示该次是写请求，为 0 表示该次是读请求。
-    // input  wire [ 1:0]  inst_sram_size,     //该次请求传输的字节数，0: 1 byte；1: 2 bytes；2: 4 bytes。
-    // output wire [31:0]  inst_sram_rdata,    //该次请求返回的读数据。
-    // output wire         inst_sram_addr_ok,  //该次请求的地址传输 OK，读：地址被接收；写：地址和数据被接收
-    // output wire         inst_sram_data_ok,  //该次请求的数据传输 OK，读：数据返回；写：数据写入完成。
-    
     //inst cache
     input  wire        icache_rd_req,           // 读请求有效信号。高电平有效。
     input  wire [ 2:0] icache_rd_type,          // 读请求类型。3’b000——字节，3’b001——半字，3’b010——字，3’b100——Cache行
@@ -24,7 +13,7 @@ module AXI_bridge(
     output reg         icache_ret_valid,        // 返回数据有效信号后。高电平有效
     output wire        icache_ret_last,         // 返回数据是一次读请求对应的最后一个返回数据
     output wire [31:0] icache_ret_data,         // 读返回数据
-    // // data sram 
+    // data sram 
     // input  wire        data_sram_req,
     // input  wire [ 3:0] data_sram_wstrb,
     // input  wire [31:0] data_sram_addr,
@@ -35,20 +24,22 @@ module AXI_bridge(
     // output wire [31:0] data_sram_rdata,
     // output wire        data_sram_data_ok,
 
-    //data cache
-    input  wire        dcache_rd_req,           // 读请求有效信号。高电平有效。
-    input  wire [ 2:0] dcache_rd_type,          // 读请求类型。3’b000——字节，3’b001——半字，3’b010——字，3’b100——Cache行
-    input  wire [31:0] dcache_rd_addr,          // 读请求起始地址
-    output wire        dcache_rd_rdy,           // 读请求能否被接收的握手信号。高电平有效
-    output reg         dcache_ret_valid,        // 返回数据有效信号后。高电平有效
-    output wire        dcache_ret_last,         // 返回数据是一次读请求对应的最后一个返回数据
-    output wire [31:0] dcache_ret_data,         // 读返回数据
-    input  wire        dcache_wr_req,
-    input  wire [ 2:0] dcache_wr_type,
-    input  wire [31:0] dcache_wr_addr,
-    input  wire [ 3:0] dcache_wr_wstrb,
-    input  wire [127:0]dcache_wr_data,
-    output wire        dcache_wr_rdy,
+    //data cache rd
+    input  wire        	dcache_rd_req,
+    input  wire[ 2:0]   dcache_rd_type,
+    input  wire[31:0]   dcache_rd_addr,
+    output wire        	dcache_rd_rdy,
+    output reg         	dcache_ret_valid,
+	output wire			dcache_ret_last,
+    output wire[31:0]   dcache_ret_data,
+	// dcache wr 
+	input   wire        dcache_wr_req,
+    input   wire [ 2:0] dcache_wr_type,
+    input   wire [31:0] dcache_wr_addr,
+    input   wire [ 3:0] dcache_wr_wstrb,
+	input	wire [127:0]	dcache_wr_data,
+    input   wire        dcache_wr_cacheable,
+	output	wire 		dcache_wr_rdy,
 
     //AXI
     //读请求通道,（以 ar 开头）
@@ -72,7 +63,7 @@ module AXI_bridge(
     //写请求通道,（以 aw 开头）
     output wire [`A_ID_WID]     awid,   //写请求的 ID 号,固定为 1
     output reg  [`DATA_WID]     awaddr, //写请求的地址
-    output wire [`A_LEN_WID]    awlen,  //写请求控制信号,请求传输的长度 (数据传输拍数),固定为 0
+    output reg  [`A_LEN_WID]    awlen,  //写请求控制信号,请求传输的长度 (数据传输拍数)
     output reg  [`A_SIZE_WID]   awsize, //写请求控制信号,请求传输的大小 (数据传输每拍的字节数)
     output wire [`A_BURST_WID]  awburst,//写请求控制信号,传输类型，固定为 0b01
     output wire [`A_LOCK_WID]   awlock, //写请求控制信号,原子锁,固定为 0
@@ -82,7 +73,7 @@ module AXI_bridge(
     input  wire                 awready,//写请求地址握手信号，slave 端准备好接收地址传输
     //写数据通道,（以 w 开头）
     output wire [`A_ID_WID]     wid,    //写请求的 ID 号，固定为 1 
-    output reg  [`DATA_WID]     wdata,  //写请求的写数据
+    output wire [`DATA_WID]     wdata,  //写请求的写数据
     output reg  [`A_STRB_WID]   wstrb,  //写请求控制信号，字节选通位
     output wire                 wlast,  //写请求控制信号，本次写请求的最后一拍数据的指示信号,固定为 1
     output wire                 wvalid, //写请求数据握手信号，写请求数据有效
@@ -148,6 +139,12 @@ module AXI_bridge(
     wire is_data_r,is_data_w,is_data_r_buffer,is_data_w_buffer;
 
     reg debug_catch_defualt;
+    
+    //exp22
+    reg cacheable_reg;
+    reg uncacheable_block;
+    reg [1:0] wdata_cnt;
+    reg [127:0] wdata_reg;
 
     //dcache interface
     wire dcache_req = dcache_rd_req | dcache_wr_req;
@@ -170,9 +167,9 @@ module AXI_bridge(
     always @(*)begin
         case(ar_state)
             `IDLE:begin
-                if(~aresetn | ar_block)
+                if(~aresetn | ar_block | uncacheable_block)
                     ar_next_state = `IDLE;
-                else if(icache_rd_req | (dcache_rd_req & ~(|r_cnt))) 
+                else if((icache_rd_req | dcache_rd_req) ) 
                     ar_next_state = `START;
                 else 
                     ar_next_state = `IDLE;
@@ -262,17 +259,17 @@ module AXI_bridge(
                     w_next_state = `W_IDLE;
             end
             `W_START:begin
-                if(awready & awvalid & wready & wvalid)
+                if(awready & awvalid & wready & wvalid & wlast)
                     w_next_state = `W_FINISH;
                 else if(awready & awvalid)
                     w_next_state = `W_ADDR;
-                else if(wready & wvalid)
+                else if(wready & wvalid& wlast)
                     w_next_state = `W_DATA;
                 else 
                     w_next_state = `W_START;
             end
             `W_ADDR:begin
-                if(wready & wvalid)
+                if(wready & wvalid & wlast)
                     w_next_state = `W_FINISH;
                 else 
                     w_next_state = `W_ADDR;
@@ -357,8 +354,8 @@ module AXI_bridge(
             if(dcache_rd_req)begin
                 arid   <= 4'b1;
                 araddr <= dcache_rd_addr;
-                arsize <= 3'b010;
-                arlen  <= {2{icache_rd_type[2]}};
+                arsize <= 3'b010;// may be wrong??
+                arlen  <= {2{dcache_rd_type[2]}};
             end else if(icache_rd_req)begin
                 arid   <= 4'b0;
                 araddr <= icache_rd_addr;
@@ -389,13 +386,12 @@ module AXI_bridge(
 
     //为固定值的信号赋值
     assign awid    = 'b1;
-    assign awlen   = 'b0;
     assign awburst = 2'b01;
     assign awlock  = 'b0;
     assign awcache = 'b0;
     assign awprot  = 'b0;
     assign wid     = 'b1;
-    assign wlast   = 'b1;
+    assign wlast   = (awlen=='d3)?wdata_cnt==awlen:~cacheable_reg ? 1'b1:(wdata_cnt == 2'b11);
 
     //写请求&写数据通道信号逻辑
     assign awvalid = w_state_start | w_state_data;
@@ -403,11 +399,13 @@ module AXI_bridge(
 
     always @(posedge aclk)begin
         if(~aresetn)begin
-            {awaddr,awsize} <= 'b0;
+            {awaddr,awsize,awlen} <= 'b0;
         end else if(w_state_idle)begin
-            if(dcache_wr)begin
+            if(dcache_wr_req)begin
                 awaddr <= dcache_wr_addr;
-                awsize <= dcache_wr_type;
+                awsize <= 3'b010; // may be wrong??
+                awlen  <= {2{dcache_wr_type[2]}};
+                cacheable_reg <= dcache_wr_cacheable;
             end 
             //inst cache do not need write
         end
@@ -415,10 +413,29 @@ module AXI_bridge(
 
     always @(posedge aclk) begin
         if(~aresetn)begin
-            {wdata,wstrb}   <= 'b0;
+            {wdata_reg,wstrb}   <= 'b0;
         end else if (w_state_idle)begin
             wstrb <= dcache_wr_wstrb;
-            wdata <= dcache_wr_data;
+            wdata_reg <= dcache_wr_data;
+        end
+    end
+    assign wdata = wdata_reg[32*wdata_cnt +: 32];
+
+    // always@(posedge aclk)begin
+    //     if(~aresetn)begin
+    //         wdata_cnt <= 2'b0;
+    //     end else if((w_state_addr|w_state_start )& wready)begin
+    //         wdata_cnt <= wdata_cnt + 2'b1;
+    //     end
+    // end
+
+    always@(posedge aclk)begin
+        if(~aresetn)begin
+            wdata_cnt <= 2'b0;
+        end else if(wvalid & wready & wlast)begin
+            wdata_cnt <= 2'b0;
+        end else if (wvalid & wready)begin
+            wdata_cnt <= wdata_cnt + 2'b1;
         end
     end
 
@@ -428,6 +445,16 @@ module AXI_bridge(
 
     //写响应通道信号逻辑
     assign bready = w_state_finish;
+
+    always @(posedge aclk)begin
+        if(~aresetn)begin
+            uncacheable_block <= 1'b0;
+        end else if(w_state_idle & ~dcache_wr_cacheable & dcache_wr_req) begin
+            uncacheable_block <= 1'b1;
+        end else if(bready & bvalid)begin
+            uncacheable_block <= 1'b0;
+        end
+    end
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     //rdata buffer
@@ -456,7 +483,7 @@ module AXI_bridge(
     // assign inst_sram_addr_ok = ~is_data_r & arvalid & arready | ~is_data_w & awvalid & awready;
     // assign inst_sram_data_ok = ~is_data_r_buffer & r_state_finish | ~is_data_w_buffer & bvalid & bready;
     assign icache_ret_data = rdata_buffer[0];
-    assign icache_rd_rdy = ar_state_idle & ~(dcache_rd_req) & ~ar_block;
+    assign icache_rd_rdy = ar_state_idle & ~dcache_rd_req & ~ar_block & ~uncacheable_block;
     assign icache_ret_last = r_state_finish & ~rid_buffer[0];
     always @(posedge aclk) begin
         if(~aresetn)
@@ -470,12 +497,9 @@ module AXI_bridge(
     // assign data_sram_rdata = rdata_buffer[1];
     // assign data_sram_addr_ok = is_data_r & arvalid & arready | is_data_w & awvalid & awready; 
     // assign data_sram_data_ok = is_data_r_buffer & r_state_finish | is_data_w_buffer & bvalid & bready;
-        //data cache
-
     assign dcache_ret_data = rdata_buffer[1];
-    assign dcache_rd_rdy = ar_state_idle & dcache_rd_req & ~|r_cnt;
+    assign dcache_rd_rdy = ar_state_idle & ~ar_block & ~uncacheable_block;
     assign dcache_ret_last = r_state_finish & rid_buffer[0];
-    assign dcache_wr_rdy = w_state_idle & dcache_wr;
     always @(posedge aclk) begin
         if(~aresetn)
             dcache_ret_valid <= 1'b0;
@@ -485,5 +509,6 @@ module AXI_bridge(
             dcache_ret_valid <= 1'b0;
     end
 
+    assign dcache_wr_rdy = w_state_idle;
 
 endmodule
