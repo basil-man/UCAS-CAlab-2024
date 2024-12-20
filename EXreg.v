@@ -142,11 +142,12 @@ module EXreg(
             es_valid <= ds_to_es_valid;
         end
     end
+    reg br_taken;
     always @(posedge clk) begin
         if (~resetn) begin
             {tmp, from_ds_except, extend_es_alu_op, es_res_from_mem, es_alu_src1, es_alu_src2,
             es_mem_en, es_rf_we, es_rf_waddr, es_rkd_value, es_pc, csr_rvalue, csr_re,
-            es_rd,inst_tlbsrch,inst_tlbrd,inst_tlbwr,inst_tlbfill,inst_invtlb,cacop_code,inst_cacop} <= 'b0;
+            es_rd,inst_tlbsrch,inst_tlbrd,inst_tlbwr,inst_tlbfill,inst_invtlb,cacop_code,inst_cacop,br_taken} <= 'b0;
             {inst_st_w,inst_st_h,inst_st_b} <= 'b0;
             es_mem_inst_bus <= 'b0;
             {inst_rdcntvl,inst_rdcntvh} <= 'b0;
@@ -154,7 +155,7 @@ module EXreg(
         end else if (ds_to_es_valid & es_allowin) begin
             {tmp, from_ds_except, extend_es_alu_op, es_res_from_mem, es_alu_src1, es_alu_src2,
             es_mem_en, es_rf_we, es_rf_waddr, es_rkd_value, es_pc, csr_rvalue, csr_re,
-            es_rd,inst_tlbsrch,inst_tlbrd,inst_tlbwr,inst_tlbfill,inst_invtlb,es_rj,cacop_code,inst_cacop } <= ds_to_es_bus;
+            es_rd,inst_tlbsrch,inst_tlbrd,inst_tlbwr,inst_tlbfill,inst_invtlb,es_rj,cacop_code,inst_cacop,br_taken } <= ds_to_es_bus;
             {inst_st_w,inst_st_h,inst_st_b} <= ds_mem_inst_bus[2:0];
             es_mem_inst_bus <= ds_mem_inst_bus[7:3];
             {inst_rdcntvl,inst_rdcntvh} <= collect_inst_rd_cnt;
@@ -269,11 +270,12 @@ module EXreg(
     assign es_ale_except = ((|es_alu_result[1:0]) & (inst_st_w | inst_ld_w)|
                          es_alu_result[0] & (inst_st_h | inst_ld_hu | inst_ld_h)) & es_valid;
 
-    wire ex_PIL = ex_PIx & (inst_ld_w | inst_ld_h | inst_ld_hu | inst_ld_b | inst_ld_bu);
+    wire ex_PIL = ex_PIx & (inst_ld_w | inst_ld_h | inst_ld_hu | inst_ld_b | inst_ld_bu | (inst_cacop & cacop_code[4:3]==2'd2));
     wire ex_PIS = ex_PIx & (inst_st_w | inst_st_h | inst_st_b);
-    assign es_except_collect = {es_ale_except, from_ds_except, ex_TLBR & (es_res_from_mem || es_mem_en), ex_PIL & (es_res_from_mem || es_mem_en),
-                                ex_PIS & (es_res_from_mem || es_mem_en), ex_PPI & (es_res_from_mem || es_mem_en), 
-                                ex_PME & (es_res_from_mem || es_mem_en)} & {16{es_valid}};
+    wire ex_enable = es_res_from_mem | es_mem_en | inst_cacop;
+    assign es_except_collect = {es_ale_except, from_ds_except, ex_TLBR & ex_enable, ex_PIL & ex_enable,
+                                ex_PIS & ex_enable, ex_PPI & ex_enable, 
+                                ex_PME & ex_enable} & {16{es_valid}};
 
     alu u_alu (
         .alu_op    (es_alu_op),
@@ -327,7 +329,7 @@ module EXreg(
 
     //MMU
     assign {s1_vppn, s1_va_bit12} = data_va[31:12];
-    assign data_va = inst_cacop ? cacop_addr : inst_tlbsrch ? {csr_tlbehi_vppn, 13'b0} :
+    assign data_va = inst_cacop ? es_alu_result : inst_tlbsrch ? {csr_tlbehi_vppn, 13'b0} :
                      (inst_invtlb & (es_rj!=5'b0)) ? es_rkd_value : es_alu_result;
     assign es_asid = inst_invtlb ? es_alu_src1[9:0] : csr_asid_asid;
     assign es_to_ms_bus =   {
@@ -344,7 +346,8 @@ module EXreg(
                             cacop_icache,
                             cacop_addr,
                             cacop_code,
-                            cacop_dcache
+                            cacop_dcache,
+                            br_taken
                             };
 
     assign es_rf_collect =  {
@@ -360,7 +363,7 @@ module EXreg(
     assign cacop_req    = inst_cacop & es_valid & ~flush_by_former_except & ms_allowin & (~|es_except_collect) & cacop_dcache;
     assign cacop_icache = cacop_code[2:0]==3'd0 & inst_cacop;
     assign cacop_dcache = cacop_code[2:0]==3'd1 & inst_cacop;
-    assign cacop_addr   = es_alu_result;
+    assign cacop_addr   = cacop_code[4:3]==2?data_pa:es_alu_result;
     
     
 endmodule

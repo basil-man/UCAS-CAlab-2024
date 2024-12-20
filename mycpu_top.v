@@ -516,7 +516,7 @@ module mycpu_top(
         .es_to_ms_csr_collect(es_to_ms_csr_collect),
         .ms_to_ws_csr_collect(ms_to_ws_csr_collect)
     );
-
+    wire br_taken;
     WBreg my_wbReg(
         .clk(clk),
         .resetn(resetn),
@@ -560,7 +560,8 @@ module mycpu_top(
         .cacop_addr(icache_cacop_addr),
         .cacop_req(icache_cacop_req),
         .cacop_code(icache_cacop_code),
-        .cacop_data_ok(cacop_data_ok)
+        .cacop_data_ok(cacop_data_ok),
+        .br_taken(br_taken)
     );
 
 
@@ -632,7 +633,9 @@ module mycpu_top(
         .csr_crmd_data(csr_crmd_data),
         .csr_dmw0_data(csr_dmw0_data),
         .csr_dmw1_data(csr_dmw1_data),
-        .csr_asid_data(csr_asid_data)
+        .csr_asid_data(csr_asid_data),
+
+        .br_taken(br_taken)
     );
 
     tlb my_tlb(
@@ -702,13 +705,14 @@ module mycpu_top(
         .r_d1       (r_d1),
         .r_v1       (r_v1)
     );
-
+    wire inst_cacheable;
     MMU inst_MMU(
         .MMU_mode(0),
         .input_asid(),
         //va & pa
         .va(inst_va),
         .pa(inst_pa),
+        .cacheable(inst_cacheable),
 
         //tlb interface
         .s_vppn(s0_vppn),
@@ -794,7 +798,7 @@ module mycpu_top(
         .ret_last   ({1'b0,icache_ret_last}),
         .ret_data   (icache_ret_data),
 
-        .cacheable  (1'b1), //temporary set to 0 to test uncacheable situation
+        .cacheable  (1), //temporary set to 0 to test uncacheable situation
 
         .cacop_code(icache_cacop_code),
         .cacop_req(icache_cacop_req),

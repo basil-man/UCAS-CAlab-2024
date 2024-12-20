@@ -46,7 +46,8 @@ module WBreg(
     output reg [31:0] cacop_addr,
     output wire cacop_req,
     output reg [4:0] cacop_code,
-    input wire cacop_data_ok
+    input wire cacop_data_ok,
+    output reg br_taken
 );
 
     wire        ws_ready_go;
@@ -100,7 +101,7 @@ module WBreg(
         if (~resetn) begin
             ws_pc <= 32'b0;
             {ws_rf_we, ws_rf_waddr, ws_rf_wdata} <= 38'b0;
-            {ws_except,s1_found,s1_index,inst_tlbsrch,inst_tlbrd,inst_tlbwr,inst_tlbfill,inst_invtlb,cacop_icache,cacop_addr,cacop_code} <= 'b0;
+            {ws_except,s1_found,s1_index,inst_tlbsrch,inst_tlbrd,inst_tlbwr,inst_tlbfill,inst_invtlb,cacop_icache,cacop_addr,cacop_code,br_taken} <= 'b0;
             wb_vaddr <= 32'b0;
             ws_csr_collect <= 'b0;
             ws_csr_we <= 1'b0;
@@ -109,7 +110,7 @@ module WBreg(
         if (ms_to_ws_valid & ws_allowin) begin
             ws_pc <= ms_pc;
             {ws_rf_we, ws_rf_waddr, ws_rf_wdata} <= ms_rf_collect;
-            {ws_except,s1_found,s1_index,inst_tlbsrch,inst_tlbrd,inst_tlbwr,inst_tlbfill,inst_invtlb,cacop_icache,cacop_addr,cacop_code} <= ms_to_ws_bus;
+            {ws_except,s1_found,s1_index,inst_tlbsrch,inst_tlbrd,inst_tlbwr,inst_tlbfill,inst_invtlb,cacop_icache,cacop_addr,cacop_code,br_taken} <= ms_to_ws_bus;
             wb_vaddr <= vaddr;
             ws_csr_collect <= ms_to_ws_csr_collect;
             ws_csr_we <=  ms_to_ws_csr_collect[`CSR_WE];

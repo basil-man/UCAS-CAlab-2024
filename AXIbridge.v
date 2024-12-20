@@ -387,7 +387,7 @@ module AXI_bridge(
     assign awcache = 'b0;
     assign awprot  = 'b0;
     assign wid     = 'b1;
-    assign wlast   = ~cacheable_reg ? 1'b1:(wdata_cnt == 2'b11);
+    assign wlast   = (awlen=='d3)?wdata_cnt==awlen:~cacheable_reg ? 1'b1:(wdata_cnt == 2'b11);
 
     //写请求&写数据通道信号逻辑
     assign awvalid = w_state_start | w_state_data;
@@ -421,6 +421,16 @@ module AXI_bridge(
         if(~aresetn)begin
             wdata_cnt <= 2'b0;
         end else if((w_state_addr|w_state_start )& wready)begin
+            wdata_cnt <= wdata_cnt + 2'b1;
+        end
+    end
+
+    always@(posedge aclk)begin
+        if(~aresetn)begin
+            wdata_cnt <= 2'b0;
+        end else if(wvalid & wready & wlast)begin
+            wdata_cnt <= 2'b0;
+        end else if (wvalid & wready)begin
             wdata_cnt <= wdata_cnt + 2'b1;
         end
     end

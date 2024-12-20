@@ -551,7 +551,8 @@ module IDreg(
                             inst_invtlb, //5 bit total
                             rj,
                             cacop_code,
-                            inst_cacop
+                            inst_cacop,
+                            br_taken
                             };
 
     assign mem_inst_bus =   {

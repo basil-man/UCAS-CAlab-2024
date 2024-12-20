@@ -72,7 +72,8 @@ module csr(
     output wire [31:0]              csr_crmd_data,
     output wire [31:0]              csr_dmw0_data,
     output wire [31:0]              csr_dmw1_data,
-    output wire [31:0]              csr_asid_data
+    output wire [31:0]              csr_asid_data,
+    input wire br_taken
 );
     wire [ 7: 0] hw_int_in;
     wire         ipi_int_in;
