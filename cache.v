@@ -257,7 +257,7 @@ module cache(
     assign tagv_we[1] = (cacop_hit_invalidate_flush & current_state == MISS & next_state ==REPLACE) ? hit_way[1] :
                         (cacop_tagv_flush | cacop_index_invalidate_flush & current_state == MISS & next_state ==REPLACE) ? cacop_addr_reg[0]==1 : 
                         ret_valid & ret_last[0] & (replace_way[index_reg] == 1)& cacheable_reg;
-    assign tagv_addr  = (cacop_hit_invalidate_flush) ? cacop_addr_reg[11:4] :
+    assign tagv_addr  = (cacop_hit_invalidate_flush) ? (cacop_req ? cacop_addr[11:4] :cacop_addr_reg[11:4]) :
                         (cacop_tagv_flush | cacop_index_invalidate_flush) ? cacop_addr_reg[11:4] : 
                         (current_state == IDLE || current_state == LOOKUP) ? index : index_reg;
     assign tagv_wdata = cacop_hit_invalidate_flush ? {tagv_rdata[~hit_way[0]][20:1], 1'b0} :

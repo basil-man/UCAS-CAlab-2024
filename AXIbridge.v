@@ -417,13 +417,13 @@ module AXI_bridge(
     end
     assign wdata = wdata_reg[32*wdata_cnt +: 32];
 
-    always@(posedge aclk)begin
-        if(~aresetn)begin
-            wdata_cnt <= 2'b0;
-        end else if((w_state_addr|w_state_start )& wready)begin
-            wdata_cnt <= wdata_cnt + 2'b1;
-        end
-    end
+    // always@(posedge aclk)begin
+    //     if(~aresetn)begin
+    //         wdata_cnt <= 2'b0;
+    //     end else if((w_state_addr|w_state_start )& wready)begin
+    //         wdata_cnt <= wdata_cnt + 2'b1;
+    //     end
+    // end
 
     always@(posedge aclk)begin
         if(~aresetn)begin
